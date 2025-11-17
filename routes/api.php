@@ -45,6 +45,28 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/me', [AuthController::class, 'me']);
     
+    
+    // Orders and Payments (Admin & Sales)
+    // Use OrderManagementController for creating orders (with payment integration)
+    Route::post('/orders', [App\Http\Controllers\OrderManagementController::class, 'store']);
+    Route::get('/orders/{id}', [App\Http\Controllers\OrderManagementController::class, 'show']);
+    Route::put('/orders/{id}/status', [App\Http\Controllers\OrderManagementController::class, 'updateStatus']);
+    
+    // Other order routes (index, update, delete) use OrderController
+    Route::get('/orders', [App\Http\Controllers\Api\OrderController::class, 'index']);
+    Route::put('/orders/{order}', [App\Http\Controllers\Api\OrderController::class, 'update']);
+    Route::delete('/orders/{order}', [App\Http\Controllers\Api\OrderController::class, 'destroy']);
+    
+    Route::patch('orders/{order}/status', [App\Http\Controllers\Api\OrderController::class, 'updateStatus']);
+    Route::apiResource('payment-transactions', App\Http\Controllers\Api\PaymentTransactionController::class);
+    
+    // Client routes
+    Route::get('/clients', [App\Http\Controllers\Api\ClientController::class, 'index']);
+    Route::post('/clients', [App\Http\Controllers\Api\ClientController::class, 'store']);
+    
+    // Package routes
+    Route::get('/packages-list', [App\Http\Controllers\Api\PackageController::class, 'index']);
+    
     // Transaction routes
     Route::apiResource('transactions', TransactionController::class);
     Route::get('/transactions/{transaction}/pdf', [TransactionController::class, 'exportPdf']);
@@ -85,7 +107,16 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     // Orders and Payments (Admin & Sales)
-    Route::apiResource('orders', App\Http\Controllers\Api\OrderController::class);
+    // Use OrderManagementController for creating orders (with payment integration)
+    Route::post('/orders', [App\Http\Controllers\OrderManagementController::class, 'store']);
+    Route::get('/orders/{id}', [App\Http\Controllers\OrderManagementController::class, 'show']);
+    Route::put('/orders/{id}/status', [App\Http\Controllers\OrderManagementController::class, 'updateStatus']);
+    
+    // Other order routes (index, update, delete) use OrderController
+    Route::get('/orders', [App\Http\Controllers\Api\OrderController::class, 'index']);
+    Route::put('/orders/{order}', [App\Http\Controllers\Api\OrderController::class, 'update']);
+    Route::delete('/orders/{order}', [App\Http\Controllers\Api\OrderController::class, 'destroy']);
+    
     Route::patch('orders/{order}/status', [App\Http\Controllers\Api\OrderController::class, 'updateStatus']);
     Route::apiResource('payment-transactions', App\Http\Controllers\Api\PaymentTransactionController::class);
     Route::post('payment-transactions/{paymentTransaction}/verify', [App\Http\Controllers\Api\PaymentTransactionController::class, 'verify']);

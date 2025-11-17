@@ -1,16 +1,16 @@
+import { Link, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import { Transaction, transactionService } from '../../services/transactionService';
 
-export const MyTransactionsPage: React.FC = () => {
+const MyTransactionsPage: React.FC = () => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
     const [filter, setFilter] = useState<string>('all');
     const [searchTerm, setSearchTerm] = useState('');
 
-    const { user, logout } = useAuth();
+    const { auth } = usePage<{ auth: { user: { id: number; name: string; email: string; role: string } } }>().props;
+    const user = auth?.user;
 
     useEffect(() => {
         fetchTransactions();
@@ -96,7 +96,7 @@ export const MyTransactionsPage: React.FC = () => {
                             <h1 className="text-3xl font-bold text-gray-900">My Transactions</h1>
                         </div>
                         <nav className="flex items-center space-x-4">
-                            <Link to="/" className="text-gray-700 hover:text-blue-600">
+                            <Link href="/" className="text-gray-700 hover:text-blue-600">
                                 Home
                             </Link>
                             <span className="text-gray-700">Welcome, {user?.name}</span>
@@ -257,3 +257,5 @@ export const MyTransactionsPage: React.FC = () => {
         </div>
     );
 };
+
+export default MyTransactionsPage;

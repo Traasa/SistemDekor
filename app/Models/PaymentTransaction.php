@@ -12,6 +12,7 @@ class PaymentTransaction extends Model
         'amount',
         'payment_type',
         'payment_date',
+        'payment_method',
         'status',
         'proof_url',
         'notes',

@@ -1,7 +1,8 @@
+import { Link } from '@inertiajs/react';
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { AdminLayout } from '../../layouts/AdminLayout';
 
-export const Dashboard: React.FC = () => {
+const Dashboard: React.FC = () => {
     const stats = [
         {
             name: 'Total Order',
@@ -71,148 +72,155 @@ export const Dashboard: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
-            {/* Stats Grid */}
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-                {stats.map((stat) => (
-                    <Link key={stat.name} to={stat.path} className="group">
-                        <div className="overflow-hidden rounded-xl bg-white p-6 shadow-sm transition-all hover:shadow-lg">
-                            <div className="flex items-center justify-between">
-                                <div>
-                                    <p className="text-sm font-medium text-gray-600">{stat.name}</p>
-                                    <p className="mt-2 text-3xl font-bold text-gray-900">{stat.value}</p>
-                                    <p className={`mt-1 text-sm ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
-                                        {stat.change} dari bulan lalu
-                                    </p>
-                                </div>
-                                <div
-                                    className={`flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br ${stat.color} text-3xl text-white shadow-lg`}
-                                >
-                                    {stat.icon}
+        <AdminLayout>
+            <div className="space-y-6">
+                {/* Stats Grid */}
+                <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+                    {stats.map((stat) => (
+                        <Link key={stat.name} href={stat.path} className="group">
+                            <div className="overflow-hidden rounded-xl bg-white p-6 shadow-sm transition-all hover:shadow-lg">
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-sm font-medium text-gray-600">{stat.name}</p>
+                                        <p className="mt-2 text-3xl font-bold text-gray-900">{stat.value}</p>
+                                        <p className={`mt-1 text-sm ${stat.change.startsWith('+') ? 'text-green-600' : 'text-red-600'}`}>
+                                            {stat.change} dari bulan lalu
+                                        </p>
+                                    </div>
+                                    <div
+                                        className={`flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br ${stat.color} text-3xl text-white shadow-lg`}
+                                    >
+                                        {stat.icon}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </Link>
-                ))}
-            </div>
-
-            {/* Quick Actions */}
-            <div className="rounded-xl bg-white p-6 shadow-sm">
-                <h2 className="mb-4 text-lg font-bold text-gray-900">Quick Actions</h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    {quickActions.map((action) => (
-                        <Link
-                            key={action.name}
-                            to={action.path}
-                            className={`flex items-center space-x-3 rounded-lg ${action.color} p-4 text-white transition-all hover:scale-105`}
-                        >
-                            <span className="text-2xl">{action.icon}</span>
-                            <span className="font-semibold">{action.name}</span>
                         </Link>
                     ))}
                 </div>
-            </div>
 
-            <div className="grid gap-6 lg:grid-cols-2">
-                {/* Recent Orders */}
+                {/* Quick Actions */}
                 <div className="rounded-xl bg-white p-6 shadow-sm">
-                    <div className="mb-4 flex items-center justify-between">
-                        <h2 className="text-lg font-bold text-gray-900">Recent Orders</h2>
-                        <Link to="/admin/orders" className="text-sm font-medium text-[#D4AF37] hover:underline">
-                            Lihat Semua →
-                        </Link>
-                    </div>
-                    <div className="space-y-3">
-                        {recentOrders.map((order) => (
-                            <div key={order.id} className="flex items-center justify-between rounded-lg border border-gray-200 p-4 hover:bg-gray-50">
-                                <div className="flex-1">
-                                    <div className="flex items-center justify-between">
-                                        <p className="font-semibold text-gray-900">{order.client}</p>
-                                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(order.status)}`}>
-                                            {order.status}
-                                        </span>
-                                    </div>
-                                    <p className="mt-1 text-sm text-gray-600">
-                                        {order.event} • {order.date}
-                                    </p>
-                                    <p className="mt-1 text-sm font-semibold text-[#D4AF37]">{order.amount}</p>
-                                </div>
-                            </div>
+                    <h2 className="mb-4 text-lg font-bold text-gray-900">Quick Actions</h2>
+                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {quickActions.map((action) => (
+                            <Link
+                                key={action.name}
+                                href={action.path}
+                                className={`flex items-center space-x-3 rounded-lg ${action.color} p-4 text-white transition-all hover:scale-105`}
+                            >
+                                <span className="text-2xl">{action.icon}</span>
+                                <span className="font-semibold">{action.name}</span>
+                            </Link>
                         ))}
                     </div>
                 </div>
 
-                {/* Upcoming Events */}
-                <div className="rounded-xl bg-white p-6 shadow-sm">
-                    <div className="mb-4 flex items-center justify-between">
-                        <h2 className="text-lg font-bold text-gray-900">Upcoming Events</h2>
-                        <Link to="/admin/events" className="text-sm font-medium text-[#D4AF37] hover:underline">
-                            Lihat Kalender →
-                        </Link>
-                    </div>
-                    <div className="space-y-3">
-                        {upcomingEvents.map((event, index) => (
-                            <div key={index} className="rounded-lg border-l-4 border-[#D4AF37] bg-gray-50 p-4">
-                                <div className="flex items-start justify-between">
+                <div className="grid gap-6 lg:grid-cols-2">
+                    {/* Recent Orders */}
+                    <div className="rounded-xl bg-white p-6 shadow-sm">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-gray-900">Recent Orders</h2>
+                            <Link href="/admin/orders" className="text-sm font-medium text-[#D4AF37] hover:underline">
+                                Lihat Semua →
+                            </Link>
+                        </div>
+                        <div className="space-y-3">
+                            {recentOrders.map((order) => (
+                                <div
+                                    key={order.id}
+                                    className="flex items-center justify-between rounded-lg border border-gray-200 p-4 hover:bg-gray-50"
+                                >
                                     <div className="flex-1">
-                                        <p className="font-semibold text-gray-900">{event.name}</p>
+                                        <div className="flex items-center justify-between">
+                                            <p className="font-semibold text-gray-900">{order.client}</p>
+                                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${getStatusColor(order.status)}`}>
+                                                {order.status}
+                                            </span>
+                                        </div>
                                         <p className="mt-1 text-sm text-gray-600">
-                                            📅 {event.date} • 🕐 {event.time}
+                                            {order.event} • {order.date}
                                         </p>
-                                        <p className="mt-1 text-sm text-gray-600">📍 {event.venue}</p>
+                                        <p className="mt-1 text-sm font-semibold text-[#D4AF37]">{order.amount}</p>
                                     </div>
-                                    <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">{event.status}</span>
                                 </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* Upcoming Events */}
+                    <div className="rounded-xl bg-white p-6 shadow-sm">
+                        <div className="mb-4 flex items-center justify-between">
+                            <h2 className="text-lg font-bold text-gray-900">Upcoming Events</h2>
+                            <Link href="/admin/events" className="text-sm font-medium text-[#D4AF37] hover:underline">
+                                Lihat Kalender →
+                            </Link>
+                        </div>
+                        <div className="space-y-3">
+                            {upcomingEvents.map((event, index) => (
+                                <div key={index} className="rounded-lg border-l-4 border-[#D4AF37] bg-gray-50 p-4">
+                                    <div className="flex items-start justify-between">
+                                        <div className="flex-1">
+                                            <p className="font-semibold text-gray-900">{event.name}</p>
+                                            <p className="mt-1 text-sm text-gray-600">
+                                                📅 {event.date} • 🕐 {event.time}
+                                            </p>
+                                            <p className="mt-1 text-sm text-gray-600">📍 {event.venue}</p>
+                                        </div>
+                                        <span className="rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-800">{event.status}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Additional Info Grid */}
+                <div className="grid gap-6 lg:grid-cols-3">
+                    {/* Inventory Alert */}
+                    <div className="rounded-xl bg-gradient-to-br from-red-500 to-red-600 p-6 text-white shadow-lg">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium opacity-90">Low Stock Alert</p>
+                                <p className="mt-2 text-3xl font-bold">12 Items</p>
+                                <Link href="/admin/inventory/alerts" className="mt-3 inline-block text-sm font-semibold underline">
+                                    Cek Sekarang →
+                                </Link>
                             </div>
-                        ))}
+                            <span className="text-5xl">⚠️</span>
+                        </div>
+                    </div>
+
+                    {/* Pending Payments */}
+                    <div className="rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 text-white shadow-lg">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium opacity-90">Pending Payments</p>
+                                <p className="mt-2 text-3xl font-bold">8 Orders</p>
+                                <Link href="/admin/payments" className="mt-3 inline-block text-sm font-semibold underline">
+                                    Review →
+                                </Link>
+                            </div>
+                            <span className="text-5xl">💳</span>
+                        </div>
+                    </div>
+
+                    {/* Active Vendors */}
+                    <div className="rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 p-6 text-white shadow-lg">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <p className="text-sm font-medium opacity-90">Active Vendors</p>
+                                <p className="mt-2 text-3xl font-bold">24</p>
+                                <Link href="/admin/vendors" className="mt-3 inline-block text-sm font-semibold underline">
+                                    Manage →
+                                </Link>
+                            </div>
+                            <span className="text-5xl">🤝</span>
+                        </div>
                     </div>
                 </div>
             </div>
-
-            {/* Additional Info Grid */}
-            <div className="grid gap-6 lg:grid-cols-3">
-                {/* Inventory Alert */}
-                <div className="rounded-xl bg-gradient-to-br from-red-500 to-red-600 p-6 text-white shadow-lg">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium opacity-90">Low Stock Alert</p>
-                            <p className="mt-2 text-3xl font-bold">12 Items</p>
-                            <Link to="/admin/inventory/alerts" className="mt-3 inline-block text-sm font-semibold underline">
-                                Cek Sekarang →
-                            </Link>
-                        </div>
-                        <span className="text-5xl">⚠️</span>
-                    </div>
-                </div>
-
-                {/* Pending Payments */}
-                <div className="rounded-xl bg-gradient-to-br from-yellow-500 to-yellow-600 p-6 text-white shadow-lg">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium opacity-90">Pending Payments</p>
-                            <p className="mt-2 text-3xl font-bold">8 Orders</p>
-                            <Link to="/admin/payments" className="mt-3 inline-block text-sm font-semibold underline">
-                                Review →
-                            </Link>
-                        </div>
-                        <span className="text-5xl">💳</span>
-                    </div>
-                </div>
-
-                {/* Active Vendors */}
-                <div className="rounded-xl bg-gradient-to-br from-purple-500 to-purple-600 p-6 text-white shadow-lg">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-sm font-medium opacity-90">Active Vendors</p>
-                            <p className="mt-2 text-3xl font-bold">24</p>
-                            <Link to="/admin/vendors" className="mt-3 inline-block text-sm font-semibold underline">
-                                Manage →
-                            </Link>
-                        </div>
-                        <span className="text-5xl">🤝</span>
-                    </div>
-                </div>
-            </div>
-        </div>
+        </AdminLayout>
     );
 };
+
+export default Dashboard;

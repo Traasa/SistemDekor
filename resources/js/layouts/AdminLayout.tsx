@@ -1,6 +1,5 @@
+import { Link, router, usePage } from '@inertiajs/react';
 import React, { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 
 interface AdminLayoutProps {
     children: React.ReactNode;
@@ -17,9 +16,9 @@ interface MenuItem {
 export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [openMenus, setOpenMenus] = useState<string[]>(['dashboard']);
-    const location = useLocation();
-    const navigate = useNavigate();
-    const { user, logout } = useAuth();
+    const { auth, url } = usePage<{ auth: { user: { id: number; name: string; email: string; role: string } }; url: string }>().props;
+    const user = auth?.user;
+    const currentPath = url;
 
     const menuItems: MenuItem[] = [
         {
@@ -144,8 +143,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
     const handleLogout = async () => {
         try {
-            await logout();
-            navigate('/login');
+            router.post('/logout');
         } catch (error) {
             console.error('Logout failed:', error);
         }
@@ -153,7 +151,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
     const isActive = (path?: string) => {
         if (!path) return false;
-        return location.pathname === path;
+        return currentPath === path;
     };
 
     return (
@@ -182,7 +180,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                             {item.path ? (
                                 // Single menu item
                                 <Link
-                                    to={item.path}
+                                    href={item.path}
                                     className={`flex items-center justify-between rounded-lg px-3 py-2 transition-colors ${
                                         isActive(item.path) ? 'bg-[#D4AF37] text-white' : 'text-gray-300 hover:bg-gray-800'
                                     }`}
@@ -222,7 +220,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                                             {item.children.map((child) => (
                                                 <Link
                                                     key={child.name}
-                                                    to={child.path || '#'}
+                                                    href={child.path || '#'}
                                                     className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
                                                         isActive(child.path)
                                                             ? 'bg-[#D4AF37] text-white'

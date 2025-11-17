@@ -1,13 +1,13 @@
+import { Link, router, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../contexts/AuthContext';
 import { CompanyProfile, companyProfileService } from '../services/companyProfileService';
 
-export const HomePage: React.FC = () => {
+const HomePage: React.FC = () => {
     const [profile, setProfile] = useState<CompanyProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isScrolled, setIsScrolled] = useState(false);
-    const { user, logout } = useAuth();
+    const { auth } = usePage<{ auth: { user: { id: number; name: string; email: string; role: string } } }>().props;
+    const user = auth?.user;
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -35,7 +35,7 @@ export const HomePage: React.FC = () => {
 
     const handleLogout = async () => {
         try {
-            await logout();
+            router.post('/logout');
         } catch (error) {
             console.error('Logout failed:', error);
         }
@@ -58,7 +58,7 @@ export const HomePage: React.FC = () => {
             <header className={`fixed top-0 z-50 w-full transition-all duration-300 ${isScrolled ? 'bg-white shadow-md' : 'bg-transparent'}`}>
                 <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between py-4">
-                        <Link to="/" className="flex items-center space-x-2">
+                        <Link href="/" className="flex items-center space-x-2">
                             <div className="h-10 w-10 rounded-full bg-gradient-to-br from-[#D4AF37] to-[#EC4899] p-0.5">
                                 <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
                                     <span className="font-serif text-xl font-bold text-[#D4AF37]">D</span>
@@ -105,7 +105,7 @@ export const HomePage: React.FC = () => {
                                 <div className="flex items-center space-x-4">
                                     {user.role === 'admin' && (
                                         <Link
-                                            to="/admin"
+                                            href="/admin"
                                             className="rounded-full bg-[#D4AF37] px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-[#B8941F]"
                                         >
                                             Admin Panel
@@ -113,7 +113,7 @@ export const HomePage: React.FC = () => {
                                     )}
                                     {user.role === 'user' && (
                                         <Link
-                                            to="/my-transactions"
+                                            href="/my-transactions"
                                             className="rounded-full bg-[#EC4899] px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-[#DB2777]"
                                         >
                                             My Orders
@@ -127,12 +127,20 @@ export const HomePage: React.FC = () => {
                                     </button>
                                 </div>
                             ) : (
-                                <Link
-                                    to="/login"
-                                    className="rounded-full bg-[#D4AF37] px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-[#B8941F]"
-                                >
-                                    Hubungi Kami
-                                </Link>
+                                <div className="flex items-center space-x-4">
+                                    <Link
+                                        href="/login"
+                                        className="rounded-full bg-[#D4AF37] px-6 py-2 text-sm font-semibold text-white transition-all hover:bg-[#B8941F]"
+                                    >
+                                        Login
+                                    </Link>
+                                    <Link
+                                        href="/register"
+                                        className="rounded-full border-2 border-[#D4AF37] px-6 py-2 text-sm font-semibold text-[#D4AF37] transition-all hover:bg-[#D4AF37] hover:text-white"
+                                    >
+                                        Register
+                                    </Link>
+                                </div>
                             )}
                         </nav>
                     </div>
@@ -404,3 +412,5 @@ export const HomePage: React.FC = () => {
         </div>
     );
 };
+
+export default HomePage;

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 
-export const InventoryItemsPage: React.FC = () => {
+const InventoryItemsPage: React.FC = () => {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
     const items = [
@@ -277,3 +277,5 @@ export const InventoryItemsPage: React.FC = () => {
         </div>
     );
 };
+
+export default InventoryItemsPage;

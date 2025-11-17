@@ -10,15 +10,21 @@ use Illuminate\Support\Str;
 class Order extends Model
 {
     protected $fillable = [
+        'order_number',
         'client_id',
         'package_id',
         'user_id',
+        'event_name',
+        'event_type',
         'event_date',
         'event_address',
+        'guest_count',
         'total_price',
+        'dp_amount',
         'status',
         'verification_token',
         'notes',
+        'special_requests',
     ];
 
     protected $casts = [
@@ -27,7 +33,7 @@ class Order extends Model
     ];
 
     /**
-     * Generate verification token automatically when creating
+     * Generate verification token and order number automatically when creating
      */
     protected static function boot()
     {
@@ -36,6 +42,9 @@ class Order extends Model
         static::creating(function ($order) {
             if (empty($order->verification_token)) {
                 $order->verification_token = Str::random(64);
+            }
+            if (empty($order->order_number)) {
+                $order->order_number = 'ORD-' . date('Ymd') . '-' . strtoupper(Str::random(6));
             }
         });
     }

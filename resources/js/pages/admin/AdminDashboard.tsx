@@ -1,10 +1,9 @@
+import { Link, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
 import { CompanyProfile, companyProfileService } from '../../services/companyProfileService';
 import { Transaction, transactionService } from '../../services/transactionService';
 
-export const AdminDashboard: React.FC = () => {
+const AdminDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'transactions' | 'profile'>('transactions');
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [profile, setProfile] = useState<CompanyProfile | null>(null);
@@ -14,7 +13,8 @@ export const AdminDashboard: React.FC = () => {
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [error, setError] = useState('');
 
-    const { user, logout } = useAuth();
+    const { auth } = usePage<{ auth: { user: { id: number; name: string; email: string; role: string } } }>().props;
+    const user = auth?.user;
 
     useEffect(() => {
         fetchData();
@@ -89,7 +89,7 @@ export const AdminDashboard: React.FC = () => {
                             <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
                         </div>
                         <nav className="flex items-center space-x-4">
-                            <Link to="/" className="text-gray-700 hover:text-blue-600">
+                            <Link href="/" className="text-gray-700 hover:text-blue-600">
                                 Home
                             </Link>
                             <span className="text-gray-700">Welcome, {user?.name}</span>
@@ -448,3 +448,5 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, users,
         </div>
     );
 };
+
+export default AdminDashboard;

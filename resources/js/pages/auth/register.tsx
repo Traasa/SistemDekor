@@ -1,100 +1,129 @@
-import RegisteredUserController from '@/actions/App/Http/Controllers/Auth/RegisteredUserController';
-import { login } from '@/routes';
-import { Form, Head } from '@inertiajs/react';
-import { LoaderCircle } from 'lucide-react';
+import { useForm } from '@inertiajs/react';
+import React, { FormEventHandler } from 'react';
 
-import InputError from '@/components/input-error';
-import TextLink from '@/components/text-link';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import AuthLayout from '@/layouts/auth-layout';
+const Register: React.FC = () => {
+    const { data, setData, post, processing, errors, reset } = useForm({
+        name: '',
+        email: '',
+        password: '',
+        password_confirmation: '',
+    });
 
-export default function Register() {
+    const submit: FormEventHandler = (e) => {
+        e.preventDefault();
+
+        post('/register', {
+            onFinish: () => reset('password', 'password_confirmation'),
+        });
+    };
+
     return (
-        <AuthLayout title="Create an account" description="Enter your details below to create your account">
-            <Head title="Register" />
-            <Form
-                {...RegisteredUserController.store.form()}
-                resetOnSuccess={['password', 'password_confirmation']}
-                disableWhileProcessing
-                className="flex flex-col gap-6"
-            >
-                {({ processing, errors }) => (
-                    <>
-                        <div className="grid gap-6">
-                            <div className="grid gap-2">
-                                <Label htmlFor="name">Name</Label>
-                                <Input
-                                    id="name"
-                                    type="text"
-                                    required
-                                    autoFocus
-                                    tabIndex={1}
-                                    autoComplete="name"
-                                    name="name"
-                                    placeholder="Full name"
-                                />
-                                <InputError message={errors.name} className="mt-2" />
-                            </div>
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#F5F1E8] via-white to-[#F5F1E8]">
+            <div className="w-full max-w-md">
+                <div className="rounded-2xl bg-white p-8 shadow-2xl">
+                    {/* Logo */}
+                    <div className="mb-8 text-center">
+                        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#D4AF37] to-[#EC4899]">
+                            <span className="font-serif text-3xl font-bold text-white">D</span>
+                        </div>
+                        <h1 className="font-serif text-3xl font-bold text-gray-900">Diamond Wedding</h1>
+                        <p className="mt-2 text-sm text-gray-600">Daftar Akun Baru</p>
+                    </div>
 
-                            <div className="grid gap-2">
-                                <Label htmlFor="email">Email address</Label>
-                                <Input
-                                    id="email"
-                                    type="email"
-                                    required
-                                    tabIndex={2}
-                                    autoComplete="email"
-                                    name="email"
-                                    placeholder="email@example.com"
-                                />
-                                <InputError message={errors.email} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="password">Password</Label>
-                                <Input
-                                    id="password"
-                                    type="password"
-                                    required
-                                    tabIndex={3}
-                                    autoComplete="new-password"
-                                    name="password"
-                                    placeholder="Password"
-                                />
-                                <InputError message={errors.password} />
-                            </div>
-
-                            <div className="grid gap-2">
-                                <Label htmlFor="password_confirmation">Confirm password</Label>
-                                <Input
-                                    id="password_confirmation"
-                                    type="password"
-                                    required
-                                    tabIndex={4}
-                                    autoComplete="new-password"
-                                    name="password_confirmation"
-                                    placeholder="Confirm password"
-                                />
-                                <InputError message={errors.password_confirmation} />
-                            </div>
-
-                            <Button type="submit" className="mt-2 w-full" tabIndex={5} data-test="register-user-button">
-                                {processing && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                                Create account
-                            </Button>
+                    <form onSubmit={submit}>
+                        {/* Name */}
+                        <div className="mb-4">
+                            <label htmlFor="name" className="mb-2 block text-sm font-medium text-gray-700">
+                                Nama Lengkap
+                            </label>
+                            <input
+                                id="name"
+                                type="text"
+                                name="name"
+                                value={data.name}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                autoComplete="name"
+                                onChange={(e) => setData('name', e.target.value)}
+                                required
+                            />
+                            {errors.name && <p className="mt-2 text-sm text-red-600">{errors.name}</p>}
                         </div>
 
-                        <div className="text-center text-sm text-muted-foreground">
-                            Already have an account?{' '}
-                            <TextLink href={login()} tabIndex={6}>
-                                Log in
-                            </TextLink>
+                        {/* Email */}
+                        <div className="mb-4">
+                            <label htmlFor="email" className="mb-2 block text-sm font-medium text-gray-700">
+                                Email
+                            </label>
+                            <input
+                                id="email"
+                                type="email"
+                                name="email"
+                                value={data.email}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                autoComplete="username"
+                                onChange={(e) => setData('email', e.target.value)}
+                                required
+                            />
+                            {errors.email && <p className="mt-2 text-sm text-red-600">{errors.email}</p>}
                         </div>
-                    </>
-                )}
-            </Form>
-        </AuthLayout>
+
+                        {/* Password */}
+                        <div className="mb-4">
+                            <label htmlFor="password" className="mb-2 block text-sm font-medium text-gray-700">
+                                Password
+                            </label>
+                            <input
+                                id="password"
+                                type="password"
+                                name="password"
+                                value={data.password}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                autoComplete="new-password"
+                                onChange={(e) => setData('password', e.target.value)}
+                                required
+                            />
+                            {errors.password && <p className="mt-2 text-sm text-red-600">{errors.password}</p>}
+                        </div>
+
+                        {/* Password Confirmation */}
+                        <div className="mb-6">
+                            <label htmlFor="password_confirmation" className="mb-2 block text-sm font-medium text-gray-700">
+                                Konfirmasi Password
+                            </label>
+                            <input
+                                id="password_confirmation"
+                                type="password"
+                                name="password_confirmation"
+                                value={data.password_confirmation}
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                autoComplete="new-password"
+                                onChange={(e) => setData('password_confirmation', e.target.value)}
+                                required
+                            />
+                            {errors.password_confirmation && <p className="mt-2 text-sm text-red-600">{errors.password_confirmation}</p>}
+                        </div>
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            disabled={processing}
+                            className="w-full rounded-lg bg-gradient-to-r from-[#D4AF37] to-[#EC4899] py-3 font-semibold text-white transition-all hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            {processing ? 'Mendaftar...' : 'Daftar'}
+                        </button>
+
+                        {/* Login Link */}
+                        <div className="mt-4 text-center">
+                            <span className="text-sm text-gray-600">Sudah punya akun? </span>
+                            <a href="/login" className="text-sm font-semibold text-[#D4AF37] hover:underline">
+                                Login
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
     );
-}
+};
+
+export default Register;

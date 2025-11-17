@@ -3,9 +3,10 @@ import { UserFilters } from '../../components/admin/UserFilters';
 import { UserModal } from '../../components/admin/UserModal';
 import { UserStats } from '../../components/admin/UserStats';
 import { UserTable } from '../../components/admin/UserTable';
+import { AdminLayout } from '../../layouts/AdminLayout';
 import { CreateUserData, User, userService } from '../../services/apiService';
 
-export const UsersPage: React.FC = () => {
+const UsersPage: React.FC = () => {
     const [users, setUsers] = useState<User[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterRole, setFilterRole] = useState('all');
@@ -146,41 +147,45 @@ export const UsersPage: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Manajemen User</h1>
-                    <p className="mt-1 text-sm text-gray-600">Kelola semua user dan role mereka</p>
+        <AdminLayout>
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Manajemen User</h1>
+                        <p className="mt-1 text-sm text-gray-600">Kelola semua user dan role mereka</p>
+                    </div>
                 </div>
+
+                {/* Stats Component */}
+                <UserStats users={users} />
+
+                {/* Filters Component */}
+                <UserFilters
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    filterRole={filterRole}
+                    setFilterRole={setFilterRole}
+                    onSearch={handleSearch}
+                    onAddNew={() => handleOpenModal()}
+                />
+
+                {/* Table Component */}
+                <UserTable users={users} isLoading={isLoading} onEdit={handleOpenModal} onDelete={handleDelete} />
+
+                {/* Modal Component */}
+                <UserModal
+                    isOpen={isModalOpen}
+                    onClose={handleCloseModal}
+                    editingUser={editingUser}
+                    formData={formData}
+                    setFormData={setFormData}
+                    formErrors={formErrors}
+                    onSubmit={handleSubmit}
+                />
             </div>
-
-            {/* Stats Component */}
-            <UserStats users={users} />
-
-            {/* Filters Component */}
-            <UserFilters
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                filterRole={filterRole}
-                setFilterRole={setFilterRole}
-                onSearch={handleSearch}
-                onAddNew={() => handleOpenModal()}
-            />
-
-            {/* Table Component */}
-            <UserTable users={users} isLoading={isLoading} onEdit={handleOpenModal} onDelete={handleDelete} />
-
-            {/* Modal Component */}
-            <UserModal
-                isOpen={isModalOpen}
-                onClose={handleCloseModal}
-                editingUser={editingUser}
-                formData={formData}
-                setFormData={setFormData}
-                formErrors={formErrors}
-                onSubmit={handleSubmit}
-            />
-        </div>
+        </AdminLayout>
     );
 };
+
+export default UsersPage;

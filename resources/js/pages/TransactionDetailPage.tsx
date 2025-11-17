@@ -1,18 +1,17 @@
+import { Link } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
 import { Transaction, transactionService } from '../services/transactionService';
 
-export const TransactionDetailPage: React.FC = () => {
-    const { id } = useParams<{ id: string }>();
+const TransactionDetailPage: React.FC<{ transactionId: number }> = ({ transactionId }) => {
     const [transaction, setTransaction] = useState<Transaction | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
 
     useEffect(() => {
-        if (id) {
-            fetchTransaction(parseInt(id));
+        if (transactionId) {
+            fetchTransaction(transactionId);
         }
-    }, [id]);
+    }, [transactionId]);
 
     const fetchTransaction = async (transactionId: number) => {
         setIsLoading(true);
@@ -78,7 +77,7 @@ export const TransactionDetailPage: React.FC = () => {
                                 {error || 'The transaction you are looking for does not exist or you do not have permission to view it.'}
                             </p>
                             <div className="mt-6">
-                                <Link to="/" className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
+                                <Link href="/" className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
                                     Go Home
                                 </Link>
                             </div>
@@ -107,7 +106,7 @@ export const TransactionDetailPage: React.FC = () => {
                                 >
                                     Download PDF
                                 </button>
-                                <Link to="/" className="rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-400">
+                                <Link href="/" className="rounded-md bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-400">
                                     Back to Home
                                 </Link>
                             </div>
@@ -237,3 +236,5 @@ export const TransactionDetailPage: React.FC = () => {
         </div>
     );
 };
+
+export default TransactionDetailPage;

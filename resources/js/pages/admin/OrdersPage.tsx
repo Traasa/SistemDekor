@@ -1,11 +1,12 @@
+import { router } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { OrderFilters } from '../../components/admin/OrderFilters';
 import { OrderStats } from '../../components/admin/OrderStats';
 import { OrderTable } from '../../components/admin/OrderTable';
+import { AdminLayout } from '../../layouts/AdminLayout';
 import { Order, orderService } from '../../services/apiService';
 
-export const OrdersPage: React.FC = () => {
+const OrdersPage: React.FC = () => {
     const [orders, setOrders] = useState<Order[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [filterStatus, setFilterStatus] = useState('all');
@@ -67,58 +68,63 @@ export const OrdersPage: React.FC = () => {
     };
 
     return (
-        <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-                <div>
-                    <h1 className="text-3xl font-bold text-gray-900">Manajemen Order</h1>
-                    <p className="mt-1 text-sm text-gray-600">Kelola semua transaksi order wedding</p>
+        <AdminLayout>
+            <div className="space-y-6">
+                {/* Header */}
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-3xl font-bold text-gray-900">Manajemen Order</h1>
+                        <p className="mt-1 text-sm text-gray-600">Kelola semua transaksi order wedding</p>
+                    </div>
+                    <button
+                        onClick={() => router.visit('/admin/orders/create')}
+                        className="flex items-center space-x-2 rounded-lg bg-pink-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-pink-600"
+                    >
+                        <span>➕</span>
+                        <span>Buat Order Baru</span>
+                    </button>
                 </div>
-                <Link
-                    to="/admin/orders/create"
-                    className="rounded-lg bg-pink-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-pink-600"
-                >
-                    ➕ Buat Order Baru
-                </Link>
+
+                {/* Stats Component */}
+                <OrderStats orders={orders} />
+
+                {/* Filters Component */}
+                <OrderFilters
+                    searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
+                    filterStatus={filterStatus}
+                    setFilterStatus={setFilterStatus}
+                    onSearch={handleSearch}
+                />
+
+                {/* Table Component */}
+                <OrderTable orders={orders} isLoading={isLoading} onStatusChange={handleStatusChange} onDelete={handleDelete} />
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                    <div className="flex items-center justify-between rounded-xl bg-white px-6 py-4 shadow-sm">
+                        <button
+                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="rounded-lg bg-gray-200 px-4 py-2 font-medium text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            ← Previous
+                        </button>
+                        <span className="text-sm font-medium text-gray-700">
+                            Halaman {currentPage} dari {totalPages}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className="rounded-lg bg-gray-200 px-4 py-2 font-medium text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                            Next →
+                        </button>
+                    </div>
+                )}
             </div>
-
-            {/* Stats Component */}
-            <OrderStats orders={orders} />
-
-            {/* Filters Component */}
-            <OrderFilters
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                filterStatus={filterStatus}
-                setFilterStatus={setFilterStatus}
-                onSearch={handleSearch}
-            />
-
-            {/* Table Component */}
-            <OrderTable orders={orders} isLoading={isLoading} onStatusChange={handleStatusChange} onDelete={handleDelete} />
-
-            {/* Pagination */}
-            {totalPages > 1 && (
-                <div className="flex items-center justify-between rounded-xl bg-white px-6 py-4 shadow-sm">
-                    <button
-                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className="rounded-lg bg-gray-200 px-4 py-2 font-medium text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        ← Previous
-                    </button>
-                    <span className="text-sm font-medium text-gray-700">
-                        Halaman {currentPage} dari {totalPages}
-                    </span>
-                    <button
-                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className="rounded-lg bg-gray-200 px-4 py-2 font-medium text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                        Next →
-                    </button>
-                </div>
-            )}
-        </div>
+        </AdminLayout>
     );
 };
+
+export default OrdersPage;

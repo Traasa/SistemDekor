@@ -42,8 +42,19 @@ class OrderController extends Controller
             $query->whereDate('event_date', '<=', $request->date_to);
         }
 
-        $perPage = $request->input('per_page', 10);
-        $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
+        // Check if pagination is requested
+        if ($request->has('per_page') && $request->per_page !== 'all') {
+            $perPage = $request->input('per_page', 10);
+            $orders = $query->orderBy('created_at', 'desc')->paginate($perPage);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $orders,
+            ]);
+        }
+        
+        // Return all orders without pagination
+        $orders = $query->orderBy('created_at', 'desc')->get();
 
         return response()->json([
             'success' => true,

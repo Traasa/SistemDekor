@@ -1,72 +1,62 @@
-﻿import React, { createContext, useContext, useEffect, useState } from 'react';
+import { ReactNode, createContext, useContext, useEffect, useState } from 'react';
 import { User, authService } from '../services/authService';
 
-interface AuthContextType {
+type AuthContextType = {
     user: User | null;
     isLoading: boolean;
     isAuthenticated: boolean;
     login: (email: string, password: string) => Promise<void>;
     register: (name: string, email: string, password: string, passwordConfirmation: string) => Promise<void>;
     logout: () => Promise<void>;
-}
+};
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = () => {
+export function useAuth(): AuthContextType {
     const context = useContext(AuthContext);
     if (context === undefined) {
         throw new Error('useAuth must be used within an AuthProvider');
     }
     return context;
-};
-
-interface AuthProviderProps {
-    children: React.ReactNode;
 }
 
-export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+type Props = { children: ReactNode };
+
+export function AuthProvider(props: Props) {
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
-    const isAuthenticated = !!user;
-
     useEffect(() => {
-        const initAuth = async () => {
+        const init = async () => {
             const token = localStorage.getItem('auth_token');
-            const storedUser = localStorage.getItem('user');
-
-            if (token && storedUser) {
+            if (token) {
                 try {
-                    const response = await authService.getMe();
-                    if (response.success) {
-                        setUser(response.data);
-                    } else {
+                    const res = await authService.getMe();
+                    if (res.success) setUser(res.data);
+                    else {
                         localStorage.removeItem('auth_token');
                         localStorage.removeItem('user');
                     }
-                } catch (error) {
+                } catch {
                     localStorage.removeItem('auth_token');
                     localStorage.removeItem('user');
                 }
             }
             setIsLoading(false);
         };
-
-        initAuth();
+        init();
     }, []);
 
     const login = async (email: string, password: string) => {
         setIsLoading(true);
         try {
-            const response = await authService.login({ email, password });
-            if (response.success) {
-                const { user, token } = response.data;
+            const res = await authService.login({ email, password });
+            if (res.success) {
+                const { user: u, token } = res.data;
                 localStorage.setItem('auth_token', token);
-                localStorage.setItem('user', JSON.stringify(user));
-                setUser(user);
+                localStorage.setItem('user', JSON.stringify(u));
+                setUser(u);
             }
-        } catch (error) {
-            throw error;
         } finally {
             setIsLoading(false);
         }
@@ -75,49 +65,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const register = async (name: string, email: string, password: string, passwordConfirmation: string) => {
         setIsLoading(true);
         try {
-            const response = await authService.register({
-                name,
-                email,
-                password,
-                password_confirmation: passwordConfirmation,
-            });
-            if (response.success) {
-                const { user, token } = response.data;
+            const res = await authService.register({ name, email, password, password_confirmation: passwordConfirmation });
+            if (res.success) {
+                const { user: u, token } = res.data;
                 localStorage.setItem('auth_token', token);
-                localStorage.setItem('user', JSON.stringify(user));
-                setUser(user);
+                localStorage.setItem('user', JSON.stringify(u));
+                setUser(u);
             }
-        } catch (error) {
-            throw error;
         } finally {
             setIsLoading(false);
         }
     };
 
     const logout = async () => {
-        setIsLoading(true);
         try {
             await authService.logout();
-        } catch (error) {
-            console.error('Logout error:', error);
         } finally {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user');
             setUser(null);
-            setIsLoading(false);
         }
     };
 
-    const value: AuthContextType = {
-        user,
-        isLoading,
-        isAuthenticated,
-        login,
-        register,
-        logout,
-    };
+    const val: AuthContextType = { user, isLoading, isAuthenticated: !!user, login, register, logout };
 
-    return (
-        <AuthContext.Provider value={value}>
-            {children}
-        </AuthContext.Provider>
-    );
-};
+    return <AuthContext.Provider value={val}>{props.children}</AuthContext.Provider>;
+}
