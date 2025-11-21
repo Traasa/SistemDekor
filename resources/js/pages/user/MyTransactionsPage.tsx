@@ -58,7 +58,7 @@ const MyTransactionsPage: React.FC = () => {
 
     const handleLogout = async () => {
         try {
-            await logout();
+            router.post('/logout');
         } catch (error) {
             console.error('Logout failed:', error);
         }

@@ -39,6 +39,13 @@ Route::get('/portfolios', [App\Http\Controllers\Api\PortfolioController::class, 
 // Client verification (no auth required)
 Route::get('/verify-order/{token}', [App\Http\Controllers\Api\ClientVerificationController::class, 'show']);
 
+// Client order routes (accessible by authenticated users)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/client/orders', [App\Http\Controllers\ClientOrderController::class, 'store']);
+    Route::get('/client/orders', [App\Http\Controllers\ClientOrderController::class, 'myOrders']);
+    Route::get('/client/orders/{id}', [App\Http\Controllers\ClientOrderController::class, 'show']);
+});
+
 // Protected routes
 Route::middleware('auth:sanctum')->group(function () {
     // Auth routes

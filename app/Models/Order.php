@@ -18,10 +18,17 @@ class Order extends Model
         'event_type',
         'event_date',
         'event_address',
+        'event_location',
+        'event_theme',
         'guest_count',
         'total_price',
+        'discount',
+        'final_price',
+        'deposit_amount',
+        'remaining_amount',
         'dp_amount',
         'status',
+        'payment_status',
         'verification_token',
         'notes',
         'special_requests',
@@ -30,6 +37,11 @@ class Order extends Model
     protected $casts = [
         'event_date' => 'date',
         'total_price' => 'decimal:2',
+        'discount' => 'decimal:2',
+        'final_price' => 'decimal:2',
+        'deposit_amount' => 'decimal:2',
+        'remaining_amount' => 'decimal:2',
+        'dp_amount' => 'decimal:2',
     ];
 
     /**

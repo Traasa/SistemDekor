@@ -15,6 +15,10 @@ Route::get('/', function () {
     return Inertia::render('HomePage');
 });
 
+Route::get('/packages', function () {
+    return Inertia::render('PackagesPage');
+});
+
 Route::get('/transaction/{id}', function ($id) {
     return Inertia::render('TransactionDetailPage', ['transactionId' => $id]);
 });
@@ -24,6 +28,9 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/my-transactions', function () {
         return Inertia::render('user/MyTransactionsPage');
     });
+    
+    // Client orders page
+    Route::get('/my-orders', [App\Http\Controllers\ClientOrderController::class, 'myOrders']);
 });
 
 // Admin routes (protected + admin role check)
