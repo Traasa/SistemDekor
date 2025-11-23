@@ -67,6 +67,10 @@ const OrdersPage: React.FC = () => {
         }
     };
 
+    const handleViewDetail = (orderId: number) => {
+        router.visit(`/admin/orders/${orderId}`);
+    };
+
     return (
         <AdminLayout>
             <div className="space-y-6">
@@ -98,7 +102,13 @@ const OrdersPage: React.FC = () => {
                 />
 
                 {/* Table Component */}
-                <OrderTable orders={orders} isLoading={isLoading} onStatusChange={handleStatusChange} onDelete={handleDelete} />
+                <OrderTable
+                    orders={orders}
+                    isLoading={isLoading}
+                    onStatusChange={handleStatusChange}
+                    onDelete={handleDelete}
+                    onViewDetail={handleViewDetail}
+                />
 
                 {/* Pagination */}
                 {totalPages > 1 && (

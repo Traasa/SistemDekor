@@ -6,9 +6,10 @@ interface OrderTableProps {
     isLoading: boolean;
     onStatusChange: (orderId: number, newStatus: string) => void;
     onDelete: (orderId: number) => void;
+    onViewDetail?: (orderId: number) => void;
 }
 
-export const OrderTable: React.FC<OrderTableProps> = ({ orders, isLoading, onStatusChange, onDelete }) => {
+export const OrderTable: React.FC<OrderTableProps> = ({ orders, isLoading, onStatusChange, onDelete, onViewDetail }) => {
     const getStatusBadgeColor = (status: string) => {
         switch (status) {
             case 'pending':
@@ -112,7 +113,12 @@ export const OrderTable: React.FC<OrderTableProps> = ({ orders, isLoading, onSta
                                         <option value="cancelled">Cancelled</option>
                                     </select>
                                 </td>
-                                <td className="px-6 py-4 text-right text-sm font-medium whitespace-nowrap">
+                                <td className="space-x-2 px-6 py-4 text-right text-sm font-medium whitespace-nowrap">
+                                    {onViewDetail && (
+                                        <button onClick={() => onViewDetail(order.id)} className="font-medium text-blue-600 hover:text-blue-900">
+                                            Detail
+                                        </button>
+                                    )}
                                     <button onClick={() => onDelete(order.id)} className="text-red-600 hover:text-red-900">
                                         Hapus
                                     </button>

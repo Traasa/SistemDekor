@@ -1,6 +1,11 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ClientOrderController;
+use App\Http\Controllers\PaymentController;
+use App\Http\Controllers\RoleController;
+use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\UserActivityController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -18,6 +23,14 @@ Route::get('/', function () {
 Route::get('/packages', function () {
     return Inertia::render('PackagesPage');
 });
+
+Route::get('/gallery', function () {
+    return Inertia::render('GalleryPage');
+});
+
+// Payment upload page (public with token)
+Route::get('/payment/{token}', [PaymentController::class, 'show'])->name('payment.show');
+Route::post('/payment/{token}', [PaymentController::class, 'upload'])->name('payment.upload');
 
 Route::get('/transaction/{id}', function ($id) {
     return Inertia::render('TransactionDetailPage', ['transactionId' => $id]);
@@ -40,15 +53,27 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     });
     
     // User Management
-    Route::get('/users', function () {
-        return Inertia::render('admin/UsersPage');
-    });
-    Route::get('/roles', function () {
-        return Inertia::render('admin/roles/index');
-    });
-    Route::get('/user-activity', function () {
-        return Inertia::render('admin/user-activity/index');
-    });
+    Route::get('/users', [UserManagementController::class, 'index'])->name('admin.users.index');
+    Route::get('/users/create', [UserManagementController::class, 'create'])->name('admin.users.create');
+    Route::post('/users', [UserManagementController::class, 'store'])->name('admin.users.store');
+    Route::get('/users/{id}/edit', [UserManagementController::class, 'edit'])->name('admin.users.edit');
+    Route::put('/users/{id}', [UserManagementController::class, 'update'])->name('admin.users.update');
+    Route::delete('/users/{id}', [UserManagementController::class, 'destroy'])->name('admin.users.destroy');
+    Route::post('/users/{id}/toggle-status', [UserManagementController::class, 'toggleStatus'])->name('admin.users.toggle-status');
+    
+    // Role Management
+    Route::get('/roles', [RoleController::class, 'index'])->name('admin.roles.index');
+    Route::get('/roles/create', [RoleController::class, 'create'])->name('admin.roles.create');
+    Route::post('/roles', [RoleController::class, 'store'])->name('admin.roles.store');
+    Route::get('/roles/{id}/edit', [RoleController::class, 'edit'])->name('admin.roles.edit');
+    Route::put('/roles/{id}', [RoleController::class, 'update'])->name('admin.roles.update');
+    Route::delete('/roles/{id}', [RoleController::class, 'destroy'])->name('admin.roles.destroy');
+    
+    // User Activity
+    Route::get('/user-activity', [UserActivityController::class, 'index'])->name('admin.user-activity.index');
+    Route::get('/user-activity/{id}', [UserActivityController::class, 'show'])->name('admin.user-activity.show');
+    Route::delete('/user-activity/{id}', [UserActivityController::class, 'destroy'])->name('admin.user-activity.destroy');
+    Route::post('/user-activity/clear', [UserActivityController::class, 'clear'])->name('admin.user-activity.clear');
     
     // Website Content
     Route::get('/company-profile', function () {
@@ -91,6 +116,12 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/orders/create', function () {
         return Inertia::render('admin/orders/create');
     });
+    Route::get('/orders/{id}', [ClientOrderController::class, 'detail']);
+    
+    // Payment link generation and verification
+    Route::post('/orders/{id}/generate-payment-link', [PaymentController::class, 'generateLink']);
+    Route::post('/payment-proofs/{id}/verify', [PaymentController::class, 'verify']);
+    Route::post('/payment-proofs/{id}/reject', [PaymentController::class, 'reject']);
     
     // Payment routes
     Route::get('/payments', function () {

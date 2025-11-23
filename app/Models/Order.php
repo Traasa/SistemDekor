@@ -30,6 +30,9 @@ class Order extends Model
         'status',
         'payment_status',
         'verification_token',
+        'payment_link_token',
+        'payment_link_expires_at',
+        'payment_link_active',
         'notes',
         'special_requests',
     ];
@@ -42,6 +45,8 @@ class Order extends Model
         'deposit_amount' => 'decimal:2',
         'remaining_amount' => 'decimal:2',
         'dp_amount' => 'decimal:2',
+        'payment_link_expires_at' => 'datetime',
+        'payment_link_active' => 'boolean',
     ];
 
     /**
@@ -102,6 +107,14 @@ class Order extends Model
     }
 
     /**
+     * Get all payment proofs
+     */
+    public function paymentProofs(): HasMany
+    {
+        return $this->hasMany(PaymentProof::class);
+    }
+
+    /**
      * Get total paid amount
      */
     public function getTotalPaidAttribute()
@@ -128,6 +141,30 @@ class Order extends Model
             ->where('payment_type', 'DP')
             ->where('status', 'verified')
             ->exists();
+    }
+
+    /**
+     * Check if payment link is expired
+     */
+    public function isPaymentLinkExpired(): bool
+    {
+        if (!$this->payment_link_expires_at) {
+            return false;
+        }
+        return now()->isAfter($this->payment_link_expires_at);
+    }
+
+    /**
+     * Generate payment link token
+     */
+    public function generatePaymentLink(int $hoursValid = 48): string
+    {
+        $this->payment_link_token = Str::random(64);
+        $this->payment_link_expires_at = now()->addHours($hoursValid);
+        $this->payment_link_active = true;
+        $this->save();
+
+        return route('payment.show', ['token' => $this->payment_link_token]);
     }
 
     /**

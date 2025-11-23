@@ -31,9 +31,12 @@ class ClientOrderController extends Controller
         try {
             DB::beginTransaction();
 
-            // Create or update client
+            // Get authenticated user
+            $user = $request->user();
+            
+            // Create or update client using authenticated user's email
             $client = Client::updateOrCreate(
-                ['email' => $validated['client_email']],
+                ['email' => $user ? $user->email : $validated['client_email']],
                 [
                     'name' => $validated['client_name'],
                     'phone' => $validated['client_phone'],
@@ -100,14 +103,19 @@ class ClientOrderController extends Controller
         $user = $request->user();
         
         if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Unauthorized',
-            ], 401);
+            return Inertia::render('client/MyOrders', [
+                'orders' => [],
+            ]);
         }
+
+        // Debug: Log user email
+        \Log::info('MyOrders - User email: ' . $user->email);
 
         // Get client by user email
         $client = Client::where('email', $user->email)->first();
+
+        // Debug: Log client lookup result
+        \Log::info('MyOrders - Client found: ' . ($client ? 'Yes (ID: ' . $client->id . ')' : 'No'));
 
         if (!$client) {
             return Inertia::render('client/MyOrders', [
@@ -115,26 +123,33 @@ class ClientOrderController extends Controller
             ]);
         }
 
-        $orders = Order::where('client_id', $client->id)
+        $ordersQuery = Order::where('client_id', $client->id)
             ->with(['client'])
-            ->orderBy('created_at', 'desc')
-            ->get()
+            ->orderBy('created_at', 'desc');
+        
+        // Debug: Log query count
+        \Log::info('MyOrders - Orders count: ' . $ordersQuery->count());
+
+        $orders = $ordersQuery->get()
             ->map(function ($order) {
                 return [
                     'id' => $order->id,
-                    'order_code' => 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
-                    'event_date' => $order->event_date,
-                    'event_location' => $order->event_location,
-                    'event_theme' => $order->event_theme,
-                    'guest_count' => $order->guest_count,
-                    'total_price' => $order->total_price,
-                    'final_price' => $order->final_price,
+                    'order_code' => $order->order_number ?? 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                    'event_date' => $order->event_date ? $order->event_date->format('Y-m-d') : null,
+                    'event_location' => $order->event_location ?? $order->event_address,
+                    'event_theme' => $order->event_theme ?? $order->event_name,
+                    'guest_count' => $order->guest_count ?? 0,
+                    'total_price' => $order->total_price ?? 0,
+                    'final_price' => $order->final_price ?? $order->total_price,
                     'status' => $order->status,
-                    'payment_status' => $order->payment_status,
+                    'payment_status' => $order->payment_status ?? 'unpaid',
                     'notes' => $order->notes,
                     'created_at' => $order->created_at->format('d M Y H:i'),
                 ];
             });
+
+        // Debug: Log final orders array
+        \Log::info('MyOrders - Final orders count: ' . $orders->count());
 
         return Inertia::render('client/MyOrders', [
             'orders' => $orders,
@@ -142,7 +157,7 @@ class ClientOrderController extends Controller
     }
 
     /**
-     * Get order detail
+     * Get order detail (API)
      */
     public function show($id)
     {
@@ -153,25 +168,89 @@ class ClientOrderController extends Controller
             'success' => true,
             'data' => [
                 'id' => $order->id,
-                'order_code' => 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                'order_code' => $order->order_number ?? 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
                 'client' => [
                     'name' => $order->client->name,
                     'email' => $order->client->email,
                     'phone' => $order->client->phone,
                 ],
-                'event_date' => $order->event_date,
-                'event_location' => $order->event_location,
-                'event_theme' => $order->event_theme,
-                'guest_count' => $order->guest_count,
-                'total_price' => $order->total_price,
-                'discount' => $order->discount,
-                'final_price' => $order->final_price,
-                'deposit_amount' => $order->deposit_amount,
-                'remaining_amount' => $order->remaining_amount,
+                'event_date' => $order->event_date ? $order->event_date->format('Y-m-d') : null,
+                'event_location' => $order->event_location ?? $order->event_address,
+                'event_theme' => $order->event_theme ?? $order->event_name,
+                'guest_count' => $order->guest_count ?? 0,
+                'total_price' => $order->total_price ?? 0,
+                'discount' => $order->discount ?? 0,
+                'final_price' => $order->final_price ?? $order->total_price,
+                'deposit_amount' => $order->deposit_amount ?? 0,
+                'remaining_amount' => $order->remaining_amount ?? $order->total_price,
                 'status' => $order->status,
-                'payment_status' => $order->payment_status,
+                'payment_status' => $order->payment_status ?? 'unpaid',
                 'notes' => $order->notes,
                 'created_at' => $order->created_at->format('d M Y H:i'),
+            ],
+        ]);
+    }
+
+    /**
+     * Show order detail page for admin
+     */
+    public function detail($id)
+    {
+        $order = Order::with(['client', 'package', 'paymentProofs.verifier'])
+            ->findOrFail($id);
+
+        return Inertia::render('admin/OrderDetailPage', [
+            'order' => [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'order_code' => $order->order_number ?? 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                'client' => [
+                    'id' => $order->client->id,
+                    'name' => $order->client->name,
+                    'email' => $order->client->email,
+                    'phone' => $order->client->phone,
+                    'address' => $order->client->address ?? '-',
+                ],
+                'event_name' => $order->event_name,
+                'event_type' => $order->event_type,
+                'event_date' => $order->event_date ? $order->event_date->format('Y-m-d') : null,
+                'event_date_formatted' => $order->event_date ? $order->event_date->format('d F Y') : '-',
+                'event_address' => $order->event_address,
+                'event_location' => $order->event_location ?? $order->event_address,
+                'event_theme' => $order->event_theme,
+                'guest_count' => $order->guest_count ?? 0,
+                'total_price' => $order->total_price ?? 0,
+                'discount' => $order->discount ?? 0,
+                'final_price' => $order->final_price ?? $order->total_price,
+                'dp_amount' => $order->dp_amount ?? 0,
+                'deposit_amount' => $order->deposit_amount ?? 0,
+                'remaining_amount' => $order->remaining_amount ?? $order->total_price,
+                'status' => $order->status,
+                'payment_status' => $order->payment_status ?? 'unpaid',
+                'notes' => $order->notes,
+                'special_requests' => $order->special_requests,
+                'package' => $order->package ? [
+                    'id' => $order->package->id,
+                    'name' => $order->package->name,
+                    'price' => $order->package->price,
+                ] : null,
+                'payment_proofs' => $order->paymentProofs->map(function($proof) {
+                    return [
+                        'id' => $proof->id,
+                        'amount' => $proof->amount,
+                        'payment_type' => $proof->payment_type,
+                        'proof_image_url' => $proof->proof_image_url,
+                        'status' => $proof->status,
+                        'verified_by' => $proof->verifier ? $proof->verifier->name : null,
+                        'verified_at' => $proof->verified_at ? $proof->verified_at->format('d M Y H:i') : null,
+                        'admin_notes' => $proof->admin_notes,
+                        'created_at' => $proof->created_at->format('d M Y H:i'),
+                    ];
+                }),
+                'payment_link_active' => $order->payment_link_active ?? false,
+                'payment_link_expires_at' => $order->payment_link_expires_at ? $order->payment_link_expires_at->format('d M Y H:i') : null,
+                'created_at' => $order->created_at->format('d M Y H:i'),
+                'updated_at' => $order->updated_at->format('d M Y H:i'),
             ],
         ]);
     }
