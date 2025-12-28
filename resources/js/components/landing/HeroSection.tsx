@@ -1,18 +1,33 @@
 import { Link } from '@inertiajs/react';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { images } from '../../config/theme';
 
 export const HeroSection: React.FC = () => {
+    const [imageLoaded, setImageLoaded] = useState(false);
+
+    useEffect(() => {
+        const img = new Image();
+        img.src = images.hero.main;
+        img.onload = () => setImageLoaded(true);
+    }, []);
+
     return (
         <section id="home" className="relative min-h-screen overflow-hidden">
-            {/* Animated Background with Gradient Overlay */}
+            {/* Background Image with Overlay */}
             <div className="absolute inset-0 z-0">
-                <div className="absolute inset-0 bg-gradient-to-br from-[#1a1a1a] via-[#2d2d2d] to-[#1a1a1a]"></div>
-                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0YzAtMi4yMDktMS43OTEtNC00LTRzLTQgMS43OTEtNCA0IDEuNzkxIDQgNCA0IDQtMS43OTEgNC00em0wIDMwYzAtMi4yMDktMS43OTEtNC00LTRzLTQgMS43OTEtNCA0IDEuNzkxIDQgNCA0IDQtMS43OTEgNC00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-30"></div>
+                {imageLoaded && (
+                    <img
+                        src={images.hero.main}
+                        alt="Wedding Hero"
+                        className="h-full w-full animate-[zoomIn_20s_ease-in-out_infinite_alternate] object-cover"
+                    />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-br from-black/70 via-black/50 to-black/70"></div>
+                <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PHBhdGggZD0iTTM2IDM0YzAtMi4yMDktMS43OTEtNC00LTRzLTQgMS43OTEtNCA0IDEuNzkxIDQgNCA0IDQtMS43OTEgNC00em0wIDMwYzAtMi4yMDktMS43OTEtNC00LTRzLTQgMS43OTEtNCA0IDEuNzkxIDQgNCA0IDQtMS43OTEgNC00eiIvPjwvZz48L2c+PC9zdmc+')] opacity-20"></div>
 
                 {/* Animated Particles */}
                 <div className="absolute top-20 -left-20 h-96 w-96 animate-pulse rounded-full bg-gradient-to-r from-[#D4AF37]/30 to-[#F4D03F]/20 blur-3xl"></div>
                 <div className="animation-delay-2000 absolute -right-20 bottom-20 h-96 w-96 animate-pulse rounded-full bg-gradient-to-r from-[#EC4899]/30 to-[#D4AF37]/20 blur-3xl"></div>
-                <div className="animation-delay-4000 absolute top-1/2 left-1/2 h-72 w-72 -translate-x-1/2 -translate-y-1/2 animate-pulse rounded-full bg-gradient-to-r from-[#F4D03F]/20 to-[#EC4899]/20 blur-3xl"></div>
             </div>
 
             <div className="relative z-10 flex min-h-screen items-center justify-center px-4 pt-20">

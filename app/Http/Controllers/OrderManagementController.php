@@ -25,20 +25,22 @@ class OrderManagementController extends Controller
             'event_date' => 'required|date|after_or_equal:today',
             'event_address' => 'required|string',
             'guest_count' => 'required|integer|min:1',
-            'total_price' => 'required|numeric|min:0',
-            'dp_amount' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
             'special_requests' => 'nullable|string',
-            // Payment fields
-            'payment_type' => 'required|in:dp,full',
-            'payment_method' => 'required|in:cash,transfer,credit_card,debit_card',
-            'payment_amount' => 'required|numeric|min:0',
-            'payment_date' => 'required|date',
-            'payment_notes' => 'nullable|string',
         ]);
 
         try {
             DB::beginTransaction();
+
+            // Get package price if package selected, otherwise set to 0 for negotiation
+            $totalPrice = 0;
+            $finalPrice = 0;
+            
+            if ($validated['package_id']) {
+                $package = Package::findOrFail($validated['package_id']);
+                $totalPrice = $package->price ?? 0;
+                $finalPrice = $totalPrice;
+            }
 
             // Create order
             $order = Order::create([
@@ -50,22 +52,17 @@ class OrderManagementController extends Controller
                 'event_date' => $validated['event_date'],
                 'event_address' => $validated['event_address'],
                 'guest_count' => $validated['guest_count'],
-                'total_price' => $validated['total_price'],
-                'dp_amount' => $validated['dp_amount'],
-                'status' => 'pending',
+                'total_price' => $totalPrice,
+                'discount' => 0,
+                'final_price' => $finalPrice,
+                'dp_amount' => 0,
+                'deposit_amount' => 0,
+                'remaining_amount' => $finalPrice,
+                'status' => Order::STATUS_PENDING,
+                'payment_status' => Order::PAYMENT_UNPAID,
+                'is_negotiable' => true,
                 'notes' => $validated['notes'] ?? null,
                 'special_requests' => $validated['special_requests'] ?? null,
-            ]);
-
-            // Create payment transaction
-            $payment = PaymentTransaction::create([
-                'order_id' => $order->id,
-                'amount' => $validated['payment_amount'],
-                'payment_type' => $validated['payment_type'],
-                'payment_method' => $validated['payment_method'],
-                'payment_date' => $validated['payment_date'],
-                'status' => 'pending',
-                'notes' => $validated['payment_notes'] ?? null,
             ]);
 
             DB::commit();
@@ -75,7 +72,6 @@ class OrderManagementController extends Controller
                 'message' => 'Order berhasil dibuat!',
                 'data' => [
                     'order' => $order->load(['client', 'package']),
-                    'payment' => $payment,
                 ],
             ], 201);
 

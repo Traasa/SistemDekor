@@ -6,6 +6,7 @@ use App\Http\Controllers\PaymentController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\UserActivityController;
+use App\Http\Controllers\OrderNegotiationController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -49,7 +50,7 @@ Route::middleware(['auth'])->group(function () {
 // Admin routes (protected + admin role check)
 Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/', function () {
-        return Inertia::render('admin/Dashboard');
+        return Inertia::render('admin/NewAdminDashboard');
     });
     
     // User Management
@@ -116,10 +117,16 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/orders/create', function () {
         return Inertia::render('admin/orders/create');
     });
-    Route::get('/orders/{id}', [ClientOrderController::class, 'detail']);
+    Route::get('/orders/{id}', [ClientOrderController::class, 'detail'])->name('admin.orders.detail');
+    Route::get('/orders/{id}/edit', [OrderNegotiationController::class, 'edit'])->name('admin.orders.edit');
+    Route::put('/orders/{id}', [OrderNegotiationController::class, 'update'])->name('admin.orders.update');
+    Route::post('/orders/{id}/recalculate', [OrderNegotiationController::class, 'recalculate'])->name('admin.orders.recalculate');
+    Route::post('/orders/{id}/confirm', [ClientOrderController::class, 'confirmOrder'])->name('admin.orders.confirm');
+    Route::post('/orders/{id}/update-status', [ClientOrderController::class, 'updateStatus'])->name('admin.orders.updateStatus');
     
     // Payment link generation and verification
     Route::post('/orders/{id}/generate-payment-link', [PaymentController::class, 'generateLink']);
+    Route::get('/payment-proofs', [PaymentController::class, 'index']);
     Route::post('/payment-proofs/{id}/verify', [PaymentController::class, 'verify']);
     Route::post('/payment-proofs/{id}/reject', [PaymentController::class, 'reject']);
     

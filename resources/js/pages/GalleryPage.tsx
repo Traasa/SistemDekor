@@ -84,7 +84,7 @@ const GalleryPage: React.FC = () => {
             id: 9,
             title: 'Ballroom Setup',
             category: 'venue',
-            image: 'https://images.unsplash.com/photo-1519167758481-83f29da8c93f?w=800',
+            image: 'https://images.unsplash.com/photo-1522413452208-996ff3f3e740?w=800',
             description: 'Ballroom megah dengan chandelier mewah',
         },
     ];
@@ -107,7 +107,7 @@ const GalleryPage: React.FC = () => {
                         onLoadedData={() => setIsVideoLoaded(true)}
                         className="h-full w-full object-cover opacity-40"
                     >
-                        <source src="https://cdn.coverr.co/videos/coverr-wedding-ceremony-4069/1080p.mp4" type="video/mp4" />
+                        <source src="/public/1.mp4" type="video/mp4" />
                     </video>
                     {/* Gradient Overlay */}
                     <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-black/70" />

@@ -27,7 +27,7 @@ export const Header: React.FC<HeaderProps> = ({ isScrolled, companyName }) => {
                     <Link href="/" className="group flex items-center space-x-3">
                         <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-[#D4AF37] via-[#F4D03F] to-[#EC4899] p-0.5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">
                             <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                                <span className="font-serif text-2xl font-bold text-[#D4AF37]">D</span>
+                                <span className="font-serif text-2xl font-bold text-[#D4AF37]">W</span>
                             </div>
                         </div>
                         <span

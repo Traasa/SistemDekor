@@ -32,15 +32,8 @@ const CreateOrderPage: React.FC = () => {
         event_date: '',
         event_address: '',
         guest_count: '1',
-        total_price: '',
-        dp_amount: '',
         notes: '',
         special_requests: '',
-        payment_type: 'dp',
-        payment_method: 'transfer',
-        payment_amount: '',
-        payment_date: new Date().toISOString().split('T')[0],
-        payment_notes: '',
     });
 
     // New client form state
@@ -81,53 +74,6 @@ const CreateOrderPage: React.FC = () => {
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
-
-        // Auto-calculate DP amount (30% of total)
-        if (name === 'total_price') {
-            const totalPrice = parseFloat(value) || 0;
-            if (totalPrice > 0) {
-                const dpAmount = Math.round(totalPrice * 0.3).toString();
-                setFormData((prev) => ({
-                    ...prev,
-                    dp_amount: dpAmount,
-                    payment_amount: prev.payment_type === 'dp' ? dpAmount : value,
-                }));
-            }
-        }
-
-        // Update payment amount based on type
-        if (name === 'payment_type') {
-            if (value === 'dp') {
-                setFormData((prev) => ({ ...prev, payment_amount: prev.dp_amount || '' }));
-            } else if (value === 'full') {
-                setFormData((prev) => ({ ...prev, payment_amount: prev.total_price || '' }));
-            }
-        }
-
-        // Auto-fill from package
-        if (name === 'package_id') {
-            if (value === '') {
-                // Reset to empty when "Custom" is selected
-                setFormData((prev) => ({
-                    ...prev,
-                    total_price: '',
-                    dp_amount: '',
-                    payment_amount: '',
-                }));
-            } else {
-                const selectedPackage = packages.find((p) => p.id === parseInt(value));
-                if (selectedPackage && selectedPackage.base_price !== undefined) {
-                    const price = selectedPackage.base_price || 0;
-                    const dpAmount = Math.round(price * 0.3).toString();
-                    setFormData((prev) => ({
-                        ...prev,
-                        total_price: price.toString(),
-                        dp_amount: dpAmount,
-                        payment_amount: prev.payment_type === 'dp' ? dpAmount : price.toString(),
-                    }));
-                }
-            }
-        }
     };
 
     const handleNewClientSubmit = async (e: React.FormEvent) => {
@@ -156,7 +102,6 @@ const CreateOrderPage: React.FC = () => {
             package_id: formData.package_id === '' ? null : formData.package_id,
             notes: formData.notes === '' ? null : formData.notes,
             special_requests: formData.special_requests === '' ? null : formData.special_requests,
-            payment_notes: formData.payment_notes === '' ? null : formData.payment_notes,
         };
 
         // Debug: Log form data before submit
@@ -382,116 +327,12 @@ const CreateOrderPage: React.FC = () => {
                                         </option>
                                     ))}
                                 </select>
-                                <p className="mt-1 text-xs text-gray-500">Pilih package atau masukkan harga custom di bawah</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Total Harga *</label>
-                                <div className="relative mt-1">
-                                    <span className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500">Rp</span>
-                                    <input
-                                        type="number"
-                                        name="total_price"
-                                        value={formData.total_price}
-                                        onChange={handleInputChange}
-                                        min="1"
-                                        placeholder="5000000"
-                                        className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pr-4 pl-10 text-gray-900 placeholder-gray-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                        required
-                                    />
-                                </div>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">DP Amount (30%) *</label>
-                                <div className="relative mt-1">
-                                    <span className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500">Rp</span>
-                                    <input
-                                        type="number"
-                                        name="dp_amount"
-                                        value={formData.dp_amount}
-                                        onChange={handleInputChange}
-                                        min="0"
-                                        placeholder="1500000"
-                                        className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pr-4 pl-10 text-gray-900 placeholder-gray-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                        required
-                                    />
-                                </div>
-                                <p className="mt-1 text-xs text-gray-500">Auto-calculate 30% dari total harga</p>
+                                <p className="mt-1 text-xs text-gray-500">
+                                    Pilih package atau lanjutkan dengan custom pricing yang akan dinegosiasikan
+                                </p>
                             </div>
                         </div>
-                    </div>
-
-                    {/* Payment Information */}
-                    <div className="rounded-xl bg-white p-6 shadow-sm">
-                        <h2 className="mb-4 text-lg font-bold text-gray-900">Informasi Pembayaran Awal</h2>
-                        <div className="grid gap-4 md:grid-cols-2">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Tipe Pembayaran *</label>
-                                <select
-                                    name="payment_type"
-                                    value={formData.payment_type}
-                                    onChange={handleInputChange}
-                                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                    required
-                                >
-                                    <option value="dp">DP (Down Payment)</option>
-                                    <option value="full">Full Payment</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Metode Pembayaran *</label>
-                                <select
-                                    name="payment_method"
-                                    value={formData.payment_method}
-                                    onChange={handleInputChange}
-                                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                    required
-                                >
-                                    <option value="cash">💵 Cash</option>
-                                    <option value="transfer">🏦 Transfer Bank</option>
-                                    <option value="credit_card">💳 Credit Card</option>
-                                    <option value="debit_card">💳 Debit Card</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Jumlah Pembayaran *</label>
-                                <div className="relative mt-1">
-                                    <span className="absolute top-1/2 left-4 -translate-y-1/2 text-gray-500">Rp</span>
-                                    <input
-                                        type="number"
-                                        name="payment_amount"
-                                        value={formData.payment_amount}
-                                        onChange={handleInputChange}
-                                        min="1"
-                                        placeholder="1500000"
-                                        className="w-full rounded-lg border border-gray-300 bg-white py-2.5 pr-4 pl-10 text-gray-900 placeholder-gray-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                        required
-                                    />
-                                </div>
-                                <p className="mt-1 text-xs text-gray-500">Otomatis terisi sesuai tipe pembayaran</p>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700">Tanggal Pembayaran *</label>
-                                <input
-                                    type="date"
-                                    name="payment_date"
-                                    value={formData.payment_date}
-                                    onChange={handleInputChange}
-                                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                    required
-                                />
-                            </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700">Catatan Pembayaran</label>
-                                <textarea
-                                    name="payment_notes"
-                                    value={formData.payment_notes}
-                                    onChange={handleInputChange}
-                                    rows={3}
-                                    placeholder="Catatan tambahan untuk pembayaran (opsional)"
-                                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                />
-                            </div>
-                        </div>
+                        <p className="text-xs text-gray-500">Harga dan pembayaran akan dinegosiasikan setelah order dibuat</p>
                     </div>
 
                     {/* Notes */}

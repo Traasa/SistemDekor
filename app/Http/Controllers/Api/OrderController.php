@@ -69,12 +69,16 @@ class OrderController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'client_id' => 'required|exists:clients,id',
-            'package_id' => 'required|exists:packages,id',
+            'package_id' => 'nullable|exists:packages,id',
+            'event_name' => 'required|string|max:255',
+            'event_type' => 'required|string|max:100',
             'event_date' => 'required|date|after:today',
-            'event_location' => 'required|string|max:255',
+            'event_address' => 'required|string',
+            'event_location' => 'nullable|string|max:255',
+            'event_theme' => 'nullable|string|max:255',
             'guest_count' => 'required|integer|min:1',
-            'total_price' => 'required|numeric|min:0',
             'notes' => 'nullable|string',
+            'special_requests' => 'nullable|string',
         ]);
 
         if ($validator->fails()) {
@@ -85,25 +89,55 @@ class OrderController extends Controller
             ], 422);
         }
 
-        $order = Order::create([
-            'client_id' => $request->client_id,
-            'package_id' => $request->package_id,
-            'event_date' => $request->event_date,
-            'event_location' => $request->event_location,
-            'guest_count' => $request->guest_count,
-            'total_price' => $request->total_price,
-            'notes' => $request->notes,
-            'status' => 'pending',
-            'verification_token' => Str::random(64),
-        ]);
+        try {
+            // Get package price if package selected, otherwise set to 0 for negotiation
+            $totalPrice = 0;
+            $finalPrice = 0;
+            
+            if ($request->package_id) {
+                $package = \App\Models\Package::findOrFail($request->package_id);
+                $totalPrice = $package->price ?? 0;
+                $finalPrice = $totalPrice;
+            }
+            
+            $order = Order::create([
+                'client_id' => $request->client_id,
+                'package_id' => $request->package_id,
+                'user_id' => auth()->id(),
+                'event_name' => $request->event_name,
+                'event_type' => $request->event_type,
+                'event_date' => $request->event_date,
+                'event_address' => $request->event_address,
+                'event_location' => $request->event_location,
+                'event_theme' => $request->event_theme,
+                'guest_count' => $request->guest_count,
+                'total_price' => $totalPrice,
+                'discount' => 0,
+                'final_price' => $finalPrice,
+                'dp_amount' => 0,
+                'deposit_amount' => 0,
+                'remaining_amount' => $finalPrice,
+                'notes' => $request->notes,
+                'special_requests' => $request->special_requests,
+                'status' => Order::STATUS_PENDING,
+                'payment_status' => Order::PAYMENT_UNPAID,
+                'is_negotiable' => true, // Order baru bisa dinegosiasi
+                'verification_token' => Str::random(64),
+            ]);
 
-        $order->load(['client', 'package']);
+            $order->load(['client', 'package']);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Order created successfully',
-            'data' => $order,
-        ], 201);
+            return response()->json([
+                'success' => true,
+                'message' => 'Order created successfully',
+                'data' => $order,
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create order: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     /**

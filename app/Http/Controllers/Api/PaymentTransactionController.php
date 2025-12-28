@@ -17,20 +17,21 @@ class PaymentTransactionController extends Controller
         $query = PaymentTransaction::with(['order.client']);
 
         // Filter by status
-        if ($request->has('status')) {
+        if ($request->has('status') && $request->status !== 'all') {
             $query->where('status', $request->status);
         }
 
         // Filter by payment type
-        if ($request->has('payment_type')) {
+        if ($request->has('payment_type') && $request->payment_type !== 'all') {
             $query->where('payment_type', $request->payment_type);
         }
 
         // Search
-        if ($request->has('search')) {
+        if ($request->has('search') && $request->search) {
             $search = $request->search;
             $query->whereHas('order', function ($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
+                  ->orWhere('event_name', 'like', "%{$search}%")
                   ->orWhereHas('client', function ($cq) use ($search) {
                       $cq->where('name', 'like', "%{$search}%")
                          ->orWhere('phone', 'like', "%{$search}%");
@@ -38,11 +39,46 @@ class PaymentTransactionController extends Controller
             });
         }
 
-        $payments = $query->orderBy('created_at', 'desc')->get();
+        $payments = $query->orderBy('created_at', 'desc')->paginate(15);
+
+        // Transform data to use correct fields
+        $payments->getCollection()->transform(function ($payment) {
+            return [
+                'id' => $payment->id,
+                'order_id' => $payment->order_id,
+                'order' => [
+                    'id' => $payment->order->id,
+                    'order_number' => $payment->order->order_number,
+                    'client' => [
+                        'id' => $payment->order->client->id,
+                        'name' => $payment->order->client->name,
+                        'phone' => $payment->order->client->phone,
+                    ],
+                    'event_name' => $payment->order->event_name,
+                    'event_date' => $payment->order->event_date,
+                    'total_price' => (float) ($payment->order->total_price ?? 0),
+                    'final_price' => (float) ($payment->order->final_price ?? $payment->order->total_price ?? 0),
+                    'deposit_amount' => (float) ($payment->order->deposit_amount ?? 0),
+                    'status' => $payment->order->status,
+                ],
+                'amount' => (float) $payment->amount,
+                'payment_type' => $payment->payment_type,
+                'payment_method' => $payment->payment_method,
+                'payment_date' => $payment->payment_date,
+                'status' => $payment->status,
+                'proof_url' => $payment->proof_url,
+                'notes' => $payment->notes,
+                'created_at' => $payment->created_at->toISOString(),
+            ];
+        });
 
         return response()->json([
             'success' => true,
-            'data' => $payments,
+            'data' => $payments->items(),
+            'current_page' => $payments->currentPage(),
+            'last_page' => $payments->lastPage(),
+            'per_page' => $payments->perPage(),
+            'total' => $payments->total(),
         ]);
     }
 

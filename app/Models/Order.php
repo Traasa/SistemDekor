@@ -9,6 +9,26 @@ use Illuminate\Support\Str;
 
 class Order extends Model
 {
+    // Order Status Constants
+    const STATUS_PENDING = 'pending_confirmation';        // Baru dibuat, menunggu konfirmasi admin
+    const STATUS_NEGOTIATION = 'negotiation';             // Dalam proses negosiasi
+    const STATUS_AWAITING_DP = 'awaiting_dp_payment';     // Menunggu pembayaran DP
+    const STATUS_DP_PAID = 'dp_paid';                     // DP sudah dibayar, menunggu pelunasan
+    const STATUS_AWAITING_FULL = 'awaiting_full_payment'; // Menunggu pelunasan
+    const STATUS_PAID = 'paid';                           // Sudah lunas
+    const STATUS_CONFIRMED = 'confirmed';                 // Order dikonfirmasi, siap diproses
+    const STATUS_PROCESSING = 'processing';               // Sedang diproses
+    const STATUS_COMPLETED = 'completed';                 // Selesai
+    const STATUS_CANCELLED = 'cancelled';                 // Dibatalkan
+
+    // Payment Status Constants
+    const PAYMENT_UNPAID = 'unpaid';                      // Belum bayar
+    const PAYMENT_DP_PENDING = 'dp_pending';              // DP upload, menunggu verifikasi
+    const PAYMENT_DP_PAID = 'dp_paid';                    // DP terverifikasi
+    const PAYMENT_FULL_PENDING = 'full_pending';          // Pelunasan upload, menunggu verifikasi
+    const PAYMENT_PAID = 'paid';                          // Lunas terverifikasi
+    const PAYMENT_PARTIAL = 'partial';                    // Bayar sebagian
+
     protected $fillable = [
         'order_number',
         'client_id',
@@ -31,10 +51,17 @@ class Order extends Model
         'payment_status',
         'verification_token',
         'payment_link_token',
+        'payment_link_type',
         'payment_link_expires_at',
         'payment_link_active',
         'notes',
         'special_requests',
+        'package_details',
+        'custom_items',
+        'additional_costs',
+        'negotiation_notes',
+        'is_negotiable',
+        'negotiated_at',
     ];
 
     protected $casts = [
@@ -45,8 +72,13 @@ class Order extends Model
         'deposit_amount' => 'decimal:2',
         'remaining_amount' => 'decimal:2',
         'dp_amount' => 'decimal:2',
+        'additional_costs' => 'decimal:2',
         'payment_link_expires_at' => 'datetime',
         'payment_link_active' => 'boolean',
+        'is_negotiable' => 'boolean',
+        'negotiated_at' => 'datetime',
+        'package_details' => 'array',
+        'custom_items' => 'array',
     ];
 
     /**
@@ -157,9 +189,11 @@ class Order extends Model
     /**
      * Generate payment link token
      */
-    public function generatePaymentLink(int $hoursValid = 48): string
+    public function generatePaymentLink(int $hoursValid = 48, string $paymentType = 'dp'): string
     {
+        // Generate unique token for each payment type
         $this->payment_link_token = Str::random(64);
+        $this->payment_link_type = $paymentType;
         $this->payment_link_expires_at = now()->addHours($hoursValid);
         $this->payment_link_active = true;
         $this->save();

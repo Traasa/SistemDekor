@@ -22,7 +22,7 @@ const Login: React.FC<Props> = ({ canResetPassword, status }) => {
     };
 
     return (
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#F5F1E8] via-white to-[#F5F1E8]">
+        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#F5F1E8] via-white to-[#F5F1E8] text-black">
             <div className="w-full max-w-md">
                 <div className="rounded-2xl bg-white p-8 shadow-2xl">
                     {/* Logo */}

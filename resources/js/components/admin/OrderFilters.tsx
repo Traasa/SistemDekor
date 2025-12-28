@@ -39,7 +39,12 @@ export const OrderFilters: React.FC<OrderFiltersProps> = ({ searchTerm, setSearc
                     onChange={(e) => setFilterStatus(e.target.value)}
                 >
                     <option value="all">Semua Status</option>
-                    <option value="pending">Pending</option>
+                    <option value="pending_confirmation">Pending Confirmation</option>
+                    <option value="negotiation">Negotiation</option>
+                    <option value="awaiting_dp_payment">Awaiting DP</option>
+                    <option value="dp_paid">DP Paid</option>
+                    <option value="awaiting_full_payment">Awaiting Full Payment</option>
+                    <option value="paid">Paid</option>
                     <option value="confirmed">Confirmed</option>
                     <option value="processing">Processing</option>
                     <option value="completed">Completed</option>

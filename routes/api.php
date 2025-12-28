@@ -67,6 +67,13 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('orders/{order}/status', [App\Http\Controllers\Api\OrderController::class, 'updateStatus']);
     Route::apiResource('payment-transactions', App\Http\Controllers\Api\PaymentTransactionController::class);
     
+    // Dashboard & Notifications
+    Route::get('/dashboard/statistics', [App\Http\Controllers\DashboardController::class, 'getStatistics']);
+    Route::get('/notifications', [App\Http\Controllers\NotificationController::class, 'index']);
+    Route::post('/notifications/{id}/read', [App\Http\Controllers\NotificationController::class, 'markAsRead']);
+    Route::post('/notifications/read-all', [App\Http\Controllers\NotificationController::class, 'markAllAsRead']);
+    Route::delete('/notifications/{id}', [App\Http\Controllers\NotificationController::class, 'destroy']);
+    
     // Client routes
     Route::get('/clients', [App\Http\Controllers\Api\ClientController::class, 'index']);
     Route::post('/clients', [App\Http\Controllers\Api\ClientController::class, 'store']);
@@ -127,6 +134,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('orders/{order}/status', [App\Http\Controllers\Api\OrderController::class, 'updateStatus']);
     Route::apiResource('payment-transactions', App\Http\Controllers\Api\PaymentTransactionController::class);
     Route::post('payment-transactions/{paymentTransaction}/verify', [App\Http\Controllers\Api\PaymentTransactionController::class, 'verify']);
+    
+    // Payment Proofs
+    Route::get('payment-proofs', [App\Http\Controllers\PaymentController::class, 'index']);
+    Route::post('payment-proofs/{id}/verify', [App\Http\Controllers\PaymentController::class, 'verify']);
+    Route::post('payment-proofs/{id}/reject', [App\Http\Controllers\PaymentController::class, 'reject']);
     
     // Inventory Management (Admin & Sales)
     Route::apiResource('inventory-categories', App\Http\Controllers\Api\InventoryCategoryController::class);

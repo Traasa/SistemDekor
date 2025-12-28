@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import React from 'react';
+import { images } from '../../config/theme';
 
 export const AboutSection: React.FC = () => {
     return (
@@ -12,28 +13,34 @@ export const AboutSection: React.FC = () => {
 
             <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
                 <div className="grid items-center gap-16 lg:grid-cols-2">
-                    {/* Image Grid with Hover Effects */}
+                    {/* Image Grid with Real Photos */}
                     <div className="grid grid-cols-2 gap-6">
                         <div className="group hover:shadow-3xl relative aspect-[3/4] overflow-hidden rounded-3xl shadow-2xl transition-all duration-500 hover:-translate-y-2">
-                            <div className="absolute inset-0 bg-gradient-to-br from-[#D4AF37]/90 to-[#EC4899]/90"></div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="text-center text-white">
-                                    <div className="text-6xl font-bold">💐</div>
-                                    <p className="mt-4 font-serif text-xl">Dekorasi Premium</p>
-                                </div>
+                            <img
+                                src={images.hero.couple}
+                                alt="Wedding Couple"
+                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                            <div className="absolute bottom-6 left-6 text-white">
+                                <div className="mb-2 text-4xl">💐</div>
+                                <p className="font-serif text-xl font-bold">Dekorasi Premium</p>
                             </div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
                         </div>
 
                         <div className="group hover:shadow-3xl relative mt-12 aspect-[3/4] overflow-hidden rounded-3xl shadow-2xl transition-all duration-500 hover:-translate-y-2">
-                            <div className="absolute inset-0 bg-gradient-to-br from-[#F4D03F]/90 to-[#D4AF37]/90"></div>
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="text-center text-white">
-                                    <div className="text-6xl font-bold">🎊</div>
-                                    <p className="mt-4 font-serif text-xl">Setup Profesional</p>
-                                </div>
+                            <img
+                                src={images.hero.ceremony}
+                                alt="Wedding Ceremony"
+                                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                loading="lazy"
+                            />
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
+                            <div className="absolute bottom-6 left-6 text-white">
+                                <div className="mb-2 text-4xl">🎊</div>
+                                <p className="font-serif text-xl font-bold">Setup Profesional</p>
                             </div>
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100"></div>
                         </div>
                     </div>
 

@@ -61,7 +61,23 @@ class ClientOrderController extends Controller
                 'notes' => $validated['notes'] ?? null,
                 'deposit_amount' => 0,
                 'remaining_amount' => $validated['package_price'],
+                'is_negotiable' => true, // Allow editing by default
             ]);
+
+            // If package_id is provided, capture package details snapshot
+            if ($request->has('package_id') && $request->package_id) {
+                $package = \App\Models\Package::find($request->package_id);
+                if ($package) {
+                    $order->package_id = $package->id;
+                    $order->package_details = [
+                        'name' => $package->name,
+                        'description' => $package->description,
+                        'price' => $package->price,
+                        'items' => $package->items ?? [],
+                    ];
+                    $order->save();
+                }
+            }
 
             DB::commit();
 
@@ -234,6 +250,12 @@ class ClientOrderController extends Controller
                     'name' => $order->package->name,
                     'price' => $order->package->price,
                 ] : null,
+                'package_details' => $order->package_details,
+                'custom_items' => $order->custom_items ?? [],
+                'additional_costs' => $order->additional_costs ?? 0,
+                'negotiation_notes' => $order->negotiation_notes,
+                'is_negotiable' => $order->is_negotiable ?? true,
+                'negotiated_at' => $order->negotiated_at ? $order->negotiated_at->format('d M Y H:i') : null,
                 'payment_proofs' => $order->paymentProofs->map(function($proof) {
                     return [
                         'id' => $proof->id,
@@ -252,6 +274,110 @@ class ClientOrderController extends Controller
                 'created_at' => $order->created_at->format('d M Y H:i'),
                 'updated_at' => $order->updated_at->format('d M Y H:i'),
             ],
+        ]);
+    }
+
+    /**
+     * Confirm order - mark as ready to process (Admin only)
+     */
+    public function confirmOrder($id)
+    {
+        $order = Order::with('paymentProofs')->findOrFail($id);
+
+        // Check if order is already confirmed or beyond
+        if (in_array($order->status, [Order::STATUS_CONFIRMED, Order::STATUS_PROCESSING, Order::STATUS_COMPLETED])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order has already been confirmed',
+            ], 400);
+        }
+
+        // Check if payment is complete (either full payment or DP paid)
+        $hasFullPayment = $order->paymentProofs()
+            ->where('payment_type', 'full')
+            ->where('status', 'verified')
+            ->exists();
+
+        $hasDpPayment = $order->paymentProofs()
+            ->where('payment_type', 'dp')
+            ->where('status', 'verified')
+            ->exists();
+
+        if (!$hasFullPayment && !$hasDpPayment) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Cannot confirm order. Waiting for payment (DP or full payment) to be verified first.',
+            ], 400);
+        }
+
+        // If only DP paid, check if it's sufficient (usually 30% minimum)
+        if ($hasDpPayment && !$hasFullPayment) {
+            $dpAmount = $order->paymentProofs()
+                ->where('payment_type', 'dp')
+                ->where('status', 'verified')
+                ->sum('amount');
+            
+            $minimumDp = $order->final_price * 0.3; // 30% minimum
+            
+            if ($dpAmount < $minimumDp) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'DP amount is less than 30% of total order. Cannot confirm order yet.',
+                ], 400);
+            }
+        }
+
+        // Update order status
+        $order->status = Order::STATUS_CONFIRMED;
+        $order->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order confirmed successfully. Order is now ready to be processed.',
+        ]);
+    }
+
+    /**
+     * Update order status (Admin only)
+     */
+    public function updateStatus(Request $request, $id)
+    {
+        $request->validate([
+            'status' => 'required|in:' . implode(',', [
+                Order::STATUS_PROCESSING,
+                Order::STATUS_COMPLETED,
+                Order::STATUS_CANCELLED,
+            ]),
+            'notes' => 'nullable|string|max:500',
+        ]);
+
+        $order = Order::findOrFail($id);
+
+        // Validate status transition
+        if ($request->status === Order::STATUS_PROCESSING && $order->status !== Order::STATUS_CONFIRMED) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order must be confirmed first before processing',
+            ], 400);
+        }
+
+        if ($request->status === Order::STATUS_COMPLETED && $order->status !== Order::STATUS_PROCESSING) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Order must be in processing status before completion',
+            ], 400);
+        }
+
+        $order->status = $request->status;
+        if ($request->notes) {
+            $order->notes = ($order->notes ? $order->notes . "\n\n" : '') . 
+                            "[" . now()->format('d M Y H:i') . "] " . $request->notes;
+        }
+        $order->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Order status updated successfully',
         ]);
     }
 }

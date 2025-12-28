@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 
 interface AdminLayoutProps {
     children: React.ReactNode;
+    header?: React.ReactNode;
 }
 
 interface MenuItem {
@@ -13,7 +14,7 @@ interface MenuItem {
     children?: MenuItem[];
 }
 
-export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
+export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) => {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     const [openMenus, setOpenMenus] = useState<string[]>(['dashboard']);
     const { auth, url } = usePage<{ auth: { user: { id: number; name: string; email: string; role: string } }; url: string }>().props;
@@ -63,8 +64,6 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             icon: '💰',
             children: [
                 { name: 'Semua Order', icon: '📋', path: '/admin/orders' },
-                { name: 'Pembayaran', icon: '💳', path: '/admin/payments' },
-                { name: 'Invoice', icon: '🧾', path: '/admin/invoices' },
                 { name: 'Laporan Keuangan', icon: '📊', path: '/admin/financial-reports' },
             ],
         },
@@ -163,9 +162,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
                     {isSidebarOpen && (
                         <div className="flex items-center space-x-2">
                             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-[#D4AF37] to-[#EC4899]">
-                                <span className="font-serif text-sm font-bold">D</span>
+                                <span className="font-serif text-sm font-bold">W</span>
                             </div>
-                            <span className="font-serif text-lg font-bold">Diamond Admin</span>
+                            <span className="font-serif text-lg font-bold">Wedding Admin</span>
                         </div>
                     )}
                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="rounded p-1 hover:bg-gray-800">
@@ -273,29 +272,25 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
             <div className="flex flex-1 flex-col overflow-hidden">
                 {/* Top Header */}
                 <header className="bg-white shadow-sm">
-                    <div className="flex items-center justify-between px-6 py-4">
-                        <div>
-                            <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-                            <p className="text-sm text-gray-600">Welcome back, {user?.name}!</p>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            {/* Notifications */}
-                            <button className="relative rounded-full p-2 hover:bg-gray-100">
-                                <span className="text-2xl">🔔</span>
-                                <span className="absolute top-1 right-1 h-3 w-3 rounded-full bg-red-500"></span>
-                            </button>
-                            {/* Messages */}
-                            <button className="relative rounded-full p-2 hover:bg-gray-100">
-                                <span className="text-2xl">💬</span>
-                                <span className="absolute top-1 right-1 h-3 w-3 rounded-full bg-blue-500"></span>
-                            </button>
-                            {/* Profile */}
-                            <div className="flex items-center space-x-2">
-                                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#D4AF37] to-[#EC4899] font-bold text-white">
-                                    {user?.name?.charAt(0).toUpperCase()}
+                    <div className="px-6 py-4">
+                        {header ? (
+                            header
+                        ) : (
+                            <div className="flex items-center justify-between">
+                                <div>
+                                    <h1 className="text-2xl font-bold text-gray-900">Wedding Admin Dashboard</h1>
+                                    <p className="text-sm text-gray-600">Selamat Datang, {user?.name}!</p>
+                                </div>
+                                <div className="flex items-center space-x-4">
+                                    {/* Profile */}
+                                    <div className="flex items-center space-x-2">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[#D4AF37] to-[#EC4899] font-bold text-white">
+                                            {user?.name?.charAt(0).toUpperCase()}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </header>
 
