@@ -82,8 +82,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
             icon: '🏛️',
             children: [
                 { name: 'Daftar Venue', icon: '📋', path: '/admin/venues' },
-                { name: 'Ketersediaan', icon: '📅', path: '/admin/venue-availability' },
-                { name: 'Pricing', icon: '💵', path: '/admin/venue-pricing' },
+                { name: 'Ketersediaan', icon: '📅', path: '/admin/venues/availability' },
+                { name: 'Pricing', icon: '💵', path: '/admin/venues/pricing' },
             ],
         },
         {
@@ -91,9 +91,9 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
             icon: '👔',
             children: [
                 { name: 'Daftar Karyawan', icon: '📋', path: '/admin/employees' },
-                { name: 'Jadwal Kerja', icon: '🕐', path: '/admin/schedules' },
-                { name: 'Penugasan', icon: '📌', path: '/admin/assignments' },
-                { name: 'Absensi', icon: '✓', path: '/admin/attendance' },
+                { name: 'Jadwal Kerja', icon: '🕐', path: '/admin/employees/schedules' },
+                { name: 'Penugasan', icon: '📌', path: '/admin/employees/assignments' },
+                { name: 'Absensi', icon: '✓', path: '/admin/employees/attendance' },
             ],
         },
         {

@@ -144,12 +144,15 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     });
     
     Route::get('/financial-reports', function () {
-        return Inertia::render('admin/financial-reports/index');
+        return Inertia::render('admin/reports/index');
     });
     
     // Events
     Route::get('/events', function () {
         return Inertia::render('admin/events/index');
+    });
+    Route::get('/events/{eventId}/rundown', function ($eventId) {
+        return Inertia::render('admin/events/RundownPage', ['eventId' => $eventId]);
     });
     Route::get('/rundowns', function () {
         return Inertia::render('admin/rundowns/index');
@@ -159,32 +162,37 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     });
     Route::get('/calendar', function () {
         return Inertia::render('admin/calendar/index');
-    });
+    })->name('admin.calendar.index');
     
     // Venue
     Route::get('/venues', function () {
         return Inertia::render('admin/venues/index');
-    });
-    Route::get('/venue-availability', function () {
-        return Inertia::render('admin/venue-availability/index');
-    });
-    Route::get('/venue-pricing', function () {
-        return Inertia::render('admin/venue-pricing/index');
-    });
+    })->name('admin.venues.index');
+    
+    Route::get('/venues/availability', function () {
+        return Inertia::render('admin/venues/availability/index');
+    })->name('admin.venues.availability');
+    
+    Route::get('/venues/pricing', function () {
+        return Inertia::render('admin/venues/pricing/index');
+    })->name('admin.venues.pricing');
     
     // Employees
     Route::get('/employees', function () {
         return Inertia::render('admin/employees/index');
-    });
-    Route::get('/schedules', function () {
-        return Inertia::render('admin/schedules/index');
-    });
-    Route::get('/assignments', function () {
-        return Inertia::render('admin/assignments/index');
-    });
-    Route::get('/attendance', function () {
-        return Inertia::render('admin/attendance/index');
-    });
+    })->name('admin.employees.index');
+    
+    Route::get('/employees/schedules', function () {
+        return Inertia::render('admin/employees/schedules/index');
+    })->name('admin.employees.schedules');
+    
+    Route::get('/employees/assignments', function () {
+        return Inertia::render('admin/employees/assignments/index');
+    })->name('admin.employees.assignments');
+    
+    Route::get('/employees/attendance', function () {
+        return Inertia::render('admin/employees/attendance/index');
+    })->name('admin.employees.attendance');
     
     // Vendors
     Route::get('/vendors', function () {
@@ -201,40 +209,23 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     });
     
     // Clients
-    Route::get('/clients', function () {
-        return Inertia::render('admin/clients/index');
-    });
-    Route::get('/client-verification', function () {
-        return Inertia::render('admin/client-verification/index');
-    });
+    Route::get('/clients', [App\Http\Controllers\ClientController::class, 'index'])->name('admin.clients.index');
+    Route::get('/client-verification', [App\Http\Controllers\ClientVerificationController::class, 'index'])->name('admin.client-verification.index');
     
-    // Reports
-    Route::get('/reports/sales', function () {
-        return Inertia::render('admin/reports/sales/index');
+    // Reports - Financial Reports
+    Route::get('/reports', function () {
+        return Inertia::render('admin/reports/index');
     });
-    Route::get('/reports/inventory', function () {
-        return Inertia::render('admin/reports/inventory/index');
-    });
-    Route::get('/reports/performance', function () {
-        return Inertia::render('admin/reports/performance/index');
-    });
-    Route::get('/reports/export', function () {
-        return Inertia::render('admin/reports/export/index');
-    });
+    Route::get('/reports/sales', [App\Http\Controllers\ReportController::class, 'salesReport'])->name('admin.reports.sales');
+    Route::get('/reports/inventory', [App\Http\Controllers\ReportController::class, 'inventoryReport'])->name('admin.reports.inventory');
+    Route::get('/reports/performance', [App\Http\Controllers\ReportController::class, 'performanceReport'])->name('admin.reports.performance');
+    Route::get('/reports/export', [App\Http\Controllers\ReportController::class, 'exportData'])->name('admin.reports.export');
     
     // Settings
-    Route::get('/settings/general', function () {
-        return Inertia::render('admin/settings/general/index');
-    });
-    Route::get('/settings/notifications', function () {
-        return Inertia::render('admin/settings/notifications/index');
-    });
-    Route::get('/settings/email-templates', function () {
-        return Inertia::render('admin/settings/email-templates/index');
-    });
-    Route::get('/settings/backup', function () {
-        return Inertia::render('admin/settings/backup/index');
-    });
+    Route::get('/settings/general', [App\Http\Controllers\SettingsController::class, 'generalSettings'])->name('admin.settings.general');
+    Route::get('/settings/notifications', [App\Http\Controllers\SettingsController::class, 'notificationSettings'])->name('admin.settings.notifications');
+    Route::get('/settings/email-templates', [App\Http\Controllers\SettingsController::class, 'emailTemplates'])->name('admin.settings.email-templates');
+    Route::get('/settings/backup', [App\Http\Controllers\SettingsController::class, 'backupRestore'])->name('admin.settings.backup');
 });
 
 require __DIR__.'/auth.php';

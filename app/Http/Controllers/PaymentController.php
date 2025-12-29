@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\PaymentProof;
+use App\Models\Event;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Auth;
@@ -289,6 +290,9 @@ class PaymentController extends Controller
             $order->status = Order::STATUS_PAID;
             $order->deposit_amount = $paymentProof->amount;
             $order->remaining_amount = 0;
+            
+            // Automatically create event when order is fully paid
+            $this->createEventFromOrder($order);
         } else {
             // DP payment verified
             $order->payment_status = Order::PAYMENT_DP_PAID;
@@ -338,5 +342,56 @@ class PaymentController extends Controller
             'success' => true,
             'message' => 'Payment rejected. Payment link has been reactivated.',
         ]);
+    }
+    
+    /**
+     * Create event automatically from order
+     */
+    private function createEventFromOrder(Order $order)
+    {
+        // Check if event already exists
+        if ($order->event()->exists()) {
+            return;
+        }
+        
+        // Create event
+        Event::create([
+            'order_id' => $order->id,
+            'client_id' => $order->client_id,
+            'event_name' => $order->event_name ?? 'Event ' . $order->order_number,
+            'event_type' => $this->mapEventType($order->event_type),
+            'event_date' => $order->event_date,
+            'start_time' => $order->event_date ? $order->event_date . ' 08:00:00' : now()->addDays(7) . ' 08:00:00',
+            'end_time' => $order->event_date ? $order->event_date . ' 22:00:00' : now()->addDays(7) . ' 22:00:00',
+            'venue_name' => $order->event_location ?? 'TBD',
+            'venue_address' => $order->event_address ?? 'TBD',
+            'guest_count' => $order->guest_count,
+            'status' => 'confirmed',
+            'notes' => 'Event otomatis dibuat dari Order: ' . $order->order_number,
+            'contact_persons' => [
+                [
+                    'name' => $order->client->name,
+                    'phone' => $order->client->phone,
+                    'role' => 'Client'
+                ]
+            ],
+        ]);
+    }
+    
+    /**
+     * Map order event type to event model event type
+     */
+    private function mapEventType($orderEventType)
+    {
+        $mapping = [
+            'pernikahan' => 'wedding',
+            'ulang_tahun' => 'birthday',
+            'corporate' => 'corporate',
+            'lamaran' => 'engagement',
+            'anniversary' => 'anniversary',
+            'wisuda' => 'graduation',
+        ];
+        
+        return $mapping[strtolower($orderEventType)] ?? 'other';
     }
 }

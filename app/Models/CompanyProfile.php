@@ -12,13 +12,16 @@ class CompanyProfile extends Model
     protected $fillable = [
         'company_name',
         'about',
+        'description',
         'services',
         'gallery',
         'phone',
         'email',
         'address',
         'website',
-        'social_media'
+        'social_media',
+        'logo',
+        'favicon',
     ];
 
     protected $casts = [

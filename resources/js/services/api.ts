@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:8000/api';
+// Use current domain for API calls (works with both dev and production)
+const API_BASE_URL = `${window.location.origin}/api`;
 
 // Create axios instance with default config
 const api = axios.create({
