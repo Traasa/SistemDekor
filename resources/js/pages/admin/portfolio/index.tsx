@@ -32,9 +32,12 @@ export default function PortfolioPage() {
     const fetchPortfolios = async () => {
         try {
             const response = await axios.get('/api/portfolios');
-            setPortfolios(response.data.data);
+            // Handle paginated response
+            const data = response.data.data;
+            setPortfolios(Array.isArray(data) ? data : data.data || []);
         } catch (error) {
             console.error('Failed to fetch portfolios:', error);
+            setPortfolios([]);
         } finally {
             setLoading(false);
         }

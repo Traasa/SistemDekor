@@ -109,8 +109,14 @@ export default function VendorsPage() {
   };
 
   const getLevelColor = (level: string) => {
-    const colors: any = { platinum: 'bg-gray-800', gold: 'bg-yellow-500', silver: 'bg-gray-400', bronze: 'bg-orange-600', standard: 'bg-gray-300' };
-    return colors[level] || 'bg-gray-300';
+    const colors: any = { 
+      platinum: 'bg-gray-800', 
+      gold: 'bg-yellow-500', 
+      silver: 'bg-gray-500', 
+      bronze: 'bg-orange-600', 
+      standard: 'bg-gray-400' 
+    };
+    return colors[level] || 'bg-gray-400';
   };
 
   return (
@@ -159,10 +165,10 @@ export default function VendorsPage() {
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <h3 className="text-xl font-bold">{vendor.company_name}</h3>
-                        <span className={`px-2 py-1 text-xs text-white rounded ${getLevelColor(vendor.rating_level)}`}>
+                        <span className={`px-3 py-1 text-xs font-semibold text-white rounded min-w-[80px] text-center ${getLevelColor(vendor.rating_level)}`}>
                           {vendor.rating_level.toUpperCase()}
                         </span>
-                        <span className={`px-2 py-1 text-xs rounded ${vendor.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}>
+                        <span className={`px-3 py-1 text-xs font-medium rounded min-w-[60px] text-center ${vendor.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100'}`}>
                           {vendor.status}
                         </span>
                       </div>

@@ -9,6 +9,8 @@ class VendorPerformance extends Model
 {
     use HasFactory;
 
+    protected $table = 'vendor_performance';
+
     protected $fillable = [
         'vendor_id',
         'year',

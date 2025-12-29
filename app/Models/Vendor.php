@@ -39,8 +39,9 @@ class Vendor extends Model
 
     protected $casts = [
         'services_offered' => 'array',
-        'average_rating' => 'decimal:2',
-        'minimum_order' => 'decimal:2'
+        'average_rating' => 'float',
+        'minimum_order' => 'float',
+        'total_reviews' => 'integer'
     ];
 
     protected static function boot()
