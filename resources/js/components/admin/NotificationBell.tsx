@@ -74,6 +74,8 @@ export const NotificationBell: React.FC = () => {
                 return '📋';
             case 'payment':
                 return '💰';
+            case 'inventory':
+                return '📦';
             case 'user':
                 return '👤';
             default:
@@ -87,6 +89,8 @@ export const NotificationBell: React.FC = () => {
                 return 'bg-blue-50 border-blue-200';
             case 'payment':
                 return 'bg-green-50 border-green-200';
+            case 'inventory':
+                return 'bg-orange-50 border-orange-200';
             case 'user':
                 return 'bg-purple-50 border-purple-200';
             default:

@@ -33,6 +33,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
             children: [
                 { name: 'Daftar User', icon: '📋', path: '/admin/users' },
                 { name: 'Role & Permission', icon: '🔐', path: '/admin/roles' },
+                { name: 'Notifikasi', icon: '🔔', path: '/admin/notifications' },
                 { name: 'User Activity', icon: '📈', path: '/admin/user-activity' },
             ],
         },

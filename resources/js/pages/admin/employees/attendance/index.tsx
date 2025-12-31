@@ -52,10 +52,12 @@ interface Stats {
 
 interface MonthlySummary {
   total_days: number;
-  present_days: number;
-  late_days: number;
-  absent_days: number;
-  leave_days: number;
+  present: number;
+  late: number;
+  absent: number;
+  on_leave: number;
+  sick: number;
+  half_day: number;
   total_hours: number;
 }
 
@@ -167,9 +169,10 @@ const EmployeeAttendancePage: React.FC = () => {
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth() + 1;
       const response = await api.get(`/employee-attendances/summary/${selectedEmployee}/${year}/${month}`);
-      setSummary(response.data.data);
+      setSummary(response.data.summary);
     } catch (error) {
       console.error('Error fetching summary:', error);
+      setSummary(null);
     }
   };
 
@@ -472,23 +475,23 @@ const EmployeeAttendancePage: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div>
                 <p className="text-sm opacity-90">Total Hari</p>
-                <p className="text-2xl font-bold">{summary.total_days}</p>
+                <p className="text-2xl font-bold">{summary.total_days ?? 0}</p>
               </div>
               <div>
                 <p className="text-sm opacity-90">Hadir</p>
-                <p className="text-2xl font-bold">{summary.present_days}</p>
+                <p className="text-2xl font-bold">{summary.present ?? 0}</p>
               </div>
               <div>
                 <p className="text-sm opacity-90">Terlambat</p>
-                <p className="text-2xl font-bold">{summary.late_days}</p>
+                <p className="text-2xl font-bold">{summary.late ?? 0}</p>
               </div>
               <div>
                 <p className="text-sm opacity-90">Cuti</p>
-                <p className="text-2xl font-bold">{summary.leave_days}</p>
+                <p className="text-2xl font-bold">{summary.on_leave ?? 0}</p>
               </div>
               <div>
                 <p className="text-sm opacity-90">Total Jam</p>
-                <p className="text-2xl font-bold">{summary.total_hours.toFixed(1)}h</p>
+                <p className="text-2xl font-bold">{(summary.total_hours ?? 0).toFixed(1)}h</p>
               </div>
             </div>
           </div>

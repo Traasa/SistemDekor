@@ -14,7 +14,7 @@ class RundownController extends Controller
             ->orderBy('order')
             ->get();
 
-        return response()->json($rundownItems);
+        return response()->json(['data' => $rundownItems]);
     }
 
     public function store(Request $request, Event $event)

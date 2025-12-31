@@ -55,9 +55,18 @@ export default function RundownAcaraPage({ eventId }: { eventId: string }) {
                 axios.get(`/api/events/${eventId}/rundown`)
             ]);
             setEvent(eventRes.data);
-            setRundownItems(rundownRes.data);
+            const items = rundownRes.data.data || rundownRes.data || [];
+            // Ensure equipment_needed is always an array
+            const parsedItems = items.map((item: any) => ({
+                ...item,
+                equipment_needed: typeof item.equipment_needed === 'string' 
+                    ? JSON.parse(item.equipment_needed) 
+                    : (item.equipment_needed || [])
+            }));
+            setRundownItems(parsedItems);
         } catch (error) {
             console.error('Failed to fetch event and rundown:', error);
+            setRundownItems([]);
         } finally {
             setLoading(false);
         }
@@ -431,7 +440,7 @@ export default function RundownAcaraPage({ eventId }: { eventId: string }) {
                                                             Peralatan dibutuhkan:
                                                         </p>
                                                         <div className="flex flex-wrap gap-1 mt-1">
-                                                            {item.equipment_needed.map((eq, i) => (
+                                                            {(item.equipment_needed || []).map((eq, i) => (
                                                                 <span
                                                                     key={i}
                                                                     className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded"

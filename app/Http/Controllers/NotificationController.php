@@ -10,17 +10,23 @@ class NotificationController extends Controller
 {
     public function index(Request $request)
     {
-        // Get recent important activities only as notifications
+        // Get recent important activities - hanya order dan inventory/stok
         $notifications = UserActivity::with('user')
             ->where(function($query) {
-                // Filter hanya event penting
-                $query->where('action', 'LIKE', '%created_order%')
-                      ->orWhere('action', 'LIKE', '%created_payment%')
-                      ->orWhere('action', 'LIKE', '%verified_payment%')
-                      ->orWhere('action', 'LIKE', '%rejected_payment%')
-                      ->orWhere('action', 'LIKE', '%created_user%')
-                      ->orWhere('action', 'LIKE', '%updated_order_status%')
-                      ->orWhere('action', 'LIKE', '%uploaded_payment_proof%');
+                // Filter hanya order dan inventory/stok
+                $query->where(function($q) {
+                    // Order related
+                    $q->where('subject_type', 'LIKE', '%Order%')
+                      ->orWhere('description', 'LIKE', '%order%')
+                      ->orWhere('description', 'LIKE', '%pesanan%');
+                })
+                ->orWhere(function($q) {
+                    // Inventory/Stock related
+                    $q->where('subject_type', 'LIKE', '%Inventory%')
+                      ->orWhere('description', 'LIKE', '%inventory%')
+                      ->orWhere('description', 'LIKE', '%stock%')
+                      ->orWhere('description', 'LIKE', '%stok%');
+                });
             })
             ->orderBy('created_at', 'desc')
             ->limit(20)
@@ -28,7 +34,7 @@ class NotificationController extends Controller
             ->map(function ($activity) {
                 return [
                     'id' => $activity->id,
-                    'type' => $this->getNotificationType($activity->action),
+                    'type' => $this->getNotificationType($activity),
                     'title' => $this->getNotificationTitle($activity),
                     'message' => $activity->description,
                     'link' => $this->getNotificationLink($activity),
@@ -69,56 +75,89 @@ class NotificationController extends Controller
         ]);
     }
 
-    private function getNotificationType($action)
+    private function getNotificationType($activity)
     {
-        if (str_contains($action, 'order')) {
+        $description = strtolower($activity->description ?? '');
+        $subjectType = $activity->subject_type ?? '';
+        
+        if (str_contains($subjectType, 'Order') || str_contains($description, 'order') || str_contains($description, 'pesanan')) {
             return 'order';
-        } elseif (str_contains($action, 'payment')) {
-            return 'payment';
-        } elseif (str_contains($action, 'user')) {
-            return 'user';
+        } elseif (str_contains($subjectType, 'Inventory') || str_contains($description, 'inventory') || str_contains($description, 'stock') || str_contains($description, 'stok')) {
+            return 'inventory';
         }
         return 'system';
     }
 
     private function getNotificationTitle($activity)
     {
-        $action = $activity->action;
+        $activityType = $activity->activity_type;
+        $subjectType = $activity->subject_type ?? '';
+        $description = strtolower($activity->description ?? '');
         
         // Order related
-        if (str_contains($action, 'created_order')) {
-            return '📋 Order Baru Dibuat';
-        } elseif (str_contains($action, 'updated_order_status')) {
-            return '📝 Status Order Diupdate';
+        if (str_contains($subjectType, 'Order') || str_contains($description, 'order') || str_contains($description, 'pesanan')) {
+            if ($activityType === 'create') {
+                return '📋 Order Baru Dibuat';
+            } elseif ($activityType === 'update') {
+                if (str_contains($description, 'status')) {
+                    return '📝 Status Order Diupdate';
+                }
+                return '✏️ Order Diupdate';
+            } elseif ($activityType === 'delete') {
+                return '🗑️ Order Dihapus';
+            }
+            return '📋 Order';
         }
         
-        // Payment related
-        elseif (str_contains($action, 'uploaded_payment_proof')) {
-            return '💰 Bukti Pembayaran Diupload';
-        } elseif (str_contains($action, 'verified_payment')) {
-            return '✅ Pembayaran Diverifikasi';
-        } elseif (str_contains($action, 'rejected_payment')) {
-            return '❌ Pembayaran Ditolak';
-        } elseif (str_contains($action, 'created_payment')) {
-            return '💳 Pembayaran Baru';
+        // Inventory/Stock related
+        if (str_contains($subjectType, 'Inventory') || str_contains($description, 'inventory') || str_contains($description, 'stock') || str_contains($description, 'stok')) {
+            if ($activityType === 'create') {
+                return '📦 Item Inventory Baru';
+            } elseif ($activityType === 'update') {
+                if (str_contains($description, 'stock') || str_contains($description, 'stok')) {
+                    return '📊 Stok Diupdate';
+                }
+                return '✏️ Inventory Diupdate';
+            } elseif ($activityType === 'delete') {
+                return '🗑️ Item Inventory Dihapus';
+            }
+            if (str_contains($description, 'low') || str_contains($description, 'rendah')) {
+                return '⚠️ Stok Menipis';
+            }
+            return '📦 Inventory';
         }
         
-        // User related
-        elseif (str_contains($action, 'created_user')) {
-            return '👤 User Baru Terdaftar';
-        }
-        
-        return ucfirst(str_replace('_', ' ', $action));
+        return '📌 ' . ucfirst($activityType);
     }
 
     private function getNotificationLink($activity)
     {
-        $action = $activity->action;
+        $properties = $activity->properties ?? [];
+        $subjectType = $activity->subject_type ?? '';
+        $subjectId = $activity->subject_id;
+        $description = strtolower($activity->description ?? '');
         
-        if (str_contains($action, 'order') && isset($activity->properties['order_id'])) {
-            return '/admin/orders/' . $activity->properties['order_id'];
-        } elseif (str_contains($action, 'payment') && isset($activity->properties['payment_id'])) {
-            return '/admin/orders'; // Link to orders page
+        // Link to orders for order related activities
+        if (str_contains($subjectType, 'Order') || str_contains($description, 'order') || str_contains($description, 'pesanan')) {
+            if ($subjectId) {
+                return '/admin/orders/' . $subjectId;
+            }
+            return '/admin/orders';
+        }
+        
+        // Link to inventory for inventory related activities
+        if (str_contains($subjectType, 'Inventory') || str_contains($description, 'inventory') || str_contains($description, 'stock') || str_contains($description, 'stok')) {
+            return '/admin/inventory';
+        }
+        
+        // Check properties for specific IDs
+        if (is_array($properties)) {
+            if (isset($properties['order_id'])) {
+                return '/admin/orders/' . $properties['order_id'];
+            }
+            if (isset($properties['inventory_id'])) {
+                return '/admin/inventory';
+            }
         }
         
         return null;

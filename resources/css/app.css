@@ -62,6 +62,18 @@
     body {
         @apply bg-background text-foreground;
     }
+
+    /* Pastikan semua input, select, dan textarea memiliki teks berwarna hitam */
+    input,
+    select,
+    textarea {
+        @apply text-gray-900;
+    }
+
+    input::placeholder,
+    textarea::placeholder {
+        @apply text-gray-400;
+    }
 }
 
 /* Custom Wedding Styles */

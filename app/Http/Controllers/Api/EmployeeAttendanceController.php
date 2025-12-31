@@ -227,9 +227,13 @@ class EmployeeAttendanceController extends Controller
     /**
      * Get attendance summary for a month
      */
-    public function summary(Request $request)
+    public function summary($employee_id, $year, $month)
     {
-        $validator = Validator::make($request->all(), [
+        $validator = Validator::make([
+            'employee_id' => $employee_id,
+            'year' => $year,
+            'month' => $month
+        ], [
             'employee_id' => 'required|exists:employees,id',
             'year' => 'required|integer|min:2020|max:2100',
             'month' => 'required|integer|min:1|max:12'
@@ -239,8 +243,8 @@ class EmployeeAttendanceController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        $attendances = EmployeeAttendance::where('employee_id', $request->employee_id)
-            ->forMonth($request->year, $request->month)
+        $attendances = EmployeeAttendance::where('employee_id', $employee_id)
+            ->forMonth($year, $month)
             ->get();
 
         $summary = [

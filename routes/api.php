@@ -227,12 +227,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('employee-assignments-upcoming', [App\Http\Controllers\Api\EmployeeAssignmentController::class, 'upcoming']);
     
     // Employee Attendance
-    Route::apiResource('employee-attendances', App\Http\Controllers\Api\EmployeeAttendanceController::class);
+    Route::get('employee-attendances/summary/{employee_id}/{year}/{month}', [App\Http\Controllers\Api\EmployeeAttendanceController::class, 'summary']);
+    Route::get('employee-attendances-pending', [App\Http\Controllers\Api\EmployeeAttendanceController::class, 'pendingApprovals']);
     Route::post('employee-attendances/check-in', [App\Http\Controllers\Api\EmployeeAttendanceController::class, 'checkIn']);
     Route::post('employee-attendances/check-out', [App\Http\Controllers\Api\EmployeeAttendanceController::class, 'checkOut']);
     Route::post('employee-attendances/{id}/approve', [App\Http\Controllers\Api\EmployeeAttendanceController::class, 'approve']);
-    Route::get('employee-attendances-summary', [App\Http\Controllers\Api\EmployeeAttendanceController::class, 'summary']);
-    Route::get('employee-attendances-pending', [App\Http\Controllers\Api\EmployeeAttendanceController::class, 'pendingApprovals']);
+    Route::apiResource('employee-attendances', App\Http\Controllers\Api\EmployeeAttendanceController::class);
     
     // Vendor Management
     Route::apiResource('vendor-categories', App\Http\Controllers\VendorCategoryController::class);

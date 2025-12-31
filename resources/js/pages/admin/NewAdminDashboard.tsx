@@ -215,8 +215,8 @@ const NewAdminDashboard: React.FC = () => {
                                 <div className="h-64 animate-pulse rounded bg-gray-200"></div>
                             ) : (
                                 <div className="space-y-4">
-                                    {monthlyRevenue.map((item) => (
-                                        <div key={item.month}>
+                                    {monthlyRevenue.map((item, index) => (
+                                        <div key={`${item.month}-${index}`}>
                                             <div className="mb-1 flex items-center justify-between text-sm">
                                                 <span className="font-medium text-gray-700">{item.month}</span>
                                                 <span className="font-semibold text-gray-900">Rp {(item.revenue / 1000000).toFixed(1)}jt</span>

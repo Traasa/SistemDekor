@@ -10,7 +10,7 @@ interface Gallery {
     image_path: string;
     category: string | null;
     is_featured: boolean;
-    display_order: number;
+    display_order?: number;
 }
 
 export default function GalleryPage() {
@@ -74,7 +74,7 @@ export default function GalleryPage() {
             image_path: gallery.image_path,
             category: gallery.category || '',
             is_featured: gallery.is_featured,
-            display_order: gallery.display_order.toString(),
+            display_order: gallery.display_order?.toString() || '0',
         });
         setShowModal(true);
     };
@@ -163,7 +163,7 @@ export default function GalleryPage() {
                                                 {gallery.is_featured ? 'Ya' : 'Tidak'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{gallery.display_order}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{gallery.display_order ?? 0}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <button onClick={() => handleEdit(gallery)} className="text-blue-600 hover:text-blue-900 mr-3">
                                                 <Edit className="h-5 w-5" />

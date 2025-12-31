@@ -76,6 +76,11 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::delete('/user-activity/{id}', [UserActivityController::class, 'destroy'])->name('admin.user-activity.destroy');
     Route::post('/user-activity/clear', [UserActivityController::class, 'clear'])->name('admin.user-activity.clear');
     
+    // Notifications
+    Route::get('/notifications', function () {
+        return Inertia::render('admin/notifications/index');
+    })->name('admin.notifications.index');
+    
     // Website Content
     Route::get('/company-profile', function () {
         return Inertia::render('admin/company-profile/index');
