@@ -48,7 +48,7 @@ export const HeroSection: React.FC = () => {
                     </div>
 
                     <p className="animate-fade-in animation-delay-600 mx-auto mb-12 max-w-2xl px-4 text-lg text-white/80 drop-shadow-lg sm:text-xl">
-                        Wujudkan pernikahan impian Anda dengan dekorasi eksklusif dan layanan terpadu dari Diamond Weddings
+                        Wujudkan pernikahan impian Anda dengan dekorasi eksklusif dan layanan terpadu dari Wedding Organizer
                     </p>
 
                     {/* CTA Buttons */}

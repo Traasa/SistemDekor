@@ -59,7 +59,7 @@ export const AboutSection: React.FC = () => {
                         </h2>
 
                         <p className="text-lg leading-relaxed text-gray-700">
-                            Selamat datang di <span className="font-bold text-[#D4AF37]">Diamond Weddings</span>, event organizer yang berdedikasi
+                            Selamat datang di <span className="font-bold text-[#D4AF37]">Wedding Organizer</span>, event organizer yang berdedikasi
                             untuk mewujudkan pernikahan impian Anda dengan sempurna. Dengan pengalaman lebih dari 10 tahun, kami telah membantu
                             ratusan pasangan menciptakan momen tak terlupakan.
                         </p>

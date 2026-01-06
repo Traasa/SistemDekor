@@ -10,6 +10,8 @@ interface Order {
     guest_count: number;
     total_price: number;
     final_price: number;
+    total_paid: number;
+    remaining_amount: number;
     status: string;
     payment_status: string;
     notes: string;
@@ -64,7 +66,7 @@ const MyOrders: React.FC<Props> = ({ orders = [] }) => {
                                     <span className="font-serif text-2xl font-bold text-[#D4AF37]">D</span>
                                 </div>
                             </div>
-                            <span className="font-serif text-2xl font-bold text-gray-900">Diamond Weddings</span>
+                            <span className="font-serif text-2xl font-bold text-gray-900">Wedding Organizer</span>
                         </Link>
 
                         <nav className="flex items-center space-x-6">
@@ -205,15 +207,24 @@ const MyOrders: React.FC<Props> = ({ orders = [] }) => {
                                             </div>
                                         )}
 
-                                        <a
-                                            href={`https://wa.me/6281234567890?text=Halo, saya ingin menanyakan tentang pesanan ${order.order_code}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="inline-flex items-center gap-2 rounded-full bg-[#25D366] px-6 py-3 font-bold text-white shadow-lg transition-all hover:scale-105"
-                                        >
-                                            <span className="text-xl">💬</span>
-                                            Hubungi via WhatsApp
-                                        </a>
+                                        <div className="flex flex-col gap-2 w-full">
+                                            <Link
+                                                href={`/my-orders/${order.id}`}
+                                                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] px-6 py-3 font-bold text-white shadow-lg transition-all hover:scale-105"
+                                            >
+                                                <span className="text-xl">📋</span>
+                                                Lihat Detail
+                                            </Link>
+                                            <a
+                                                href={`https://wa.me/6281234567890?text=Halo, saya ingin menanyakan tentang pesanan ${order.order_code}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 font-bold text-white shadow-lg transition-all hover:scale-105"
+                                            >
+                                                <span className="text-xl">💬</span>
+                                                Hubungi via WhatsApp
+                                            </a>
+                                        </div>
                                     </div>
                                 </div>
                             </div>

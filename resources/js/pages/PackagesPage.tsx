@@ -235,7 +235,7 @@ const PackagesPage: React.FC = () => {
                             <span
                                 className={`font-serif text-2xl font-bold transition-colors duration-300 ${isScrolled ? 'text-gray-900' : 'text-white drop-shadow-lg'}`}
                             >
-                                Diamond Weddings
+                                Wedding Organizer
                             </span>
                         </Link>
 
@@ -426,7 +426,7 @@ const PackagesPage: React.FC = () => {
             {/* Footer */}
             <footer className="relative z-10 bg-gray-900/90 py-8 text-white backdrop-blur">
                 <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-                    <p className="text-sm text-gray-400">© 2024 Diamond Weddings. All rights reserved.</p>
+                    <p className="text-sm text-gray-400">© 2024 Wedding Organizer. All rights reserved.</p>
                 </div>
             </footer>
 
@@ -489,7 +489,7 @@ const PackagesPage: React.FC = () => {
                                         value={formData.client_name}
                                         onChange={handleInputChange}
                                         required
-                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                         placeholder="Masukkan nama lengkap"
                                     />
                                 </div>
@@ -505,7 +505,7 @@ const PackagesPage: React.FC = () => {
                                         value={formData.client_email}
                                         onChange={handleInputChange}
                                         required
-                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                         placeholder="email@example.com"
                                     />
                                 </div>
@@ -521,7 +521,7 @@ const PackagesPage: React.FC = () => {
                                         value={formData.client_phone}
                                         onChange={handleInputChange}
                                         required
-                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                         placeholder="08123456789"
                                     />
                                 </div>
@@ -538,7 +538,7 @@ const PackagesPage: React.FC = () => {
                                         onChange={handleInputChange}
                                         required
                                         min={new Date().toISOString().split('T')[0]}
-                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                     />
                                 </div>
                             </div>
@@ -554,7 +554,7 @@ const PackagesPage: React.FC = () => {
                                     value={formData.event_location}
                                     onChange={handleInputChange}
                                     required
-                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                     placeholder="Contoh: Gedung Pernikahan ABC, Jakarta"
                                 />
                             </div>
@@ -568,7 +568,7 @@ const PackagesPage: React.FC = () => {
                                     value={formData.guest_count}
                                     onChange={handleInputChange}
                                     min="1"
-                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                     placeholder="Contoh: 200"
                                 />
                             </div>
@@ -581,7 +581,7 @@ const PackagesPage: React.FC = () => {
                                     value={formData.notes}
                                     onChange={handleInputChange}
                                     rows={4}
-                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                     placeholder="Tuliskan request khusus Anda di sini..."
                                 />
                             </div>

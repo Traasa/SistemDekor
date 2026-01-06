@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         // Update role enum to include all necessary roles
-        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('super_admin', 'admin', 'manager', 'staff', 'sales', 'client', 'user') NOT NULL DEFAULT 'user'");
+        DB::statement("ALTER TABLE users MODIFY COLUMN role ENUM('super_admin', 'admin', 'manager', 'staff', 'employee', 'sales', 'client', 'user') NOT NULL DEFAULT 'user'");
     }
 
     /**

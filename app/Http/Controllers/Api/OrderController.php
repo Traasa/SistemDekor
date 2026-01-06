@@ -16,7 +16,7 @@ class OrderController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Order::with(['client', 'package', 'paymentTransactions']);
+        $query = Order::with(['client', 'package', 'paymentTransactions', 'paymentProofs']);
 
         // Search by client name or event location
         if ($request->has('search')) {

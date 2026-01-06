@@ -135,11 +135,20 @@ Route::middleware('auth:sanctum')->group(function () {
         // Client management
         Route::apiResource('clients', App\Http\Controllers\Api\ClientController::class);
         
-        // Report management
-        Route::apiResource('reports', ReportController::class);
+        // Financial Reports - MUST be before apiResource('reports')
+        Route::get('/reports/cash-flow', [App\Http\Controllers\Api\FinancialReportController::class, 'cashFlow']);
+        Route::get('/reports/events', [App\Http\Controllers\Api\FinancialReportController::class, 'eventReport']);
+        Route::get('/reports/inventory', [App\Http\Controllers\Api\FinancialReportController::class, 'inventoryReport']);
+        Route::get('/reports/income-statement', [App\Http\Controllers\Api\FinancialReportController::class, 'incomeStatement']);
+        Route::get('/reports/payments', [App\Http\Controllers\Api\FinancialReportController::class, 'paymentReport']);
+        Route::get('/reports/monthly-comparison', [App\Http\Controllers\Api\FinancialReportController::class, 'monthlyComparison']);
+        Route::post('/reports/generate-pdf', [App\Http\Controllers\Api\FinancialReportController::class, 'generatePdf']);
         Route::get('/reports/generate/transactions', [ReportController::class, 'generateTransactionReport']);
         Route::get('/reports/generate/services', [ReportController::class, 'generateServiceReport']);
         Route::get('/reports/generate/revenue', [ReportController::class, 'generateRevenueReport']);
+        
+        // Report management - generic resource routes
+        Route::apiResource('reports', ReportController::class);
         
         // New Report Routes
         Route::get('/reports-sales-data', [App\Http\Controllers\ReportController::class, 'getSalesData']);
@@ -195,14 +204,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('events/{event}/tasks/{taskAssignment}', [App\Http\Controllers\TaskAssignmentController::class, 'update']);
     Route::delete('events/{event}/tasks/{taskAssignment}', [App\Http\Controllers\TaskAssignmentController::class, 'destroy']);
     Route::get('my-tasks', [App\Http\Controllers\TaskAssignmentController::class, 'myTasks']);
-    
-    // Financial Reports
-    Route::get('reports/cash-flow', [App\Http\Controllers\Api\FinancialReportController::class, 'cashFlow']);
-    Route::get('reports/events', [App\Http\Controllers\Api\FinancialReportController::class, 'eventReport']);
-    Route::get('reports/inventory', [App\Http\Controllers\Api\FinancialReportController::class, 'inventoryReport']);
-    Route::get('reports/income-statement', [App\Http\Controllers\Api\FinancialReportController::class, 'incomeStatement']);
-    Route::get('reports/payments', [App\Http\Controllers\Api\FinancialReportController::class, 'paymentReport']);
-    Route::get('reports/monthly-comparison', [App\Http\Controllers\Api\FinancialReportController::class, 'monthlyComparison']);
     
     // Venue Management
     Route::apiResource('venues', App\Http\Controllers\Api\VenueController::class);

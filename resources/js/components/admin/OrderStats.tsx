@@ -9,7 +9,11 @@ export const OrderStats: React.FC<OrderStatsProps> = ({ orders }) => {
     const totalOrders = orders.length;
     const pendingOrders = orders.filter((o) => o.status === 'pending').length;
     const completedOrders = orders.filter((o) => o.status === 'completed').length;
-    const totalRevenue = orders.filter((o) => o.status === 'completed').reduce((sum, o) => sum + parseFloat(o.total_price.toString()), 0);
+    // Calculate total revenue from actual verified payments
+    const totalRevenue = orders.reduce((sum, o) => {
+        const totalPaid = (o as any).total_paid || 0;
+        return sum + parseFloat(totalPaid.toString());
+    }, 0);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {

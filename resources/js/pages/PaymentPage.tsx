@@ -211,7 +211,7 @@ export default function PaymentPage({ order, token }: Props) {
                                                 paymentType === 'dp' ? 'border-purple-600 bg-purple-50' : 'border-gray-200 hover:border-purple-300'
                                             }`}
                                         >
-                                            <div className="flex items-center justify-center space-x-2">
+                                            <div className="flex items-center justify-center space-x-2 text-gray-900">
                                                 <DollarSign className="h-5 w-5" />
                                                 <span className="font-semibold">DP (Down Payment)</span>
                                             </div>
@@ -226,7 +226,7 @@ export default function PaymentPage({ order, token }: Props) {
                                                 paymentType === 'full' ? 'border-purple-600 bg-purple-50' : 'border-gray-200 hover:border-purple-300'
                                             }`}
                                         >
-                                            <div className="flex items-center justify-center space-x-2">
+                                            <div className="flex items-center justify-center space-x-2 text-gray-900">
                                                 <CheckCircle className="h-5 w-5" />
                                                 <span className="font-semibold">Full Payment</span>
                                             </div>
@@ -244,7 +244,7 @@ export default function PaymentPage({ order, token }: Props) {
                                         id="amount"
                                         value={amount}
                                         onChange={(e) => setAmount(e.target.value)}
-                                        className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:border-transparent focus:ring-2 focus:ring-purple-500"
+                                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-purple-500"
                                         placeholder="Enter payment amount"
                                         min="0"
                                         step="1000"
@@ -297,10 +297,10 @@ export default function PaymentPage({ order, token }: Props) {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className={`w-full rounded-xl py-4 font-semibold text-white transition-all ${
+                                    className={`w-full rounded-xl py-4 font-semibold transition-all ${
                                         isSubmitting
-                                            ? 'cursor-not-allowed bg-gray-400'
-                                            : 'bg-gradient-to-r from-purple-600 to-pink-600 hover:scale-[1.02] hover:shadow-lg'
+                                            ? 'cursor-not-allowed bg-gray-400 text-gray-700'
+                                            : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:scale-[1.02] hover:shadow-lg'
                                     }`}
                                 >
                                     {isSubmitting ? 'Uploading...' : 'Upload Payment Proof'}

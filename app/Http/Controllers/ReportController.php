@@ -8,6 +8,7 @@ use App\Models\InventoryTransaction;
 use App\Models\Employee;
 use App\Models\EmployeeAssignment;
 use App\Models\PaymentTransaction;
+use App\Models\PaymentProof;
 use App\Models\Vendor;
 use App\Models\Event;
 use Illuminate\Http\Request;
@@ -30,7 +31,10 @@ class ReportController extends Controller
     public function getSalesData(Request $request)
     {
         $startDate = $request->input('start_date', Carbon::now()->startOfMonth());
-        $endDate = $request->input('end_date', Carbon::now()->endOfMonth());
+        $endDate = $request->input('end_date', Carbon::now()->endOfDay());
+        
+        // Ensure end date includes full day
+        $endDate = Carbon::parse($endDate)->endOfDay();
         $status = $request->input('status');
 
         $query = Order::with(['client', 'package'])
@@ -44,63 +48,72 @@ class ReportController extends Controller
 
         // Summary Statistics
         $totalOrders = $orders->count();
-        $totalRevenue = $orders->where('status', Order::STATUS_PAID)
-            ->sum('final_price');
+        // Total revenue from actual verified payment proofs
+        $orderIds = $orders->pluck('id');
+        $totalRevenue = PaymentProof::where('status', 'verified')
+            ->whereIn('order_id', $orderIds)
+            ->sum('amount');
         $pendingOrders = $orders->whereIn('status', [
             Order::STATUS_PENDING,
             Order::STATUS_NEGOTIATION,
         ])->count();
         $completedOrders = $orders->where('status', Order::STATUS_COMPLETED)->count();
 
-        // Revenue by Package
-        $revenueByPackage = $orders->where('status', Order::STATUS_PAID)
-            ->groupBy('package_id')
+        // Revenue by Package from actual payments
+        $revenueByPackage = $orders->groupBy('package_id')
             ->map(function ($group) {
+                $orderIds = $group->pluck('id');
+                $revenue = PaymentProof::where('status', 'verified')
+                    ->whereIn('order_id', $orderIds)
+                    ->sum('amount');
                 return [
                     'package_name' => $group->first()->package->name ?? 'N/A',
                     'total_orders' => $group->count(),
-                    'total_revenue' => $group->sum('final_price'),
+                    'total_revenue' => $revenue,
                 ];
             })->values();
 
-        // Daily Revenue (for chart)
-        $dailyRevenue = $orders->where('status', Order::STATUS_PAID)
-            ->groupBy(function ($order) {
-                return Carbon::parse($order->created_at)->format('Y-m-d');
+        // Daily Revenue from actual verified payments (for chart)
+        $dailyRevenue = PaymentProof::where('status', 'verified')
+            ->whereIn('order_id', $orderIds)
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get()
+            ->groupBy(function ($proof) {
+                return Carbon::parse($proof->created_at)->format('Y-m-d');
             })
             ->map(function ($group, $date) {
                 return [
                     'date' => $date,
-                    'revenue' => $group->sum('final_price'),
-                    'orders' => $group->count(),
+                    'revenue' => $group->sum('amount'),
+                    'orders' => $group->pluck('order_id')->unique()->count(),
                 ];
             })->values();
 
-        // Monthly Comparison (current vs previous month)
+        // Monthly Comparison (current vs previous month) from actual payments
         $currentMonth = Carbon::now()->startOfMonth();
         $previousMonth = Carbon::now()->subMonth()->startOfMonth();
         
-        $currentMonthRevenue = Order::where('status', Order::STATUS_PAID)
+        $currentMonthRevenue = PaymentProof::where('status', 'verified')
             ->whereBetween('created_at', [$currentMonth, Carbon::now()])
-            ->sum('final_price');
+            ->sum('amount');
         
-        $previousMonthRevenue = Order::where('status', Order::STATUS_PAID)
+        $previousMonthRevenue = PaymentProof::where('status', 'verified')
             ->whereBetween('created_at', [$previousMonth, $previousMonth->copy()->endOfMonth()])
-            ->sum('final_price');
+            ->sum('amount');
 
         $revenueGrowth = $previousMonthRevenue > 0 
             ? (($currentMonthRevenue - $previousMonthRevenue) / $previousMonthRevenue) * 100 
             : 0;
 
-        // Payment Status Summary
+        // Payment Status Summary from actual payment proofs
         $paymentSummary = [
-            'total_paid' => PaymentTransaction::where('status', 'verified')
+            'total_paid' => PaymentProof::where('status', 'verified')
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->sum('amount'),
-            'pending_payments' => PaymentTransaction::where('status', 'pending')
+            'pending_payments' => PaymentProof::where('status', 'pending')
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->sum('amount'),
-            'dp_payments' => PaymentTransaction::where('payment_type', 'DP')
+            'dp_payments' => PaymentProof::where('payment_type', 'DP')
                 ->where('status', 'verified')
                 ->whereBetween('created_at', [$startDate, $endDate])
                 ->sum('amount'),

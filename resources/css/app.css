@@ -66,13 +66,28 @@
     /* Pastikan semua input, select, dan textarea memiliki teks berwarna hitam */
     input,
     select,
-    textarea {
-        @apply text-gray-900;
+    textarea,
+    input[type="text"],
+    input[type="email"],
+    input[type="password"],
+    input[type="number"],
+    input[type="tel"],
+    input[type="date"],
+    input[type="time"],
+    input[type="url"],
+    input[type="search"] {
+        @apply text-gray-900 !important;
+        color: #111827 !important;
     }
 
     input::placeholder,
     textarea::placeholder {
         @apply text-gray-400;
+    }
+
+    /* Pastikan button text juga terlihat */
+    button:not([class*="text-"]) {
+        @apply text-gray-900;
     }
 }
 

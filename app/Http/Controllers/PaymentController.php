@@ -284,22 +284,25 @@ class PaymentController extends Controller
         // Update order status based on payment type
         $order = $paymentProof->order;
         
-        if ($paymentProof->payment_type === PaymentProof::PAYMENT_TYPE_FULL) {
-            // Full payment verified
+        // Calculate total paid from all verified proofs
+        $totalPaid = $order->total_paid;
+        
+        if ($paymentProof->payment_type === PaymentProof::PAYMENT_TYPE_FULL || $totalPaid >= $order->final_price) {
+            // Full payment verified or total paid meets final price
             $order->payment_status = Order::PAYMENT_PAID;
             $order->status = Order::STATUS_PAID;
-            $order->deposit_amount = $paymentProof->amount;
-            $order->remaining_amount = 0;
             
             // Automatically create event when order is fully paid
             $this->createEventFromOrder($order);
         } else {
-            // DP payment verified
+            // DP payment verified but not yet full
             $order->payment_status = Order::PAYMENT_DP_PAID;
             $order->status = Order::STATUS_DP_PAID;
-            $order->deposit_amount = $paymentProof->amount;
-            $order->remaining_amount = $order->final_price - $paymentProof->amount;
         }
+        
+        // Update deposit_amount to reflect verified DP payments
+        $order->deposit_amount = $order->total_dp_paid;
+        $order->remaining_amount = $order->final_price - $totalPaid;
         
         $order->save();
 

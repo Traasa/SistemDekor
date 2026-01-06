@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '../../../layouts/AdminLayout';
 import api from '../../../services/api';
+import axios from 'axios';
 import { 
     DollarSign, 
     TrendingUp, 
@@ -117,31 +118,40 @@ const FinancialReportsPage: React.FC = () => {
             switch (activeTab) {
                 case 'cashflow':
                     const cashFlowRes = await api.get('/reports/cash-flow', { params });
+                    console.log('Cash Flow Response:', cashFlowRes);
                     setCashFlowData(cashFlowRes.data.data);
                     break;
                 case 'events':
                     const eventRes = await api.get('/reports/events', { params });
+                    console.log('Events Response:', eventRes);
                     setEventData(eventRes.data.data);
                     break;
                 case 'inventory':
                     const inventoryRes = await api.get('/reports/inventory', { params });
+                    console.log('Inventory Response:', inventoryRes);
                     setInventoryData(inventoryRes.data.data);
                     break;
                 case 'income':
                     const incomeRes = await api.get('/reports/income-statement', { params });
+                    console.log('Income Response:', incomeRes);
                     setIncomeData(incomeRes.data.data);
                     break;
                 case 'payments':
                     const paymentRes = await api.get('/reports/payments', { params });
+                    console.log('Payment Report Data:', paymentRes.data);
                     setPaymentData(paymentRes.data.data);
                     break;
                 case 'comparison':
                     const comparisonRes = await api.get('/reports/monthly-comparison', { params: { year } });
+                    console.log('Comparison Response:', comparisonRes);
                     setComparisonData(comparisonRes.data.data);
                     break;
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error loading report:', error);
+            console.error('Error response:', error.response);
+            console.error('Error status:', error.response?.status);
+            console.error('Error data:', error.response?.data);
         } finally {
             setLoading(false);
         }
@@ -163,6 +173,32 @@ const FinancialReportsPage: React.FC = () => {
         });
     };
 
+    const handleExportPdf = async () => {
+        try {
+            const response = await axios.post('/api/reports/generate-pdf', {
+                type: activeTab,
+                start_date: startDate,
+                end_date: endDate,
+                year: year,
+            }, {
+                responseType: 'blob',
+            });
+
+            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const link = document.createElement('a');
+            link.href = url;
+            const filename = `laporan_${activeTab}_${new Date().toISOString().split('T')[0]}.pdf`;
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            window.URL.revokeObjectURL(url);
+        } catch (error) {
+            console.error('Error exporting PDF:', error);
+            alert('Gagal export PDF. Pastikan data sudah dimuat terlebih dahulu.');
+        }
+    };
+
     const tabs = [
         { id: 'cashflow', label: 'Cash Flow', icon: TrendingUp },
         { id: 'events', label: 'Laporan Event', icon: Calendar },
@@ -181,7 +217,11 @@ const FinancialReportsPage: React.FC = () => {
                         <h1 className="text-2xl font-bold text-gray-900">Laporan Keuangan</h1>
                         <p className="mt-1 text-sm text-gray-600">Analisis lengkap keuangan perusahaan</p>
                     </div>
-                    <button className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 transition-colors">
+                    <button 
+                        onClick={handleExportPdf}
+                        disabled={loading}
+                        className="flex items-center gap-2 rounded-lg bg-green-600 px-4 py-2 text-white hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
                         <Download size={20} />
                         Export PDF
                     </button>
@@ -269,7 +309,8 @@ const FinancialReportsPage: React.FC = () => {
                         ) : (
                             <>
                                 {/* Cash Flow Report */}
-                                {activeTab === 'cashflow' && cashFlowData && (
+                                {activeTab === 'cashflow' && (
+                                    cashFlowData ? (
                                     <div className="space-y-6">
                                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                             <div className="rounded-lg bg-gradient-to-br from-green-50 to-green-100 p-5 border border-green-200">
@@ -349,10 +390,16 @@ const FinancialReportsPage: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-gray-500">Tidak ada data untuk ditampilkan</p>
+                                        </div>
+                                    )
                                 )}
 
                                 {/* Event Report */}
-                                {activeTab === 'events' && eventData && (
+                                {activeTab === 'events' && (
+                                    eventData ? (
                                     <div className="space-y-6">
                                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                             <div className="rounded-lg bg-white p-5 border border-gray-200 shadow-sm">
@@ -440,10 +487,16 @@ const FinancialReportsPage: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-gray-500">Tidak ada data untuk ditampilkan</p>
+                                        </div>
+                                    )
                                 )}
 
                                 {/* Inventory Report */}
-                                {activeTab === 'inventory' && inventoryData && (
+                                {activeTab === 'inventory' && (
+                                    inventoryData ? (
                                     <div className="space-y-6">
                                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
                                             <div className="rounded-lg bg-white p-5 border border-gray-200 shadow-sm">
@@ -528,10 +581,16 @@ const FinancialReportsPage: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-gray-500">Tidak ada data untuk ditampilkan</p>
+                                        </div>
+                                    )
                                 )}
 
                                 {/* Income Statement */}
-                                {activeTab === 'income' && incomeData && (
+                                {activeTab === 'income' && (
+                                    incomeData ? (
                                     <div className="space-y-6">
                                         <div className="rounded-lg bg-white border border-gray-200">
                                             <div className="p-4 border-b border-gray-200 bg-blue-50">
@@ -603,10 +662,16 @@ const FinancialReportsPage: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-gray-500">Tidak ada data untuk ditampilkan</p>
+                                        </div>
+                                    )
                                 )}
 
                                 {/* Payment Report */}
-                                {activeTab === 'payments' && paymentData && (
+                                {activeTab === 'payments' && (
+                                    paymentData ? (
                                     <div className="space-y-6">
                                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                                             <div className="rounded-lg bg-white p-5 border border-gray-200 shadow-sm">
@@ -717,10 +782,16 @@ const FinancialReportsPage: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-gray-500">Tidak ada data untuk ditampilkan</p>
+                                        </div>
+                                    )
                                 )}
 
                                 {/* Monthly Comparison */}
-                                {activeTab === 'comparison' && comparisonData && (
+                                {activeTab === 'comparison' && (
+                                    comparisonData ? (
                                     <div className="space-y-6">
                                         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
                                             <div className="rounded-lg bg-white p-5 border border-gray-200 shadow-sm">
@@ -789,6 +860,11 @@ const FinancialReportsPage: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <p className="text-gray-500">Tidak ada data untuk ditampilkan</p>
+                                        </div>
+                                    )
                                 )}
                             </>
                         )}

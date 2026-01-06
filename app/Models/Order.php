@@ -83,6 +83,14 @@ class Order extends Model
     ];
 
     /**
+     * Accessors to append to JSON
+     */
+    protected $appends = [
+        'total_paid',
+        'remaining_payment',
+    ];
+
+    /**
      * Generate verification token and order number automatically when creating
      */
     protected static function boot()
@@ -156,11 +164,11 @@ class Order extends Model
     }
 
     /**
-     * Get total paid amount
+     * Get total paid amount from verified payment proofs
      */
     public function getTotalPaidAttribute()
     {
-        return $this->paymentTransactions()
+        return $this->paymentProofs()
             ->where('status', 'verified')
             ->sum('amount');
     }
@@ -170,7 +178,18 @@ class Order extends Model
      */
     public function getRemainingPaymentAttribute()
     {
-        return $this->total_price - $this->total_paid;
+        return $this->final_price - $this->total_paid;
+    }
+
+    /**
+     * Get total DP amount (verified payments with type 'dp')
+     */
+    public function getTotalDpPaidAttribute()
+    {
+        return $this->paymentProofs()
+            ->where('status', 'verified')
+            ->where('payment_type', 'dp')
+            ->sum('amount');
     }
 
     /**

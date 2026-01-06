@@ -1,4 +1,4 @@
-// Theme Configuration for Diamond Weddings
+// Theme Configuration for Wedding Organizer
 export const theme = {
     colors: {
         primary: {

@@ -197,12 +197,132 @@ class ClientOrderController extends Controller
                 'total_price' => $order->total_price ?? 0,
                 'discount' => $order->discount ?? 0,
                 'final_price' => $order->final_price ?? $order->total_price,
-                'deposit_amount' => $order->deposit_amount ?? 0,
-                'remaining_amount' => $order->remaining_amount ?? $order->total_price,
+                'total_paid' => $order->total_paid ?? 0,
+                'remaining_amount' => ($order->final_price ?? 0) - ($order->total_paid ?? 0),
                 'status' => $order->status,
                 'payment_status' => $order->payment_status ?? 'unpaid',
                 'notes' => $order->notes,
                 'created_at' => $order->created_at->format('d M Y H:i'),
+            ],
+        ]);
+    }
+
+    /**
+     * Show detailed order page for client
+     */
+    public function showDetail(Request $request, $id)
+    {
+        $user = $request->user();
+        
+        // Get client by user email
+        $client = null;
+        if ($user) {
+            $client = Client::where('email', $user->email)->first();
+        }
+        
+        // Load order with all relationships
+        $order = Order::with([
+            'client',
+            'package',
+            'paymentTransactions',
+            'paymentProofs',
+            'orderDetails',
+            'event.rundownItems',
+            'event.taskAssignments'
+        ])->findOrFail($id);
+
+        // Security check: only allow client to view their own orders
+        if ($client && $order->client_id !== $client->id) {
+            abort(403, 'Unauthorized access to order');
+        }
+
+        return Inertia::render('client/OrderDetail', [
+            'order' => [
+                'id' => $order->id,
+                'order_number' => $order->order_number ?? 'ORD-' . str_pad($order->id, 6, '0', STR_PAD_LEFT),
+                'event_name' => $order->event_name,
+                'event_type' => $order->event_type,
+                'event_date' => $order->event_date ? $order->event_date->format('Y-m-d') : null,
+                'event_location' => $order->event_location ?? $order->event_address,
+                'event_address' => $order->event_address,
+                'event_theme' => $order->event_theme,
+                'guest_count' => $order->guest_count ?? 0,
+                'total_price' => $order->total_price ?? 0,
+                'discount' => $order->discount ?? 0,
+                'final_price' => $order->final_price ?? $order->total_price,
+                'dp_amount' => $order->dp_amount ?? ($order->final_price * 0.3),
+                'total_paid' => $order->total_paid ?? 0,
+                'remaining_amount' => ($order->final_price ?? 0) - ($order->total_paid ?? 0),
+                'status' => $order->status,
+                'payment_status' => $order->payment_status ?? 'unpaid',
+                'notes' => $order->notes,
+                'special_requests' => $order->special_requests,
+                'created_at' => $order->created_at->format('Y-m-d H:i:s'),
+                'updated_at' => $order->updated_at->format('Y-m-d H:i:s'),
+                'client' => [
+                    'name' => $order->client->name,
+                    'email' => $order->client->email,
+                    'phone' => $order->client->phone,
+                ],
+                'package' => $order->package ? [
+                    'id' => $order->package->id,
+                    'name' => $order->package->name,
+                    'description' => $order->package->description,
+                    'price' => $order->package->price,
+                ] : null,
+                'payment_transactions' => $order->paymentProofs->map(function ($proof) {
+                    return [
+                        'id' => $proof->id,
+                        'amount' => $proof->amount,
+                        'payment_type' => $proof->payment_type,
+                        'payment_method' => 'transfer', // Default method
+                        'payment_date' => $proof->created_at->format('Y-m-d'),
+                        'status' => $proof->status,
+                        'proof_url' => $proof->proof_image_path ? asset('storage/' . $proof->proof_image_path) : null,
+                        'notes' => $proof->admin_notes,
+                        'created_at' => $proof->created_at->format('Y-m-d H:i:s'),
+                    ];
+                }),
+                'order_details' => $order->orderDetails->map(function ($detail) {
+                    return [
+                        'id' => $detail->id,
+                        'item_type' => $detail->item_type,
+                        'item_name' => $detail->item_name,
+                        'quantity' => $detail->quantity,
+                        'price' => $detail->price,
+                        'subtotal' => $detail->subtotal,
+                    ];
+                }),
+                'event' => $order->event ? [
+                    'id' => $order->event->id,
+                    'event_code' => $order->event->event_code,
+                    'status' => $order->event->status,
+                    'venue_name' => $order->event->venue_name,
+                    'start_time' => $order->event->start_time ? $order->event->start_time->format('H:i') : null,
+                    'end_time' => $order->event->end_time ? $order->event->end_time->format('H:i') : null,
+                    'rundown_items' => $order->event->rundownItems->map(function ($item) {
+                        return [
+                            'id' => $item->id,
+                            'time' => $item->time,
+                            'activity' => $item->activity,
+                            'description' => $item->description,
+                            'pic' => $item->pic,
+                            'status' => $item->status,
+                            'order' => $item->order,
+                        ];
+                    }),
+                    'task_assignments' => $order->event->taskAssignments->map(function ($task) {
+                        return [
+                            'id' => $task->id,
+                            'task_name' => $task->task_name,
+                            'task_description' => $task->task_description,
+                            'assigned_to' => $task->assigned_to,
+                            'status' => $task->status,
+                            'due_date' => $task->due_date,
+                            'completed_at' => $task->completed_at,
+                        ];
+                    }),
+                ] : null,
             ],
         ]);
     }
@@ -238,9 +358,9 @@ class ClientOrderController extends Controller
                 'total_price' => $order->total_price ?? 0,
                 'discount' => $order->discount ?? 0,
                 'final_price' => $order->final_price ?? $order->total_price,
-                'dp_amount' => $order->dp_amount ?? 0,
-                'deposit_amount' => $order->deposit_amount ?? 0,
-                'remaining_amount' => $order->remaining_amount ?? $order->total_price,
+                'dp_amount' => $order->dp_amount ?? ($order->final_price * 0.3),
+                'total_paid' => $order->total_paid ?? 0,
+                'remaining_amount' => ($order->final_price ?? 0) - ($order->total_paid ?? 0),
                 'status' => $order->status,
                 'payment_status' => $order->payment_status ?? 'unpaid',
                 'notes' => $order->notes,

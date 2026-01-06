@@ -14,7 +14,7 @@ export const Footer: React.FC = () => {
                                     <span className="font-serif text-2xl font-bold text-[#D4AF37]">D</span>
                                 </div>
                             </div>
-                            <span className="font-serif text-xl font-bold">Diamond Weddings</span>
+                            <span className="font-serif text-xl font-bold">Wedding Organizer</span>
                         </div>
                         <p className="text-sm text-gray-400">
                             Mewujudkan pernikahan impian Anda dengan layanan terpadu dan dekorasi eksklusif sejak 2014.
@@ -116,7 +116,7 @@ export const Footer: React.FC = () => {
                 </div>
 
                 <div className="mt-12 border-t border-white/10 pt-8 text-center">
-                    <p className="text-sm text-gray-400">© 2024 Diamond Weddings. All rights reserved. | Powered by Love & Dedication 💍</p>
+                    <p className="text-sm text-gray-400">© 2024 Wedding Organizer. All rights reserved. | Powered by Love & Dedication 💍</p>
                 </div>
             </div>
         </footer>

@@ -26,7 +26,7 @@ const Register: React.FC = () => {
                         <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-[#D4AF37] to-[#EC4899]">
                             <span className="font-serif text-3xl font-bold text-white">D</span>
                         </div>
-                        <h1 className="font-serif text-3xl font-bold text-gray-900">Diamond Wedding</h1>
+                        <h1 className="font-serif text-3xl font-bold text-gray-900">Wedding Organizer</h1>
                         <p className="mt-2 text-sm text-gray-600">Daftar Akun Baru</p>
                     </div>
 
@@ -41,7 +41,7 @@ const Register: React.FC = () => {
                                 type="text"
                                 name="name"
                                 value={data.name}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                 autoComplete="name"
                                 onChange={(e) => setData('name', e.target.value)}
                                 required
@@ -59,7 +59,7 @@ const Register: React.FC = () => {
                                 type="email"
                                 name="email"
                                 value={data.email}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                 autoComplete="username"
                                 onChange={(e) => setData('email', e.target.value)}
                                 required
@@ -77,7 +77,7 @@ const Register: React.FC = () => {
                                 type="password"
                                 name="password"
                                 value={data.password}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                 autoComplete="new-password"
                                 onChange={(e) => setData('password', e.target.value)}
                                 required
@@ -95,7 +95,7 @@ const Register: React.FC = () => {
                                 type="password"
                                 name="password_confirmation"
                                 value={data.password_confirmation}
-                                className="w-full rounded-lg border border-gray-300 px-4 py-2 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                 autoComplete="new-password"
                                 onChange={(e) => setData('password_confirmation', e.target.value)}
                                 required

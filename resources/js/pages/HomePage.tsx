@@ -62,7 +62,7 @@ const HomePage: React.FC = () => {
     const testimonials = [
         {
             name: 'Sarah & Michael',
-            text: 'Pernikahan kami sempurna! Tim Diamond Weddings sangat profesional dan detail. Terima kasih sudah mewujudkan impian kami!',
+            text: 'Pernikahan kami sempurna! Tim Wedding Organizer sangat profesional dan detail. Terima kasih sudah mewujudkan impian kami!',
             rating: 5,
             date: 'Juni 2024',
         },
@@ -82,7 +82,7 @@ const HomePage: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-[#FFF8F0] via-[#F5F1E8] to-[#FFE4E6]">
-            <Header isScrolled={isScrolled} companyName={profile?.company_name || 'Diamond Weddings'} />
+            <Header isScrolled={isScrolled} companyName={profile?.company_name || 'Wedding Organizer'} />
             <HeroSection />
             <AboutSection />
             <ServicesSection />

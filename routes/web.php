@@ -45,6 +45,7 @@ Route::middleware(['auth'])->group(function () {
     
     // Client orders page
     Route::get('/my-orders', [App\Http\Controllers\ClientOrderController::class, 'myOrders']);
+    Route::get('/my-orders/{id}', [App\Http\Controllers\ClientOrderController::class, 'showDetail'])->name('client.orders.detail');
 });
 
 // Admin routes (protected + admin role check)

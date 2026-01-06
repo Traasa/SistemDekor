@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\PaymentTransaction;
+use App\Models\PaymentProof;
 use App\Models\User;
 use App\Models\Client;
 use Illuminate\Http\Request;
@@ -31,13 +32,13 @@ class DashboardController extends Controller
             ? round((($ordersThisMonth - $ordersLastMonth) / $ordersLastMonth) * 100, 1)
             : 0;
 
-        // Total Revenue
-        $totalRevenue = PaymentTransaction::where('status', 'verified')->sum('amount');
-        $revenueThisMonth = PaymentTransaction::where('status', 'verified')
+        // Total Revenue from verified payment proofs
+        $totalRevenue = PaymentProof::where('status', 'verified')->sum('amount');
+        $revenueThisMonth = PaymentProof::where('status', 'verified')
             ->whereMonth('created_at', $currentMonth)
             ->whereYear('created_at', $currentYear)
             ->sum('amount');
-        $revenueLastMonth = PaymentTransaction::where('status', 'verified')
+        $revenueLastMonth = PaymentProof::where('status', 'verified')
             ->whereMonth('created_at', $lastMonth)
             ->whereYear('created_at', $lastYear)
             ->sum('amount');
@@ -62,9 +63,7 @@ class DashboardController extends Controller
         ])->count();
 
         // Pending Payments
-        $pendingPayments = DB::table('payment_transactions')
-            ->where('status', 'pending')
-            ->count();
+        $pendingPayments = PaymentProof::where('status', 'pending')->count();
 
         // Total Clients
         $totalClients = Client::count();
@@ -117,7 +116,7 @@ class DashboardController extends Controller
         $monthlyRevenue = [];
         for ($i = 5; $i >= 0; $i--) {
             $date = Carbon::now()->subMonths($i);
-            $revenue = PaymentTransaction::where('status', 'verified')
+            $revenue = PaymentProof::where('status', 'verified')
                 ->whereMonth('created_at', $date->month)
                 ->whereYear('created_at', $date->year)
                 ->sum('amount');

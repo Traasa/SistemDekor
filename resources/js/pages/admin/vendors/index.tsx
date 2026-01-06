@@ -222,31 +222,31 @@ export default function VendorsPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Nama Perusahaan *</label>
-                    <input type="text" value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} required className="w-full px-3 py-2 border rounded-lg" />
+                    <input type="text" value={formData.company_name} onChange={(e) => setFormData({ ...formData, company_name: e.target.value })} required className="w-full px-3 py-2 border rounded-lg text-gray-900" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Kontak Person *</label>
-                    <input type="text" value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} required className="w-full px-3 py-2 border rounded-lg" />
+                    <input type="text" value={formData.contact_person} onChange={(e) => setFormData({ ...formData, contact_person: e.target.value })} required className="w-full px-3 py-2 border rounded-lg text-gray-900" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Email *</label>
-                    <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required className="w-full px-3 py-2 border rounded-lg" />
+                    <input type="email" value={formData.email} onChange={(e) => setFormData({ ...formData, email: e.target.value })} required className="w-full px-3 py-2 border rounded-lg text-gray-900" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Phone *</label>
-                    <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required className="w-full px-3 py-2 border rounded-lg" />
+                    <input type="text" value={formData.phone} onChange={(e) => setFormData({ ...formData, phone: e.target.value })} required className="w-full px-3 py-2 border rounded-lg text-gray-900" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Kota *</label>
-                    <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} required className="w-full px-3 py-2 border rounded-lg" />
+                    <input type="text" value={formData.city} onChange={(e) => setFormData({ ...formData, city: e.target.value })} required className="w-full px-3 py-2 border rounded-lg text-gray-900" />
                   </div>
                   <div>
                     <label className="block text-sm font-medium mb-1">Provinsi *</label>
-                    <input type="text" value={formData.province} onChange={(e) => setFormData({ ...formData, province: e.target.value })} required className="w-full px-3 py-2 border rounded-lg" />
+                    <input type="text" value={formData.province} onChange={(e) => setFormData({ ...formData, province: e.target.value })} required className="w-full px-3 py-2 border rounded-lg text-gray-900" />
                   </div>
                   <div className="col-span-2">
                     <label className="block text-sm font-medium mb-1">Alamat *</label>
-                    <textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} required className="w-full px-3 py-2 border rounded-lg" rows={2} />
+                    <textarea value={formData.address} onChange={(e) => setFormData({ ...formData, address: e.target.value })} required className="w-full px-3 py-2 border rounded-lg text-gray-900" rows={2} />
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-6">

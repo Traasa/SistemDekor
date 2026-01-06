@@ -14,7 +14,9 @@ interface Order {
     event_name: string;
     event_date: string;
     total_price: number;
+    final_price: number;
     dp_amount: number;
+    payment_status: string;
     status: string;
 }
 
@@ -24,12 +26,13 @@ interface PaymentTransaction {
     order: Order;
     amount: number;
     payment_type: string;
-    payment_method: string;
-    payment_date: string;
+    payment_method?: string;
+    payment_date?: string;
     status: string;
-    proof_url: string | null;
+    proof_image?: string | null;
     notes: string | null;
     created_at: string;
+    verified_at?: string | null;
 }
 
 const PaymentsPage: React.FC = () => {
@@ -53,7 +56,7 @@ const PaymentsPage: React.FC = () => {
             if (filter.payment_type) params.append('payment_type', filter.payment_type);
             if (filter.search) params.append('search', filter.search);
 
-            const response = await api.get(`/payment-transactions?${params.toString()}`);
+            const response = await api.get(`/payment-proofs?${params.toString()}`);
             console.log('Payment API Response:', response.data);
 
             if (response.data.success) {
@@ -74,7 +77,7 @@ const PaymentsPage: React.FC = () => {
         if (!confirm('Verifikasi pembayaran ini?')) return;
 
         try {
-            const response = await api.post(`/payment-transactions/${id}/verify`);
+            const response = await api.post(`/payment-proofs/${id}/verify`);
             if (response.data.success) {
                 alert('Pembayaran berhasil diverifikasi!');
                 fetchPayments();
@@ -89,9 +92,8 @@ const PaymentsPage: React.FC = () => {
         if (!reason) return;
 
         try {
-            const response = await api.put(`/payment-transactions/${id}`, {
-                status: 'rejected',
-                notes: reason,
+            const response = await api.post(`/payment-proofs/${id}/reject`, {
+                admin_notes: reason,
             });
             if (response.data.success) {
                 alert('Pembayaran ditolak!');
@@ -221,13 +223,13 @@ const PaymentsPage: React.FC = () => {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-900 capitalize">
-                                                {payment.payment_method.replace('_', ' ')}
+                                                {payment.payment_method ? payment.payment_method.replace('_', ' ') : 'Transfer'}
                                             </td>
                                             <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900">
                                                 Rp {payment.amount.toLocaleString('id-ID')}
                                             </td>
                                             <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
-                                                {new Date(payment.payment_date).toLocaleDateString('id-ID')}
+                                                {new Date(payment.created_at).toLocaleDateString('id-ID')}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span
@@ -238,6 +240,16 @@ const PaymentsPage: React.FC = () => {
                                             </td>
                                             <td className="px-6 py-4 text-sm font-medium whitespace-nowrap">
                                                 <div className="flex gap-2">
+                                                    {payment.proof_image && (
+                                                        <a
+                                                            href={payment.proof_image}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="text-blue-600 hover:text-blue-900"
+                                                        >
+                                                            Bukti
+                                                        </a>
+                                                    )}
                                                     <button
                                                         onClick={() => router.visit(`/admin/payments/${payment.id}`)}
                                                         className="text-[#D4AF37] hover:text-[#B4941F]"
