@@ -22,11 +22,15 @@ class GalleryController extends Controller
         }
 
         // Filter featured items
-        if ($request->has('featured')) {
+        if ($request->boolean('featured')) {
             $query->featured();
         }
 
-        $galleries = $query->ordered()->get();
+        if ($request->filled('per_page')) {
+            $galleries = $query->ordered()->paginate((int) $request->get('per_page', 24));
+        } else {
+            $galleries = $query->ordered()->get();
+        }
 
         return response()->json([
             'success' => true,
@@ -39,16 +43,16 @@ class GalleryController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'title' => 'required|string|max:255',
             'description' => 'nullable|string',
             'image_path' => 'required|string',
             'category' => 'nullable|string|max:255',
             'is_featured' => 'boolean',
-            'order' => 'nullable|integer|min:0',
+            'sort_order' => 'nullable|integer|min:0',
         ]);
 
-        $gallery = Gallery::create($request->all());
+        $gallery = Gallery::create($validated);
 
         return response()->json([
             'success' => true,
@@ -73,16 +77,16 @@ class GalleryController extends Controller
      */
     public function update(Request $request, Gallery $gallery): JsonResponse
     {
-        $request->validate([
+        $validated = $request->validate([
             'title' => 'sometimes|required|string|max:255',
             'description' => 'nullable|string',
             'image_path' => 'sometimes|required|string',
             'category' => 'nullable|string|max:255',
             'is_featured' => 'boolean',
-            'order' => 'nullable|integer|min:0',
+            'sort_order' => 'nullable|integer|min:0',
         ]);
 
-        $gallery->update($request->all());
+        $gallery->update($validated);
 
         return response()->json([
             'success' => true,

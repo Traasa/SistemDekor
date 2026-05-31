@@ -22,11 +22,17 @@ class CompanyProfile extends Model
         'social_media',
         'logo',
         'favicon',
+        'hero_image',
+        'hero_side_image',
+        'about_gallery_images',
+        'portfolio_highlight_images',
     ];
 
     protected $casts = [
         'services' => 'array',
         'gallery' => 'array',
-        'social_media' => 'array'
+        'social_media' => 'array',
+        'about_gallery_images' => 'array',
+        'portfolio_highlight_images' => 'array',
     ];
 }

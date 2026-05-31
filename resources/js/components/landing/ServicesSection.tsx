@@ -1,52 +1,32 @@
 import React from 'react';
 import { images } from '../../config/theme';
+import { LandingServiceItem } from '../../services/websiteContentService';
 
-const services = [
-    {
-        icon: '🏛️',
-        title: 'Desain Acara',
-        description: 'Tim desainer kami menciptakan konsep visual yang memukau untuk menghadirkan suasana pernikahan yang tak terlupakan.',
-        image: images.services.planning,
-        gradient: 'from-[#FFF8F0] to-[#FFE4E6]',
-    },
-    {
-        icon: '💐',
-        title: 'Dekorasi Premium',
-        description: 'Bunga segar, lighting elegan, dan dekorasi mewah yang disesuaikan dengan tema pernikahan Anda.',
-        image: images.services.decoration,
-        gradient: 'from-[#FFF0F6] to-[#FCE7F3]',
-    },
-    {
-        icon: '📸',
-        title: 'Fotografi & Videografi',
-        description: 'Abadikan setiap momen berharga dengan fotografer dan videografer profesional kami.',
-        image: images.services.photography,
-        gradient: 'from-[#F5F3FF] to-[#EDE9FE]',
-    },
-    {
-        icon: '🍽️',
-        title: 'Katering Premium',
-        description: 'Hidangan lezat dan presentasi menarik dari chef berpengalaman untuk memanjakan tamu Anda.',
-        image: images.services.catering,
-        gradient: 'from-[#FFF8F0] to-[#FEFCE8]',
-    },
-    {
-        icon: '🏰',
-        title: 'Venue Selection',
-        description: 'Bantu memilih dan mengatur venue yang sempurna sesuai konsep dan budget Anda.',
-        image: images.services.venue,
-        gradient: 'from-[#ECFDF5] to-[#D1FAE5]',
-    },
-    {
-        icon: '🎵',
-        title: 'Entertainment',
-        description: 'Band, DJ, dan hiburan berkualitas untuk membuat acara Anda lebih meriah dan berkesan.',
-        image: images.services.entertainment,
-        gradient: 'from-[#EFF6FF] to-[#DBEAFE]',
-    },
+interface ServicesSectionProps {
+    services: LandingServiceItem[];
+}
+
+const fallbackImages = [
+    images.services.planning,
+    images.services.decoration,
+    images.services.photography,
+    images.services.catering,
+    images.services.venue,
+    images.services.entertainment,
 ];
 
-export const ServicesSection: React.FC = () => {
+const getServiceIcon = (category: string | null) => {
+    const value = (category || '').toLowerCase();
+
+    if (value.includes('dekor')) return '💐';
+    if (value.includes('photo') || value.includes('video')) return '📸';
+    if (value.includes('cater') || value.includes('makan')) return '🍽️';
+    if (value.includes('venue') || value.includes('lokasi')) return '🏰';
+    if (value.includes('sound') || value.includes('music') || value.includes('entertain')) return '🎵';
+    return '✨';
+};
+
+export const ServicesSection: React.FC<ServicesSectionProps> = ({ services }) => {
     return (
         <section id="services" className="relative overflow-hidden bg-white py-24">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -63,32 +43,37 @@ export const ServicesSection: React.FC = () => {
                 </div>
 
                 <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                    {services.length === 0 && (
+                        <div className="col-span-full rounded-2xl border border-dashed border-gray-300 bg-[#FFF8F0] p-6 text-center text-sm text-gray-600">
+                            Belum ada layanan aktif dari admin.
+                        </div>
+                    )}
+
                     {services.map((service, index) => (
                         <div
-                            key={index}
+                            key={service.id}
                             className="group relative overflow-hidden rounded-3xl bg-white shadow-xl transition-all duration-500 hover:-translate-y-2 hover:shadow-2xl"
                         >
                             {/* Image */}
                             <div className="relative h-64 overflow-hidden">
                                 <img
-                                    src={service.image}
-                                    alt={service.title}
+                                    src={service.image || fallbackImages[index % fallbackImages.length]}
+                                    alt={service.name}
                                     className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110"
                                     loading="lazy"
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent"></div>
-                                <div className="absolute bottom-4 left-4 text-6xl drop-shadow-lg">{service.icon}</div>
+                                <div className="absolute bottom-4 left-4 text-6xl drop-shadow-lg">{getServiceIcon(service.category)}</div>
                             </div>
 
                             {/* Content */}
                             <div className="p-6">
-                                <h3 className="mb-3 font-serif text-2xl font-bold text-gray-900">{service.title}</h3>
+                                <h3 className="mb-2 font-serif text-2xl font-bold text-gray-900">{service.name}</h3>
+                                {service.category && <p className="mb-3 text-xs font-semibold tracking-widest text-[#B88321] uppercase">{service.category}</p>}
                                 <p className="leading-relaxed text-gray-700">{service.description}</p>
-                                <div className="mt-6 flex items-center gap-2 font-semibold text-[#D4AF37] transition-transform duration-300 group-hover:translate-x-2">
-                                    <span>Pelajari Lebih Lanjut</span>
-                                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                                    </svg>
+                                <div className="mt-5 flex items-center justify-between">
+                                    <p className="text-sm text-gray-500">Harga mulai</p>
+                                    <p className="font-semibold text-[#B88321]">Rp {Number(service.price || 0).toLocaleString('id-ID')}</p>
                                 </div>
                             </div>
                         </div>

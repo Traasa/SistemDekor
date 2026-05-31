@@ -1,7 +1,7 @@
 import { AdminLayout } from '../../../layouts/AdminLayout';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit, Trash2, X } from 'lucide-react';
+import { Plus, Edit, Trash2, X, ArrowUp, ArrowDown } from 'lucide-react';
 
 interface Gallery {
     id: number;
@@ -10,7 +10,7 @@ interface Gallery {
     image_path: string;
     category: string | null;
     is_featured: boolean;
-    display_order?: number;
+    sort_order?: number;
 }
 
 export default function GalleryPage() {
@@ -24,7 +24,7 @@ export default function GalleryPage() {
         image_path: '',
         category: '',
         is_featured: false,
-        display_order: '0',
+        sort_order: '0',
     });
 
     useEffect(() => {
@@ -47,7 +47,7 @@ export default function GalleryPage() {
         try {
             const submitData = {
                 ...formData,
-                display_order: parseInt(formData.display_order),
+                sort_order: parseInt(formData.sort_order),
             };
 
             if (editingId) {
@@ -74,9 +74,21 @@ export default function GalleryPage() {
             image_path: gallery.image_path,
             category: gallery.category || '',
             is_featured: gallery.is_featured,
-            display_order: gallery.display_order?.toString() || '0',
+            sort_order: gallery.sort_order?.toString() || '0',
         });
         setShowModal(true);
+    };
+
+    const updateSortOrder = async (gallery: Gallery, nextOrder: number) => {
+        try {
+            await axios.put(`/api/gallery/${gallery.id}`, {
+                sort_order: Math.max(0, nextOrder),
+            });
+            fetchGalleries();
+        } catch (error) {
+            console.error('Failed to update gallery sort order:', error);
+            alert('Gagal mengubah urutan galeri');
+        }
     };
 
     const handleDelete = async (id: number) => {
@@ -99,7 +111,7 @@ export default function GalleryPage() {
             image_path: '',
             category: '',
             is_featured: false,
-            display_order: '0',
+            sort_order: '0',
         });
         setEditingId(null);
     };
@@ -163,8 +175,22 @@ export default function GalleryPage() {
                                                 {gallery.is_featured ? 'Ya' : 'Tidak'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{gallery.display_order ?? 0}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{gallery.sort_order ?? 0}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                            <button
+                                                onClick={() => updateSortOrder(gallery, (gallery.sort_order || 0) - 1)}
+                                                className="mr-2 text-gray-600 hover:text-gray-900"
+                                                title="Naikkan urutan"
+                                            >
+                                                <ArrowUp className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={() => updateSortOrder(gallery, (gallery.sort_order || 0) + 1)}
+                                                className="mr-3 text-gray-600 hover:text-gray-900"
+                                                title="Turunkan urutan"
+                                            >
+                                                <ArrowDown className="h-4 w-4" />
+                                            </button>
                                             <button onClick={() => handleEdit(gallery)} className="text-blue-600 hover:text-blue-900 mr-3">
                                                 <Edit className="h-5 w-5" />
                                             </button>
@@ -239,8 +265,8 @@ export default function GalleryPage() {
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Urutan Tampilan</label>
                                         <input
                                             type="number"
-                                            value={formData.display_order}
-                                            onChange={(e) => setFormData({...formData, display_order: e.target.value})}
+                                            value={formData.sort_order}
+                                            onChange={(e) => setFormData({...formData, sort_order: e.target.value})}
                                             className="w-full px-3 py-2 border rounded-lg"
                                         />
                                     </div>

@@ -16,6 +16,15 @@ interface Package {
     name: string;
     description: string;
     price: number;
+    includes_venue?: boolean;
+    venue_id?: number | null;
+    venue_price?: number;
+}
+
+interface Venue {
+    id: number;
+    name: string;
+    city?: string;
 }
 
 interface Order {
@@ -27,6 +36,9 @@ interface Order {
     event_date: string;
     event_location: string;
     event_address?: string;
+    is_venue_included?: boolean;
+    venue_id?: number | null;
+    venue_price?: number;
     event_theme?: string;
     guest_count?: number;
     package_id?: number;
@@ -37,6 +49,8 @@ interface Order {
     final_price: number;
     dp_amount: number;
     remaining_amount: number;
+    booking_amount?: number;
+    initial_payment_type?: 'booking' | 'dp' | null;
     negotiation_notes?: string;
     is_negotiable: boolean;
 }
@@ -44,6 +58,7 @@ interface Order {
 interface Props {
     order: Order;
     packages: Package[];
+    venues: Venue[];
 }
 
 interface PriceCalculation {
@@ -54,18 +69,29 @@ interface PriceCalculation {
     remaining_amount: number;
 }
 
-export default function EditOrderPage({ order, packages }: Props) {
+export default function EditOrderPage({ order, packages, venues }: Props) {
+    const packageLocked = Boolean(order.package_id);
+    const initialDpPercent = order.final_price > 0 ? Math.round((order.dp_amount / order.final_price) * 100) : 30;
+    const normalizedDpPercent = Number.isFinite(initialDpPercent) ? Math.min(Math.max(initialDpPercent, 0), 100) : 30;
+
     const { data, setData, put, processing, errors } = useForm({
         event_name: order.event_name || '',
         event_type: order.event_type || '',
         event_date: order.event_date || '',
         event_location: order.event_location || '',
+        is_venue_included: order.is_venue_included || false,
+        venue_id: order.venue_id?.toString() || '',
+        venue_price: order.venue_price?.toString() || '0',
         event_theme: order.event_theme || '',
         guest_count: order.guest_count?.toString() || '0',
         package_id: order.package_id?.toString() || '',
         custom_items: order.custom_items || [],
         additional_costs: order.additional_costs?.toString() || '0',
         discount: order.discount?.toString() || '0',
+        dp_type: 'percent',
+        dp_value: normalizedDpPercent.toString(),
+        initial_payment_type: order.initial_payment_type || 'booking',
+        booking_amount: (order.booking_amount ?? 0).toString(),
         negotiation_notes: order.negotiation_notes || '',
     });
 
@@ -86,7 +112,17 @@ export default function EditOrderPage({ order, packages }: Props) {
         }, 500); // Debounce 500ms
 
         return () => clearTimeout(timer);
-    }, [data.package_id, customItems, data.additional_costs, data.discount]);
+    }, [
+        data.package_id,
+        data.is_venue_included,
+        data.venue_id,
+        data.venue_price,
+        customItems,
+        data.additional_costs,
+        data.discount,
+        data.dp_type,
+        data.dp_value,
+    ]);
 
     const recalculatePrices = async () => {
         setIsCalculating(true);
@@ -94,8 +130,15 @@ export default function EditOrderPage({ order, packages }: Props) {
             const response = await axios.post(`/admin/orders/${order.id}/recalculate`, {
                 package_id: data.package_id ? parseInt(data.package_id) : null,
                 custom_items: customItems,
+                is_venue_included: data.is_venue_included,
+                venue_id: data.venue_id ? parseInt(data.venue_id) : null,
+                venue_price: parseFloat(data.venue_price) || 0,
                 additional_costs: parseFloat(data.additional_costs) || 0,
                 discount: parseFloat(data.discount) || 0,
+                dp_type: data.dp_type,
+                dp_value: parseFloat(data.dp_value) || 0,
+                initial_payment_type: data.initial_payment_type,
+                booking_amount: parseFloat(data.booking_amount) || 0,
             });
 
             if (response.data) {
@@ -160,6 +203,20 @@ export default function EditOrderPage({ order, packages }: Props) {
     };
 
     const selectedPackage = packages.find((pkg) => pkg.id === parseInt(data.package_id || '0'));
+
+    useEffect(() => {
+        if (!selectedPackage) {
+            return;
+        }
+
+        if (selectedPackage.includes_venue) {
+            setData('is_venue_included', true);
+            if (selectedPackage.venue_id) {
+                setData('venue_id', selectedPackage.venue_id.toString());
+            }
+            setData('venue_price', (selectedPackage.venue_price || 0).toString());
+        }
+    }, [selectedPackage?.id]);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat('id-ID', {
@@ -279,7 +336,8 @@ export default function EditOrderPage({ order, packages }: Props) {
                         <select
                             value={data.package_id}
                             onChange={(e) => setData('package_id', e.target.value)}
-                            className="w-full rounded-lg border border-gray-300 px-4 py-2"
+                            disabled={packageLocked}
+                            className="w-full rounded-lg border border-gray-300 px-4 py-2 disabled:cursor-not-allowed disabled:bg-gray-100"
                         >
                             <option value="">No Package</option>
                             {packages.map((pkg) => (
@@ -288,12 +346,65 @@ export default function EditOrderPage({ order, packages }: Props) {
                                 </option>
                             ))}
                         </select>
+                        {packageLocked && (
+                            <p className="mt-2 text-xs text-amber-700">
+                                Paket sudah dipilih oleh client, jadi tidak dapat diubah dari sisi admin.
+                            </p>
+                        )}
                         {selectedPackage && (
                             <div className="mt-3 rounded-md bg-gray-50 p-3">
                                 <p className="text-sm text-gray-600">{selectedPackage.description}</p>
                                 <p className="mt-2 text-sm font-semibold">Price: {formatCurrency(selectedPackage.price)}</p>
                             </div>
                         )}
+
+                        <div className="mt-4 space-y-3 rounded-lg border border-gray-200 p-4">
+                            <label className="flex items-center gap-2 text-sm font-medium">
+                                <input
+                                    type="checkbox"
+                                    checked={!!data.is_venue_included}
+                                    onChange={(e) => {
+                                        const checked = e.target.checked;
+                                        setData('is_venue_included', checked);
+                                        if (!checked) {
+                                            setData('venue_id', '');
+                                            setData('venue_price', '0');
+                                        }
+                                    }}
+                                />
+                                Include Venue (WO booking)
+                            </label>
+
+                            {data.is_venue_included && (
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium">Venue</label>
+                                        <select
+                                            value={data.venue_id}
+                                            onChange={(e) => setData('venue_id', e.target.value)}
+                                            className="w-full rounded-lg border border-gray-300 px-4 py-2"
+                                        >
+                                            <option value="">Pilih venue</option>
+                                            {venues.map((venue) => (
+                                                <option key={venue.id} value={venue.id.toString()}>
+                                                    {venue.name} {venue.city ? `(${venue.city})` : ''}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium">Harga Venue</label>
+                                        <input
+                                            type="number"
+                                            min="0"
+                                            value={data.venue_price}
+                                            onChange={(e) => setData('venue_price', e.target.value)}
+                                            className="w-full rounded-lg border border-gray-300 px-4 py-2"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Custom Items Card */}
@@ -396,6 +507,62 @@ export default function EditOrderPage({ order, packages }: Props) {
                                 />
                                 <p className="mt-1 text-xs text-gray-500">Discount amount in IDR</p>
                             </div>
+                            <div>
+                                <label className="mb-1 block text-sm font-medium">DP Type</label>
+                                <select
+                                    value={data.dp_type}
+                                    onChange={(e) => setData('dp_type', e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-2"
+                                >
+                                    <option value="percent">Persentase (%)</option>
+                                    <option value="amount">Nominal (Rp)</option>
+                                </select>
+                                <p className="mt-1 text-xs text-gray-500">Pilih persentase atau nominal tetap untuk DP.</p>
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-sm font-medium">
+                                    DP Value {data.dp_type === 'percent' ? '(%)' : '(Rp)'}
+                                </label>
+                                <input
+                                    type="number"
+                                    min="0"
+                                    value={data.dp_value}
+                                    onChange={(e) => setData('dp_value', e.target.value)}
+                                    placeholder={data.dp_type === 'percent' ? '30' : '5000000'}
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-2"
+                                />
+                                <p className="mt-1 text-xs text-gray-500">
+                                    {data.dp_type === 'percent'
+                                        ? 'Masukkan persentase DP (0-100).'
+                                        : 'Masukkan nominal DP sesuai kesepakatan.'}
+                                </p>
+                            </div>
+                            <div>
+                                <label className="mb-1 block text-sm font-medium">Initial Payment Type</label>
+                                <select
+                                    value={data.initial_payment_type}
+                                    onChange={(e) => setData('initial_payment_type', e.target.value)}
+                                    className="w-full rounded-lg border border-gray-300 px-4 py-2"
+                                >
+                                    <option value="booking">Booking</option>
+                                    <option value="dp">DP</option>
+                                </select>
+                                <p className="mt-1 text-xs text-gray-500">Tentukan jenis pembayaran pertama untuk order baru.</p>
+                            </div>
+                            {data.initial_payment_type === 'booking' && (
+                                <div>
+                                    <label className="mb-1 block text-sm font-medium">Booking Amount (Rp)</label>
+                                    <input
+                                        type="number"
+                                        min="0"
+                                        value={data.booking_amount}
+                                        onChange={(e) => setData('booking_amount', e.target.value)}
+                                        placeholder="2000000"
+                                        className="w-full rounded-lg border border-gray-300 px-4 py-2"
+                                    />
+                                    <p className="mt-1 text-xs text-gray-500">Nominal booking yang harus dibayar client.</p>
+                                </div>
+                            )}
                         </div>
 
                         {/* Price Summary */}
@@ -414,7 +581,9 @@ export default function EditOrderPage({ order, packages }: Props) {
                                 <span>{formatCurrency(calculation.final_price)}</span>
                             </div>
                             <div className="flex justify-between pt-2 text-sm text-gray-700">
-                                <span>Down Payment (30%):</span>
+                                <span>
+                                    Down Payment ({data.dp_type === 'percent' ? `${data.dp_value || 0}%` : 'Nominal'}):
+                                </span>
                                 <span className="font-medium">{formatCurrency(calculation.dp_amount)}</span>
                             </div>
                             <div className="flex justify-between text-sm text-gray-700">

@@ -1,5 +1,6 @@
-import { Link, usePage } from '@inertiajs/react';
-import React, { useState } from 'react';
+import { Head, Link, usePage } from '@inertiajs/react';
+import React, { useMemo, useState } from 'react';
+import { PublicLayout } from '../../layouts/PublicLayout';
 
 interface Order {
     id: number;
@@ -8,12 +9,9 @@ interface Order {
     event_location: string;
     event_theme: string;
     guest_count: number;
-    total_price: number;
     final_price: number;
-    total_paid: number;
-    remaining_amount: number;
-    status: string;
     payment_status: string;
+    status: string;
     notes: string;
     created_at: string;
 }
@@ -22,217 +20,131 @@ interface Props {
     orders: Order[];
 }
 
-const MyOrders: React.FC<Props> = ({ orders = [] }) => {
-    const { auth } = usePage<{ auth: { user: { id: number; name: string; email: string; role: string } } }>().props;
-    const user = auth?.user;
+interface AuthUser {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+}
 
+const statusLabel: Record<string, string> = {
+    pending: 'Menunggu',
+    pending_confirmation: 'Menunggu Konfirmasi',
+    confirmed: 'Terkonfirmasi',
+    completed: 'Selesai',
+    cancelled: 'Dibatalkan',
+};
+
+const paymentLabel: Record<string, string> = {
+    unpaid: 'Belum Bayar',
+    partial: 'Bayar Sebagian',
+    paid: 'Lunas',
+};
+
+const MyOrders: React.FC<Props> = ({ orders = [] }) => {
+    const { auth } = usePage<{ auth?: { user?: AuthUser } }>().props;
+    const user = auth?.user;
     const [filter, setFilter] = useState<string>('all');
 
-    const getStatusBadge = (status: string) => {
-        const statusConfig: Record<string, { label: string; className: string }> = {
-            pending: { label: 'Menunggu', className: 'bg-yellow-100 text-yellow-800' },
-            pending_confirmation: { label: 'Menunggu Konfirmasi', className: 'bg-blue-100 text-blue-800' },
-            confirmed: { label: 'Terkonfirmasi', className: 'bg-green-100 text-green-800' },
-            completed: { label: 'Selesai', className: 'bg-gray-100 text-gray-800' },
-            cancelled: { label: 'Dibatalkan', className: 'bg-red-100 text-red-800' },
-        };
+    const filteredOrders = useMemo(() => {
+        if (filter === 'all') {
+            return orders;
+        }
 
-        const config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
-        return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${config.className}`}>{config.label}</span>;
-    };
-
-    const getPaymentStatusBadge = (status: string) => {
-        const statusConfig: Record<string, { label: string; className: string }> = {
-            unpaid: { label: 'Belum Bayar', className: 'bg-red-100 text-red-800' },
-            partial: { label: 'Bayar Sebagian', className: 'bg-yellow-100 text-yellow-800' },
-            paid: { label: 'Lunas', className: 'bg-green-100 text-green-800' },
-        };
-
-        const config = statusConfig[status] || { label: status, className: 'bg-gray-100 text-gray-800' };
-        return <span className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${config.className}`}>{config.label}</span>;
-    };
-
-    const filteredOrders = filter === 'all' ? orders : orders.filter((order) => order.status === filter);
+        return orders.filter((order) => order.status === filter);
+    }, [orders, filter]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#FFF8F0] via-[#F5F1E8] to-[#FFE4E6]">
-            {/* Header */}
-            <header className="bg-white/95 shadow-lg backdrop-blur-md">
-                <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between">
-                        <Link href="/" className="group flex items-center space-x-3">
-                            <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-[#D4AF37] via-[#F4D03F] to-[#EC4899] p-0.5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">
-                                <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                                    <span className="font-serif text-2xl font-bold text-[#D4AF37]">D</span>
-                                </div>
-                            </div>
-                            <span className="font-serif text-2xl font-bold text-gray-900">Wedding Organizer</span>
-                        </Link>
+        <>
+            <Head title="Status Order" />
+            <PublicLayout active="orders" wrapperClassName="min-h-screen bg-[#F6F1EA] text-[#2A2420]">
+                <main className="w-full px-4 py-14 font-sans sm:px-8 2xl:px-16">
+                    <section className="mb-8 rounded-[28px] border border-[#E7DCCB] bg-[#FFF9F1] p-8 shadow-[0_18px_45px_-35px_rgba(27,36,48,0.65)] sm:p-10">
+                        <p className="text-xs font-semibold tracking-[0.28em] text-[#B08A56] uppercase">Status Order</p>
+                        <h1 className="mt-3 font-serif text-4xl font-bold text-[#2A2420] sm:text-5xl">Tracking Pesanan Anda</h1>
+                        <p className="mt-3 text-[#5B4A3C]">
+                            Halo {user?.name || 'Pelanggan'}, pantau progres order dari tahap konfirmasi hingga pelunasan dalam satu halaman.
+                        </p>
+                    </section>
 
-                        <nav className="flex items-center space-x-6">
-                            <Link href="/" className="font-medium text-gray-700 hover:text-[#D4AF37]">
-                                Beranda
-                            </Link>
-                            <Link href="/packages" className="font-medium text-gray-700 hover:text-[#D4AF37]">
-                                Paket
-                            </Link>
-                            <Link href="/my-orders" className="border-b-2 border-[#D4AF37] font-medium text-[#D4AF37]">
-                                Pesanan Saya
-                            </Link>
-                            {user?.role === 'admin' && (
-                                <Link
-                                    href="/admin"
-                                    className="rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] px-6 py-2 text-sm font-semibold text-white shadow-lg hover:scale-105"
-                                >
-                                    Admin Panel
-                                </Link>
-                            )}
-                        </nav>
-                    </div>
-                </div>
-            </header>
-
-            {/* Main Content */}
-            <main className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
-                {/* Page Header */}
-                <div className="mb-8">
-                    <h1 className="font-serif text-4xl font-bold text-gray-900 md:text-5xl">
-                        Pesanan <span className="bg-gradient-to-r from-[#D4AF37] to-[#EC4899] bg-clip-text text-transparent">Saya</span>
-                    </h1>
-                    <p className="mt-2 text-lg text-gray-600">Kelola dan pantau status pesanan wedding Anda</p>
-                </div>
-
-                {/* Filter Tabs */}
-                <div className="mb-8 flex flex-wrap gap-2">
-                    {['all', 'pending_confirmation', 'confirmed', 'completed', 'cancelled'].map((statusFilter) => (
-                        <button
-                            key={statusFilter}
-                            onClick={() => setFilter(statusFilter)}
-                            className={`rounded-full px-6 py-2 font-medium transition-all ${
-                                filter === statusFilter
-                                    ? 'bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] text-white shadow-lg'
-                                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                            }`}
-                        >
-                            {statusFilter === 'all' && 'Semua'}
-                            {statusFilter === 'pending_confirmation' && 'Menunggu Konfirmasi'}
-                            {statusFilter === 'confirmed' && 'Terkonfirmasi'}
-                            {statusFilter === 'completed' && 'Selesai'}
-                            {statusFilter === 'cancelled' && 'Dibatalkan'}
-                        </button>
-                    ))}
-                </div>
-
-                {/* Orders List */}
-                {filteredOrders.length === 0 ? (
-                    <div className="rounded-3xl bg-white p-12 text-center shadow-xl">
-                        <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-gradient-to-br from-[#D4AF37]/20 to-[#EC4899]/20">
-                            <span className="text-5xl">📋</span>
-                        </div>
-                        <h3 className="mb-2 text-2xl font-bold text-gray-900">Belum Ada Pesanan</h3>
-                        <p className="mb-6 text-gray-600">Anda belum memiliki pesanan. Yuk, pilih paket wedding impian Anda!</p>
-                        <Link
-                            href="/packages"
-                            className="inline-block rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] px-8 py-3 font-bold text-white shadow-lg transition-all hover:scale-105"
-                        >
-                            Lihat Paket Wedding
-                        </Link>
-                    </div>
-                ) : (
-                    <div className="space-y-6">
-                        {filteredOrders.map((order) => (
-                            <div
-                                key={order.id}
-                                className="group overflow-hidden rounded-3xl bg-white p-6 shadow-xl transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl"
+                    <section className="mb-8 flex flex-wrap gap-2">
+                        {['all', 'pending_confirmation', 'confirmed', 'completed', 'cancelled'].map((status) => (
+                            <button
+                                key={status}
+                                onClick={() => setFilter(status)}
+                                className={`rounded-full px-5 py-2 text-sm font-semibold transition ${
+                                    filter === status
+                                        ? 'bg-gradient-to-r from-[#B08A56] to-[#7A5C44] text-white shadow-md'
+                                        : 'bg-[#FFFBF6] text-[#5B4A3C] hover:bg-[#F2E7D8]'
+                                }`}
                             >
-                                <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-                                    {/* Order Info */}
-                                    <div className="flex-1">
-                                        <div className="mb-3 flex flex-wrap items-center gap-3">
-                                            <h3 className="font-serif text-2xl font-bold text-gray-900">{order.order_code}</h3>
-                                            {getStatusBadge(order.status)}
-                                            {getPaymentStatusBadge(order.payment_status)}
-                                        </div>
+                                {status === 'all' ? 'Semua' : statusLabel[status] || status}
+                            </button>
+                        ))}
+                    </section>
 
-                                        <div className="space-y-2 text-gray-600">
-                                            <p className="flex items-center gap-2">
-                                                <span className="text-xl">💍</span>
-                                                <span className="font-semibold">{order.event_theme}</span>
-                                            </p>
-                                            <p className="flex items-center gap-2">
-                                                <span className="text-xl">📅</span>
-                                                <span>
-                                                    {new Date(order.event_date).toLocaleDateString('id-ID', {
-                                                        weekday: 'long',
-                                                        year: 'numeric',
-                                                        month: 'long',
-                                                        day: 'numeric',
-                                                    })}
+                    {filteredOrders.length === 0 ? (
+                        <section className="rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-10 text-center shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
+                            <h2 className="text-2xl font-bold text-[#2A2420]">Belum ada order</h2>
+                            <p className="mt-2 text-[#5B4A3C]">Anda bisa mulai dari halaman paket untuk membuat order baru.</p>
+                            <Link
+                                href="/packages"
+                                className="mt-5 inline-block rounded-full bg-gradient-to-r from-[#B08A56] to-[#7A5C44] px-5 py-3 text-sm font-semibold text-white"
+                            >
+                                Pilih Paket
+                            </Link>
+                        </section>
+                    ) : (
+                        <section className="space-y-5">
+                            {filteredOrders.map((order) => (
+                                <article key={order.id} className="rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-6 shadow-[0_14px_30px_-26px_rgba(27,36,48,0.6)]">
+                                    <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                                        <div>
+                                            <div className="flex flex-wrap items-center gap-2">
+                                                <h2 className="font-serif text-2xl font-bold text-[#2A2420]">{order.order_code}</h2>
+                                                <span className="rounded-full bg-[#F2E6D6] px-3 py-1 text-xs font-semibold text-[#7A5C44]">
+                                                    {statusLabel[order.status] || order.status}
                                                 </span>
-                                            </p>
-                                            <p className="flex items-center gap-2">
-                                                <span className="text-xl">📍</span>
-                                                <span>{order.event_location}</span>
-                                            </p>
-                                            {order.guest_count > 0 && (
-                                                <p className="flex items-center gap-2">
-                                                    <span className="text-xl">👥</span>
-                                                    <span>{order.guest_count} tamu</span>
+                                                <span className="rounded-full bg-[#E8EEF5] px-3 py-1 text-xs font-semibold text-[#1B2430]">
+                                                    {paymentLabel[order.payment_status] || order.payment_status}
+                                                </span>
+                                            </div>
+
+                                            <div className="mt-4 grid gap-2 text-sm text-[#5B4A3C] sm:grid-cols-2">
+                                                <p>Tema: {order.event_theme || '-'}</p>
+                                                <p>Lokasi: {order.event_location || '-'}</p>
+                                                <p>Tanggal: {new Date(order.event_date).toLocaleDateString('id-ID')}</p>
+                                                <p>Tamu: {order.guest_count || 0}</p>
+                                            </div>
+
+                                            {order.notes && (
+                                                <p className="mt-3 rounded-xl bg-[#F3E9DC] px-4 py-3 text-sm text-[#5B4A3C]">
+                                                    {order.notes}
                                                 </p>
                                             )}
-                                            <p className="text-sm text-gray-500">Dipesan pada: {order.created_at}</p>
                                         </div>
 
-                                        {order.notes && (
-                                            <div className="mt-3 rounded-lg bg-gray-50 p-3">
-                                                <p className="text-sm text-gray-700">
-                                                    <span className="font-semibold">Catatan:</span> {order.notes}
-                                                </p>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Price & Action */}
-                                    <div className="flex flex-col items-end gap-4">
-                                        <div className="text-right">
-                                            <p className="text-sm text-gray-500">Total Harga</p>
-                                            <p className="font-serif text-3xl font-bold text-[#D4AF37]">
-                                                Rp {(order.final_price / 1000000).toFixed(0)}jt
+                                        <div className="min-w-[220px] rounded-2xl border border-[#E7DCCB] bg-[#F8F1E8] p-4">
+                                            <p className="text-xs font-semibold tracking-widest text-[#7A5C44] uppercase">Nilai Order</p>
+                                            <p className="mt-2 text-2xl font-bold text-[#B08A56]">
+                                                Rp {Number(order.final_price || 0).toLocaleString('id-ID')}
                                             </p>
-                                        </div>
-
-                                        {order.status === 'pending_confirmation' && (
-                                            <div className="rounded-lg bg-blue-50 p-3 text-center">
-                                                <p className="text-sm font-semibold text-blue-800">💬 Tim kami akan menghubungi Anda segera</p>
-                                            </div>
-                                        )}
-
-                                        <div className="flex flex-col gap-2 w-full">
                                             <Link
                                                 href={`/my-orders/${order.id}`}
-                                                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] px-6 py-3 font-bold text-white shadow-lg transition-all hover:scale-105"
+                                                className="mt-4 inline-block w-full rounded-xl bg-gradient-to-r from-[#B08A56] to-[#7A5C44] px-4 py-2 text-center text-sm font-semibold text-white"
                                             >
-                                                <span className="text-xl">📋</span>
                                                 Lihat Detail
                                             </Link>
-                                            <a
-                                                href={`https://wa.me/6281234567890?text=Halo, saya ingin menanyakan tentang pesanan ${order.order_code}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center justify-center gap-2 rounded-full bg-[#25D366] px-6 py-3 font-bold text-white shadow-lg transition-all hover:scale-105"
-                                            >
-                                                <span className="text-xl">💬</span>
-                                                Hubungi via WhatsApp
-                                            </a>
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </main>
-        </div>
+                                </article>
+                            ))}
+                        </section>
+                    )}
+                </main>
+
+            </PublicLayout>
+        </>
     );
 };
 

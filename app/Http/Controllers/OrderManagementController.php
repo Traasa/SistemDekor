@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Order;
-use App\Models\Client;
 use App\Models\Package;
-use App\Models\PaymentTransaction;
+use App\Services\EventScheduleService;
+use App\Services\SystemNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
@@ -22,7 +22,16 @@ class OrderManagementController extends Controller
             'package_id' => 'nullable|exists:packages,id',
             'event_name' => 'required|string|max:255',
             'event_type' => 'required|string|max:100',
-            'event_date' => 'required|date|after_or_equal:today',
+            'event_date' => [
+                'required',
+                'date',
+                'after_or_equal:today',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (EventScheduleService::isDateFullyBooked((string) $value)) {
+                        $fail('Tanggal acara sudah penuh (maksimal 3 event terkonfirmasi per hari).');
+                    }
+                },
+            ],
             'event_address' => 'required|string',
             'guest_count' => 'required|integer|min:1',
             'notes' => 'nullable|string',
@@ -38,7 +47,7 @@ class OrderManagementController extends Controller
             
             if ($validated['package_id']) {
                 $package = Package::findOrFail($validated['package_id']);
-                $totalPrice = $package->price ?? 0;
+                $totalPrice = $package->base_price ?? 0;
                 $finalPrice = $totalPrice;
             }
 
@@ -66,6 +75,8 @@ class OrderManagementController extends Controller
             ]);
 
             DB::commit();
+
+            SystemNotificationService::orderCreated($order->fresh('client'), 'admin panel');
 
             return response()->json([
                 'success' => true,
@@ -109,7 +120,10 @@ class OrderManagementController extends Controller
         ]);
 
         $order = Order::findOrFail($id);
+        $previousStatus = $order->status;
         $order->update(['status' => $validated['status']]);
+
+        SystemNotificationService::orderStatusUpdated($order->fresh(), $previousStatus);
 
         return response()->json([
             'success' => true,

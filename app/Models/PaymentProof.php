@@ -13,6 +13,8 @@ class PaymentProof extends Model
     const STATUS_REJECTED = 'rejected';
 
     const PAYMENT_TYPE_DP = 'dp';
+    const PAYMENT_TYPE_BOOKING = 'booking';
+    const PAYMENT_TYPE_INSTALLMENT = 'installment';
     const PAYMENT_TYPE_FULL = 'full';
 
     protected $fillable = [
@@ -50,8 +52,12 @@ class PaymentProof extends Model
     /**
      * Get the full URL for the proof image
      */
-    public function getProofImageUrlAttribute(): string
+    public function getProofImageUrlAttribute(): ?string
     {
+        if (!$this->proof_image_path || str_starts_with($this->proof_image_path, 'offline:')) {
+            return null;
+        }
+
         return Storage::url($this->proof_image_path);
     }
 

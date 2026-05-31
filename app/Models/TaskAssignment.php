@@ -20,12 +20,14 @@ class TaskAssignment extends Model
         'priority',
         'status',
         'notes',
+        'resource_requirements',
         'completed_at',
     ];
 
     protected $casts = [
         'deadline' => 'datetime',
         'completed_at' => 'datetime',
+        'resource_requirements' => 'array',
     ];
 
     protected $appends = ['priority_label', 'status_label'];

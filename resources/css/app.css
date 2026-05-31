@@ -108,3 +108,89 @@
 html {
     scroll-behavior: smooth;
 }
+
+/* Admin monochrome theme tokens */
+.admin-theme {
+    --admin-bg: #f3f4f6;
+    --admin-surface: #ffffff;
+    --admin-soft-surface: #f3f4f6;
+    --admin-text: #111827;
+    --admin-muted: #6b7280;
+    --admin-border: #d1d5db;
+    --admin-sidebar-bg: #111827;
+    --admin-sidebar-text: #e5e7eb;
+    --admin-sidebar-muted: #9ca3af;
+    --admin-hover: #1f2937;
+    --admin-accent: #374151;
+    --admin-accent-contrast: #f9fafb;
+}
+
+.admin-theme.dark {
+    --admin-bg: #111827;
+    --admin-surface: #1f2937;
+    --admin-soft-surface: #111827;
+    --admin-text: #f9fafb;
+    --admin-muted: #9ca3af;
+    --admin-border: #374151;
+    --admin-sidebar-bg: #030712;
+    --admin-sidebar-text: #f3f4f6;
+    --admin-sidebar-muted: #9ca3af;
+    --admin-hover: #374151;
+    --admin-accent: #4b5563;
+    --admin-accent-contrast: #f9fafb;
+}
+
+/* Keep admin UI readable and consistent without breaking component semantics. */
+.admin-theme .bg-white {
+    background-color: var(--admin-surface) !important;
+}
+
+.admin-theme .bg-gray-50,
+.admin-theme .bg-gray-100 {
+    background-color: var(--admin-soft-surface) !important;
+}
+
+.admin-theme .border-gray-100,
+.admin-theme .border-gray-200,
+.admin-theme .border-gray-300 {
+    border-color: var(--admin-border) !important;
+}
+
+.admin-theme .text-gray-900,
+.admin-theme .text-gray-800,
+.admin-theme .text-gray-700 {
+    color: var(--admin-text) !important;
+}
+
+.admin-theme .text-gray-600,
+.admin-theme .text-gray-500,
+.admin-theme .text-gray-400 {
+    color: var(--admin-muted) !important;
+}
+
+.admin-theme.dark .hover\:bg-gray-50:hover,
+.admin-theme.dark .hover\:bg-gray-100:hover {
+    background-color: #273447 !important;
+}
+
+.admin-theme.dark input,
+.admin-theme.dark select,
+.admin-theme.dark textarea {
+    background-color: var(--admin-surface) !important;
+    border-color: var(--admin-border) !important;
+    color: var(--admin-text) !important;
+}
+
+.admin-theme.dark input::placeholder,
+.admin-theme.dark textarea::placeholder {
+    color: var(--admin-muted) !important;
+}
+
+.admin-theme.dark .shadow,
+.admin-theme.dark .shadow-sm,
+.admin-theme.dark .shadow-md,
+.admin-theme.dark .shadow-lg,
+.admin-theme.dark .shadow-xl,
+.admin-theme.dark .shadow-2xl {
+    --tw-shadow-color: rgb(0 0 0 / 0.35);
+}

@@ -25,6 +25,7 @@ class Event extends Model
         'guest_count',
         'status',
         'notes',
+        'calendar_note',
         'special_requests',
         'contact_persons',
     ];
@@ -56,6 +57,11 @@ class Event extends Model
     public function taskAssignments(): HasMany
     {
         return $this->hasMany(TaskAssignment::class);
+    }
+
+    public function eventOutlineItems(): HasMany
+    {
+        return $this->hasMany(EventOutlineItem::class)->orderBy('order');
     }
 
     public function getEventTypeLabelAttribute(): string

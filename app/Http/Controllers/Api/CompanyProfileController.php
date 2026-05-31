@@ -55,6 +55,17 @@ class CompanyProfileController extends Controller
             'social_media' => 'nullable|array',
         ]);
 
+        $profile = CompanyProfile::first();
+        if ($profile) {
+            $profile->update($request->all());
+
+            return response()->json([
+                'success' => true,
+                'data' => $profile,
+                'message' => 'Company profile updated successfully'
+            ]);
+        }
+
         $profile = CompanyProfile::create($request->all());
 
         return response()->json([

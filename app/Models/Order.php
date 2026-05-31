@@ -13,6 +13,8 @@ class Order extends Model
     // Order Status Constants
     const STATUS_PENDING = 'pending_confirmation';        // Baru dibuat, menunggu konfirmasi admin
     const STATUS_NEGOTIATION = 'negotiation';             // Dalam proses negosiasi
+    const STATUS_AWAITING_BOOKING = 'awaiting_booking_payment'; // Menunggu pembayaran booking
+    const STATUS_BOOKED = 'booked';                       // Booking terverifikasi
     const STATUS_AWAITING_DP = 'awaiting_dp_payment';     // Menunggu pembayaran DP
     const STATUS_DP_PAID = 'dp_paid';                     // DP sudah dibayar, menunggu pelunasan
     const STATUS_AWAITING_FULL = 'awaiting_full_payment'; // Menunggu pelunasan
@@ -24,6 +26,8 @@ class Order extends Model
 
     // Payment Status Constants
     const PAYMENT_UNPAID = 'unpaid';                      // Belum bayar
+    const PAYMENT_BOOKING_PENDING = 'booking_pending';    // Booking upload, menunggu verifikasi
+    const PAYMENT_BOOKED = 'booked';                      // Booking terverifikasi
     const PAYMENT_DP_PENDING = 'dp_pending';              // DP upload, menunggu verifikasi
     const PAYMENT_DP_PAID = 'dp_paid';                    // DP terverifikasi
     const PAYMENT_FULL_PENDING = 'full_pending';          // Pelunasan upload, menunggu verifikasi
@@ -40,6 +44,9 @@ class Order extends Model
         'event_date',
         'event_address',
         'event_location',
+        'is_venue_included',
+        'venue_id',
+        'venue_price',
         'event_theme',
         'guest_count',
         'total_price',
@@ -48,11 +55,14 @@ class Order extends Model
         'deposit_amount',
         'remaining_amount',
         'dp_amount',
+        'booking_amount',
         'status',
         'payment_status',
+        'initial_payment_type',
         'verification_token',
         'payment_link_token',
         'payment_link_type',
+        'payment_link_amount',
         'payment_link_expires_at',
         'payment_link_active',
         'notes',
@@ -67,15 +77,19 @@ class Order extends Model
 
     protected $casts = [
         'event_date' => 'date',
+        'is_venue_included' => 'boolean',
+        'venue_price' => 'decimal:2',
         'total_price' => 'decimal:2',
         'discount' => 'decimal:2',
         'final_price' => 'decimal:2',
         'deposit_amount' => 'decimal:2',
         'remaining_amount' => 'decimal:2',
         'dp_amount' => 'decimal:2',
+        'booking_amount' => 'decimal:2',
         'additional_costs' => 'decimal:2',
         'payment_link_expires_at' => 'datetime',
         'payment_link_active' => 'boolean',
+        'payment_link_amount' => 'decimal:2',
         'is_negotiable' => 'boolean',
         'negotiated_at' => 'datetime',
         'package_details' => 'array',
@@ -121,6 +135,11 @@ class Order extends Model
     public function package(): BelongsTo
     {
         return $this->belongsTo(Package::class);
+    }
+
+    public function venue(): BelongsTo
+    {
+        return $this->belongsTo(Venue::class);
     }
 
     /**
@@ -198,7 +217,7 @@ class Order extends Model
     public function hasDpPaid()
     {
         return $this->paymentTransactions()
-            ->where('payment_type', 'DP')
+            ->where('payment_type', 'dp')
             ->where('status', 'verified')
             ->exists();
     }

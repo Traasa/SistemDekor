@@ -5,7 +5,7 @@ import { Bell, CheckCheck, Trash2, RefreshCw } from 'lucide-react';
 
 interface Notification {
     id: number;
-    type: 'order' | 'inventory' | 'system';
+    type: 'order' | 'payment' | 'inventory' | 'system';
     title: string;
     message: string;
     link?: string;
@@ -16,7 +16,19 @@ interface Notification {
 export default function NotificationsPage() {
     const [notifications, setNotifications] = useState<Notification[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'order' | 'inventory'>('all');
+    const [filter, setFilter] = useState<'all' | 'order' | 'payment' | 'inventory'>('all');
+    const [showCleanupModal, setShowCleanupModal] = useState(false);
+    const [cleanupLoading, setCleanupLoading] = useState(false);
+    const [cleanupResult, setCleanupResult] = useState<null | {
+        deleted_activities: number;
+        deleted_notifications: number;
+    }>(null);
+    const [cleanupForm, setCleanupForm] = useState({
+        target: 'both' as 'activities' | 'notifications' | 'both',
+        use_custom_range: true,
+        date_from: '',
+        date_to: '',
+    });
 
     useEffect(() => {
         fetchNotifications();
@@ -65,10 +77,36 @@ export default function NotificationsPage() {
         }
     };
 
+    const executeManualCleanup = async () => {
+        if (cleanupForm.use_custom_range && !cleanupForm.date_from && !cleanupForm.date_to) {
+            alert('Isi minimal tanggal awal atau tanggal akhir untuk rentang custom.');
+            return;
+        }
+
+        try {
+            setCleanupLoading(true);
+            const response = await axios.post('/api/settings-logs-cleanup', cleanupForm);
+
+            const data = response.data?.data;
+            setCleanupResult({
+                deleted_activities: data?.deleted_activities || 0,
+                deleted_notifications: data?.deleted_notifications || 0,
+            });
+
+            await fetchNotifications();
+        } catch (error: any) {
+            alert(error?.response?.data?.message || 'Gagal menjalankan cleanup manual.');
+        } finally {
+            setCleanupLoading(false);
+        }
+    };
+
     const getNotificationIcon = (type: string) => {
         switch (type) {
             case 'order':
                 return '📋';
+            case 'payment':
+                return '💰';
             case 'inventory':
                 return '📦';
             default:
@@ -82,6 +120,8 @@ export default function NotificationsPage() {
             switch (type) {
                 case 'order':
                     return 'border-blue-300';
+                case 'payment':
+                    return 'border-green-300';
                 case 'inventory':
                     return 'border-orange-300';
                 default:
@@ -109,6 +149,15 @@ export default function NotificationsPage() {
                         </p>
                     </div>
                     <div className="flex gap-3">
+                        <button
+                            onClick={() => {
+                                setCleanupResult(null);
+                                setShowCleanupModal(true);
+                            }}
+                            className="px-4 py-2 border border-red-300 text-red-700 rounded-lg hover:bg-red-50"
+                        >
+                            Cleanup Manual
+                        </button>
                         <button
                             onClick={fetchNotifications}
                             className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
@@ -149,6 +198,16 @@ export default function NotificationsPage() {
                         }`}
                     >
                         📋 Order ({notifications.filter(n => n.type === 'order').length})
+                    </button>
+                    <button
+                        onClick={() => setFilter('payment')}
+                        className={`flex-1 px-4 py-2 rounded-md transition-colors ${
+                            filter === 'payment' 
+                                ? 'bg-blue-600 text-white' 
+                                : 'text-gray-700 hover:bg-gray-100'
+                        }`}
+                    >
+                        💰 Payment ({notifications.filter(n => n.type === 'payment').length})
                     </button>
                     <button
                         onClick={() => setFilter('inventory')}
@@ -237,6 +296,91 @@ export default function NotificationsPage() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+                )}
+
+                {showCleanupModal && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                        <div className="w-full max-w-xl rounded-lg bg-white p-6">
+                            <h2 className="text-lg font-bold text-gray-900">Cleanup Manual Data Log</h2>
+                            <p className="mt-1 text-sm text-gray-500">
+                                Jalankan pembersihan langsung berdasarkan target data dan rentang waktu tertentu.
+                            </p>
+
+                            <div className="mt-5 space-y-4">
+                                <div>
+                                    <label className="mb-2 block text-sm font-medium text-gray-700">Target Cleanup</label>
+                                    <select
+                                        value={cleanupForm.target}
+                                        onChange={(e) => setCleanupForm((prev) => ({ ...prev, target: e.target.value as 'activities' | 'notifications' | 'both' }))}
+                                        className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                                    >
+                                        <option value="both">User Activity + Notifikasi</option>
+                                        <option value="activities">User Activity saja</option>
+                                        <option value="notifications">Notifikasi saja</option>
+                                    </select>
+                                </div>
+
+                                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                                    <input
+                                        type="checkbox"
+                                        checked={cleanupForm.use_custom_range}
+                                        onChange={(e) => setCleanupForm((prev) => ({ ...prev, use_custom_range: e.target.checked }))}
+                                    />
+                                    Gunakan rentang waktu custom
+                                </label>
+
+                                {cleanupForm.use_custom_range ? (
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <div>
+                                            <label className="mb-1 block text-sm font-medium text-gray-700">Tanggal Mulai</label>
+                                            <input
+                                                type="date"
+                                                value={cleanupForm.date_from}
+                                                onChange={(e) => setCleanupForm((prev) => ({ ...prev, date_from: e.target.value }))}
+                                                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="mb-1 block text-sm font-medium text-gray-700">Tanggal Akhir</label>
+                                            <input
+                                                type="date"
+                                                value={cleanupForm.date_to}
+                                                onChange={(e) => setCleanupForm((prev) => ({ ...prev, date_to: e.target.value }))}
+                                                className="w-full rounded-lg border border-gray-300 px-3 py-2"
+                                            />
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="rounded-md bg-amber-50 p-3 text-sm text-amber-800">
+                                        Default retention akan digunakan: activity &gt; 1 bulan, notifikasi &gt; 3 bulan.
+                                    </div>
+                                )}
+
+                                {cleanupResult && (
+                                    <div className="rounded-md bg-green-50 p-3 text-sm text-green-800">
+                                        Berhasil cleanup: {cleanupResult.deleted_activities} activity dihapus, {cleanupResult.deleted_notifications} notifikasi dihapus.
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="mt-6 flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShowCleanupModal(false)}
+                                    className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
+                                    disabled={cleanupLoading}
+                                >
+                                    Tutup
+                                </button>
+                                <button
+                                    onClick={executeManualCleanup}
+                                    className="rounded-lg bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-60"
+                                    disabled={cleanupLoading}
+                                >
+                                    {cleanupLoading ? 'Menjalankan...' : 'Jalankan Cleanup'}
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>

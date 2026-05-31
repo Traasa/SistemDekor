@@ -4,7 +4,7 @@ import api from '../../services/api';
 
 interface Notification {
     id: number;
-    type: 'order' | 'payment' | 'user' | 'system';
+    type: 'order' | 'payment' | 'inventory' | 'user' | 'system';
     title: string;
     message: string;
     link?: string;

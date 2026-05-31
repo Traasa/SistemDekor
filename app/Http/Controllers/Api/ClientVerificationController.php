@@ -40,16 +40,16 @@ class ClientVerificationController extends Controller
             ->sum('amount');
 
         $dpTransaction = $order->paymentTransactions()
-            ->where('payment_type', 'DP')
+            ->where('payment_type', 'dp')
             ->where('status', 'verified')
             ->first();
 
         $pelunasanTransaction = $order->paymentTransactions()
-            ->where('payment_type', 'Pelunasan')
+            ->where('payment_type', 'full')
             ->where('status', 'verified')
             ->first();
 
-        $remainingPayment = $order->total_price - $totalPaid;
+        $remainingPayment = ($order->final_price ?? $order->total_price) - $totalPaid;
 
         return response()->json([
             'success' => true,

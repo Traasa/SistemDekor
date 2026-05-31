@@ -4,6 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Models\Order;
 use App\Models\Client;
+use App\Models\Package;
+use App\Services\SystemNotificationService;
+use App\Services\EventScheduleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -17,13 +20,26 @@ class ClientOrderController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
+            'package_id' => 'nullable|exists:packages,id',
             'package_name' => 'required|string|max:255',
             'package_price' => 'required|numeric|min:0',
             'client_name' => 'required|string|max:255',
             'client_email' => 'required|email|max:255',
             'client_phone' => 'required|string|max:20',
-            'event_date' => 'required|date|after:today',
+            'event_date' => [
+                'required',
+                'date',
+                'after:today',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (EventScheduleService::isDateFullyBooked((string) $value)) {
+                        $fail('Tanggal acara sudah penuh (maksimal 3 event terkonfirmasi per hari). Silakan pilih tanggal lain.');
+                    }
+                },
+            ],
             'event_location' => 'required|string|max:255',
+            'is_venue_included' => 'nullable|boolean',
+            'venue_id' => 'nullable|exists:venues,id',
+            'venue_price' => 'nullable|numeric|min:0',
             'guest_count' => 'nullable|integer|min:1',
             'notes' => 'nullable|string|max:1000',
         ]);
@@ -43,14 +59,33 @@ class ClientOrderController extends Controller
                 ]
             );
 
+            $selectedPackage = null;
+            if (!empty($validated['package_id'])) {
+                $selectedPackage = Package::find((int) $validated['package_id']);
+            }
+
+            // Fallback: find package by name from client side if package_id isn't sent.
+            if (!$selectedPackage) {
+                $selectedPackage = Package::query()
+                    ->whereRaw('LOWER(name) = ?', [strtolower($validated['package_name'])])
+                    ->first();
+            }
+
+            $isVenueIncluded = (bool) ($validated['is_venue_included'] ?? false);
+            $venuePrice = $isVenueIncluded ? (float) ($validated['venue_price'] ?? 0) : 0;
+
             // Create order with status 'pending_confirmation'
             $order = Order::create([
                 'client_id' => $client->id,
+                'package_id' => $selectedPackage?->id,
                 'event_name' => $validated['package_name'], // Required field
                 'event_type' => 'wedding', // Default to wedding
                 'event_date' => $validated['event_date'],
                 'event_address' => $validated['event_location'], // Map to event_address
                 'event_location' => $validated['event_location'],
+                'is_venue_included' => $isVenueIncluded,
+                'venue_id' => $isVenueIncluded ? ($validated['venue_id'] ?? null) : null,
+                'venue_price' => $venuePrice,
                 'event_theme' => $validated['package_name'], // Store package name as theme
                 'guest_count' => $validated['guest_count'] ?? 0,
                 'total_price' => $validated['package_price'],
@@ -62,22 +97,21 @@ class ClientOrderController extends Controller
                 'deposit_amount' => 0,
                 'remaining_amount' => $validated['package_price'],
                 'is_negotiable' => true, // Allow editing by default
+                'package_details' => $selectedPackage ? [
+                    'name' => $selectedPackage->name,
+                    'description' => $selectedPackage->description,
+                    'price' => $selectedPackage->base_price,
+                    'includes_venue' => (bool) ($selectedPackage->includes_venue ?? false),
+                    'venue_id' => $selectedPackage->venue_id,
+                    'venue_price' => $selectedPackage->venue_price ?? 0,
+                ] : [
+                    'name' => $validated['package_name'],
+                    'price' => $validated['package_price'],
+                    'includes_venue' => $isVenueIncluded,
+                    'venue_id' => $validated['venue_id'] ?? null,
+                    'venue_price' => $venuePrice,
+                ],
             ]);
-
-            // If package_id is provided, capture package details snapshot
-            if ($request->has('package_id') && $request->package_id) {
-                $package = \App\Models\Package::find($request->package_id);
-                if ($package) {
-                    $order->package_id = $package->id;
-                    $order->package_details = [
-                        'name' => $package->name,
-                        'description' => $package->description,
-                        'price' => $package->price,
-                        'items' => $package->items ?? [],
-                    ];
-                    $order->save();
-                }
-            }
 
             DB::commit();
 
@@ -86,6 +120,8 @@ class ClientOrderController extends Controller
                 'client_id' => $client->id,
                 'package' => $validated['package_name'],
             ]);
+
+            SystemNotificationService::orderCreated($order->fresh('client'), 'client portal');
 
             return response()->json([
                 'success' => true,
@@ -251,6 +287,8 @@ class ClientOrderController extends Controller
                 'discount' => $order->discount ?? 0,
                 'final_price' => $order->final_price ?? $order->total_price,
                 'dp_amount' => $order->dp_amount ?? ($order->final_price * 0.3),
+                'booking_amount' => $order->booking_amount ?? 0,
+                'initial_payment_type' => $order->initial_payment_type,
                 'total_paid' => $order->total_paid ?? 0,
                 'remaining_amount' => ($order->final_price ?? 0) - ($order->total_paid ?? 0),
                 'status' => $order->status,
@@ -423,33 +461,27 @@ class ClientOrderController extends Controller
             ->where('status', 'verified')
             ->exists();
 
-        if (!$hasFullPayment && !$hasDpPayment) {
+        $hasBookingPayment = $order->paymentProofs()
+            ->where('payment_type', 'booking')
+            ->where('status', 'verified')
+            ->exists();
+
+        if (!$hasFullPayment && !$hasDpPayment && !$hasBookingPayment) {
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot confirm order. Waiting for payment (DP or full payment) to be verified first.',
+                'message' => 'Cannot confirm order. Waiting for booking, DP, or full payment to be verified first.',
             ], 400);
         }
 
-        // If only DP paid, check if it's sufficient (usually 30% minimum)
-        if ($hasDpPayment && !$hasFullPayment) {
-            $dpAmount = $order->paymentProofs()
-                ->where('payment_type', 'dp')
-                ->where('status', 'verified')
-                ->sum('amount');
-            
-            $minimumDp = $order->final_price * 0.3; // 30% minimum
-            
-            if ($dpAmount < $minimumDp) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'DP amount is less than 30% of total order. Cannot confirm order yet.',
-                ], 400);
-            }
-        }
+        // DP amount can be any verified value per agreement.
+
+        $previousStatus = $order->status;
 
         // Update order status
         $order->status = Order::STATUS_CONFIRMED;
         $order->save();
+
+        SystemNotificationService::orderStatusUpdated($order, $previousStatus);
 
         return response()->json([
             'success' => true,
@@ -488,12 +520,16 @@ class ClientOrderController extends Controller
             ], 400);
         }
 
+        $previousStatus = $order->status;
+
         $order->status = $request->status;
         if ($request->notes) {
             $order->notes = ($order->notes ? $order->notes . "\n\n" : '') . 
                             "[" . now()->format('d M Y H:i') . "] " . $request->notes;
         }
         $order->save();
+
+        SystemNotificationService::orderStatusUpdated($order, $previousStatus);
 
         return response()->json([
             'success' => true,

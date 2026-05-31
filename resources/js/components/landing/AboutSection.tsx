@@ -1,8 +1,15 @@
 import { Link } from '@inertiajs/react';
 import React from 'react';
 import { images } from '../../config/theme';
+import { CompanyProfile } from '../../services/companyProfileService';
 
-export const AboutSection: React.FC = () => {
+interface AboutSectionProps {
+    profile: CompanyProfile | null;
+}
+
+export const AboutSection: React.FC<AboutSectionProps> = ({ profile }) => {
+    const serviceHighlights = (Array.isArray(profile?.services) ? profile.services : []).filter(Boolean).slice(0, 3);
+
     return (
         <section id="about" className="relative overflow-hidden bg-gradient-to-br from-[#FFF8F0] via-[#F5F1E8] to-[#FFE4E6] py-24">
             {/* Decorative Background */}
@@ -59,10 +66,23 @@ export const AboutSection: React.FC = () => {
                         </h2>
 
                         <p className="text-lg leading-relaxed text-gray-700">
-                            Selamat datang di <span className="font-bold text-[#D4AF37]">Wedding Organizer</span>, event organizer yang berdedikasi
-                            untuk mewujudkan pernikahan impian Anda dengan sempurna. Dengan pengalaman lebih dari 10 tahun, kami telah membantu
-                            ratusan pasangan menciptakan momen tak terlupakan.
+                            {profile?.about ||
+                                'Selamat datang di Wedding Organizer, event organizer yang berdedikasi untuk mewujudkan pernikahan impian Anda dengan sempurna.'}
                         </p>
+
+                        {serviceHighlights.length > 0 && (
+                            <div className="rounded-2xl border border-[#D4AF37]/20 bg-white/70 p-4">
+                                <p className="mb-2 text-xs font-semibold tracking-wider text-[#B88321] uppercase">Highlight Layanan Dari Admin</p>
+                                <ul className="grid gap-2 text-sm text-gray-700 sm:grid-cols-2">
+                                    {serviceHighlights.map((service) => (
+                                        <li key={service} className="flex items-center gap-2">
+                                            <span className="inline-block h-2 w-2 rounded-full bg-[#D4AF37]" />
+                                            <span>{service}</span>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
 
                         <div className="space-y-6">
                             <div className="group flex items-start space-x-4 transition-transform duration-300 hover:translate-x-2">

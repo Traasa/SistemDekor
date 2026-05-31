@@ -1,7 +1,7 @@
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
 import { AlertCircle, CheckCircle, DollarSign, FileImage, Upload } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 
 interface Order {
     id: number;
@@ -14,16 +14,20 @@ interface Order {
     total_price: number;
     final_price: number;
     dp_amount: number;
+    remaining_amount?: number;
+    payment_link_type?: 'dp' | 'installment' | 'full';
+    payment_link_amount?: number;
 }
 
 interface Props {
     order: Order;
     token: string;
+    upload_url: string;
 }
 
-export default function PaymentPage({ order, token }: Props) {
+export default function PaymentPage({ order, token, upload_url }: Props) {
     const [amount, setAmount] = useState<string>('');
-    const [paymentType, setPaymentType] = useState<'dp' | 'full'>('dp');
+    const paymentType = (order.payment_link_type || 'dp') as 'dp' | 'installment' | 'full';
     const [proofImage, setProofImage] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -62,12 +66,47 @@ export default function PaymentPage({ order, token }: Props) {
         }
     };
 
+    const remaining = order.remaining_amount ?? order.final_price;
+    const expectedAmount = useMemo(() => {
+        if (paymentType === 'dp') return order.dp_amount || 0;
+        if (paymentType === 'full') return remaining;
+        if (paymentType === 'installment') return order.payment_link_amount || remaining;
+        return 0;
+    }, [paymentType, order.dp_amount, order.payment_link_amount, remaining]);
+    const isFixedAmount = (paymentType !== 'installment' && expectedAmount > 0) || (paymentType === 'installment' && (order.payment_link_amount || 0) > 0);
+    const isAmountMissing = (paymentType !== 'installment' && expectedAmount <= 0) || (paymentType === 'installment' && (order.payment_link_amount || 0) <= 0);
+
+    const paymentTypeLabel = useMemo(() => {
+        if (paymentType === 'dp') return 'DP (Down Payment)';
+        if (paymentType === 'installment') return 'Cicilan';
+        return 'Pelunasan';
+    }, [paymentType]);
+
+    useEffect(() => {
+        if (paymentType === 'dp' && order.dp_amount > 0) {
+            setAmount(order.dp_amount.toString());
+            return;
+        }
+        if (paymentType === 'installment' && (order.payment_link_amount || 0) > 0) {
+            setAmount(String(order.payment_link_amount));
+            return;
+        }
+        if (paymentType === 'full') {
+            setAmount(remaining.toString());
+        }
+    }, [paymentType, order.booking_amount, order.dp_amount, order.payment_link_amount, remaining]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setErrorMessage('');
         setSuccessMessage('');
 
         // Validation
+        if (isAmountMissing) {
+            setErrorMessage('Nominal pembayaran belum ditentukan admin. Silakan hubungi admin.');
+            return;
+        }
+
         if (!amount || parseFloat(amount) <= 0) {
             setErrorMessage('Please enter a valid payment amount');
             return;
@@ -79,13 +118,18 @@ export default function PaymentPage({ order, token }: Props) {
         }
 
         // Validate amount based on payment type
-        if (paymentType === 'full' && parseFloat(amount) !== order.final_price) {
-            setErrorMessage(`Full payment must be exactly Rp ${order.final_price.toLocaleString('id-ID')}`);
+        if (paymentType === 'full' && Math.abs(parseFloat(amount) - remaining) > 0.01) {
+            setErrorMessage(`Full payment must be exactly Rp ${remaining.toLocaleString('id-ID')}`);
             return;
         }
 
-        if (paymentType === 'dp' && parseFloat(amount) > order.final_price) {
-            setErrorMessage('DP amount cannot exceed total order amount');
+        if (paymentType === 'dp' && expectedAmount > 0 && Math.abs(parseFloat(amount) - expectedAmount) > 0.01) {
+            setErrorMessage(`DP harus sesuai nominal Rp ${expectedAmount.toLocaleString('id-ID')}`);
+            return;
+        }
+
+        if ((paymentType === 'dp' || paymentType === 'installment') && parseFloat(amount) > remaining) {
+            setErrorMessage('Nominal pembayaran tidak boleh melebihi sisa tagihan');
             return;
         }
 
@@ -97,7 +141,7 @@ export default function PaymentPage({ order, token }: Props) {
             formData.append('payment_type', paymentType);
             formData.append('proof_image', proofImage);
 
-            const response = await axios.post(`/payment/${token}`, formData, {
+            const response = await axios.post(upload_url, formData, {
                 headers: {
                     'Content-Type': 'multipart/form-data',
                 },
@@ -184,10 +228,22 @@ export default function PaymentPage({ order, token }: Props) {
                                         <span className="font-semibold text-gray-700">Total Amount</span>
                                         <span className="text-xl font-bold text-purple-600">Rp {order.final_price.toLocaleString('id-ID')}</span>
                                     </div>
-                                    {order.dp_amount > 0 && (
+                                    <div className="flex justify-between py-2">
+                                        <span className="text-gray-600">Payment Type</span>
+                                        <span className="text-gray-900">{paymentTypeLabel}</span>
+                                    </div>
+                                    {(paymentType === 'dp' || paymentType === 'full' || paymentType === 'installment') && (
                                         <div className="flex justify-between py-2">
-                                            <span className="text-gray-600">Suggested DP (30%)</span>
-                                            <span className="text-gray-900">Rp {order.dp_amount.toLocaleString('id-ID')}</span>
+                                            <span className="text-gray-600">
+                                                {paymentType === 'dp'
+                                                    ? 'DP Disepakati'
+                                                    : paymentType === 'full'
+                                                      ? 'Nominal Pelunasan'
+                                                      : 'Sisa Tagihan'}
+                                            </span>
+                                            <span className="text-gray-900">
+                                                {expectedAmount > 0 ? `Rp ${expectedAmount.toLocaleString('id-ID')}` : 'Menunggu admin'}
+                                            </span>
                                         </div>
                                     )}
                                 </div>
@@ -200,37 +256,11 @@ export default function PaymentPage({ order, token }: Props) {
                                 {/* Payment Type */}
                                 <div className="mb-6">
                                     <label className="mb-3 block font-semibold text-gray-700">Payment Type</label>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setPaymentType('dp');
-                                                setAmount(order.dp_amount.toString());
-                                            }}
-                                            className={`rounded-xl border-2 p-4 transition-all ${
-                                                paymentType === 'dp' ? 'border-purple-600 bg-purple-50' : 'border-gray-200 hover:border-purple-300'
-                                            }`}
-                                        >
-                                            <div className="flex items-center justify-center space-x-2 text-gray-900">
-                                                <DollarSign className="h-5 w-5" />
-                                                <span className="font-semibold">DP (Down Payment)</span>
-                                            </div>
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setPaymentType('full');
-                                                setAmount(order.final_price.toString());
-                                            }}
-                                            className={`rounded-xl border-2 p-4 transition-all ${
-                                                paymentType === 'full' ? 'border-purple-600 bg-purple-50' : 'border-gray-200 hover:border-purple-300'
-                                            }`}
-                                        >
-                                            <div className="flex items-center justify-center space-x-2 text-gray-900">
-                                                <CheckCircle className="h-5 w-5" />
-                                                <span className="font-semibold">Full Payment</span>
-                                            </div>
-                                        </button>
+                                    <div className="rounded-xl border-2 border-purple-600 bg-purple-50 p-4">
+                                        <div className="flex items-center justify-center space-x-2 text-gray-900">
+                                            <DollarSign className="h-5 w-5" />
+                                            <span className="font-semibold">{paymentTypeLabel}</span>
+                                        </div>
                                     </div>
                                 </div>
 
@@ -244,6 +274,8 @@ export default function PaymentPage({ order, token }: Props) {
                                         id="amount"
                                         value={amount}
                                         onChange={(e) => setAmount(e.target.value)}
+                                        readOnly={isFixedAmount}
+                                        disabled={isFixedAmount}
                                         className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-purple-500"
                                         placeholder="Enter payment amount"
                                         min="0"
@@ -251,10 +283,15 @@ export default function PaymentPage({ order, token }: Props) {
                                         required
                                     />
                                     {paymentType === 'dp' && order.dp_amount > 0 && (
-                                        <p className="mt-2 text-sm text-gray-500">Suggested DP: Rp {order.dp_amount.toLocaleString('id-ID')}</p>
+                                        <p className="mt-2 text-sm text-gray-500">Nominal DP: Rp {order.dp_amount.toLocaleString('id-ID')}</p>
+                                    )}
+                                    {paymentType === 'installment' && (
+                                        <p className="mt-2 text-sm text-gray-500">
+                                            Nominal cicilan: Rp {expectedAmount.toLocaleString('id-ID')}
+                                        </p>
                                     )}
                                     {paymentType === 'full' && (
-                                        <p className="mt-2 text-sm text-gray-500">Must be exactly: Rp {order.final_price.toLocaleString('id-ID')}</p>
+                                        <p className="mt-2 text-sm text-gray-500">Wajib sama dengan: Rp {remaining.toLocaleString('id-ID')}</p>
                                     )}
                                 </div>
 
@@ -296,9 +333,9 @@ export default function PaymentPage({ order, token }: Props) {
                                 {/* Submit Button */}
                                 <button
                                     type="submit"
-                                    disabled={isSubmitting}
+                                    disabled={isSubmitting || isAmountMissing}
                                     className={`w-full rounded-xl py-4 font-semibold transition-all ${
-                                        isSubmitting
+                                        isSubmitting || isAmountMissing
                                             ? 'cursor-not-allowed bg-gray-400 text-gray-700'
                                             : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:scale-[1.02] hover:shadow-lg'
                                     }`}

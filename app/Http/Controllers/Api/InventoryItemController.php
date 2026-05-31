@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\InventoryItem;
 use App\Models\InventoryTransaction;
+use App\Services\SystemNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -156,8 +157,14 @@ class InventoryItemController extends Controller
 
         try {
             $item = InventoryItem::findOrFail($id);
+            $stockBefore = (int) $item->quantity;
+
             $item->update($request->all());
             $item->load('category');
+
+            if ($request->has('quantity')) {
+                SystemNotificationService::lowStock($item, $stockBefore, (int) $item->quantity);
+            }
 
             return response()->json([
                 'success' => true,
@@ -296,6 +303,8 @@ class InventoryItemController extends Controller
             // Update item quantity
             $item->quantity = $stockAfter;
             $item->save();
+
+            SystemNotificationService::lowStock($item, $stockBefore, $stockAfter);
 
             // Create OUT transaction
             $transaction = InventoryTransaction::create([

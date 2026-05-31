@@ -1,6 +1,5 @@
 <?php
 
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\TransactionController;
@@ -9,6 +8,9 @@ use App\Http\Controllers\Api\ServiceController;
 use App\Http\Controllers\Api\GalleryController;
 use App\Http\Controllers\Api\TestimonialController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\MiniOrderController;
+use App\Http\Controllers\Api\VendorClientController;
+use App\Http\Controllers\Api\MiniPaymentTransactionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -60,6 +62,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/orders', [App\Http\Controllers\OrderManagementController::class, 'store']);
     Route::get('/orders/{id}', [App\Http\Controllers\OrderManagementController::class, 'show']);
     Route::put('/orders/{id}/status', [App\Http\Controllers\OrderManagementController::class, 'updateStatus']);
+    Route::post('/mini-orders', [MiniOrderController::class, 'store']);
+    Route::get('/mini-orders/{id}', [MiniOrderController::class, 'show']);
+    Route::put('/mini-orders/{id}/status', [MiniOrderController::class, 'updateStatus']);
     
     // Other order routes (index, update, delete) use OrderController
     Route::get('/orders', [App\Http\Controllers\Api\OrderController::class, 'index']);
@@ -68,6 +73,11 @@ Route::middleware('auth:sanctum')->group(function () {
     
     Route::patch('orders/{order}/status', [App\Http\Controllers\Api\OrderController::class, 'updateStatus']);
     Route::apiResource('payment-transactions', App\Http\Controllers\Api\PaymentTransactionController::class);
+    Route::get('/mini-orders', [MiniOrderController::class, 'index']);
+    Route::put('/mini-orders/{miniOrder}', [MiniOrderController::class, 'update']);
+    Route::delete('/mini-orders/{miniOrder}', [MiniOrderController::class, 'destroy']);
+    Route::patch('/mini-orders/{miniOrder}/status', [MiniOrderController::class, 'updateStatus']);
+    Route::get('mini-payment-transactions', [MiniPaymentTransactionController::class, 'index']);
     
     // Dashboard & Notifications
     Route::get('/dashboard/statistics', [App\Http\Controllers\DashboardController::class, 'getStatistics']);
@@ -79,6 +89,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Client routes
     Route::get('/clients', [App\Http\Controllers\Api\ClientController::class, 'index']);
     Route::post('/clients', [App\Http\Controllers\Api\ClientController::class, 'store']);
+    Route::get('/vendor-clients', [VendorClientController::class, 'index']);
+    Route::post('/vendor-clients', [VendorClientController::class, 'store']);
     
     // Client Management API Routes
     Route::prefix('admin')->middleware('role:admin')->group(function () {
@@ -108,6 +120,9 @@ Route::middleware('auth:sanctum')->group(function () {
     
     // Admin only routes
     Route::middleware('role:admin')->group(function () {
+        // Settings - General
+        Route::get('/settings-general', [App\Http\Controllers\SettingsController::class, 'getGeneralSettings']);
+        Route::post('/settings-general', [App\Http\Controllers\SettingsController::class, 'updateGeneralSettings']);
         // User management
         Route::apiResource('users', App\Http\Controllers\Api\UserController::class);
         
@@ -180,6 +195,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('payment-proofs', [App\Http\Controllers\PaymentController::class, 'index']);
     Route::post('payment-proofs/{id}/verify', [App\Http\Controllers\PaymentController::class, 'verify']);
     Route::post('payment-proofs/{id}/reject', [App\Http\Controllers\PaymentController::class, 'reject']);
+    Route::get('mini-payment-proofs', [App\Http\Controllers\MiniOrderPaymentController::class, 'index']);
+    Route::post('mini-payment-proofs/{id}/verify', [App\Http\Controllers\MiniOrderPaymentController::class, 'verify']);
+    Route::post('mini-payment-proofs/{id}/reject', [App\Http\Controllers\MiniOrderPaymentController::class, 'reject']);
     
     // Inventory Management (Admin & Sales)
     Route::apiResource('inventory-categories', App\Http\Controllers\Api\InventoryCategoryController::class);
@@ -192,11 +210,19 @@ Route::middleware('auth:sanctum')->group(function () {
     // Event & Rundown Management
     Route::apiResource('events', App\Http\Controllers\EventController::class);
     Route::get('events-calendar', [App\Http\Controllers\EventController::class, 'calendar']);
+    Route::get('events/{event}/outlines', [App\Http\Controllers\EventController::class, 'outlines']);
+    Route::post('events/{event}/outlines', [App\Http\Controllers\EventController::class, 'storeOutline']);
+    Route::put('events/{event}/outlines/{eventOutlineItem}', [App\Http\Controllers\EventController::class, 'updateOutline']);
+    Route::delete('events/{event}/outlines/{eventOutlineItem}', [App\Http\Controllers\EventController::class, 'destroyOutline']);
     Route::get('events/{event}/rundown', [App\Http\Controllers\RundownController::class, 'index']);
     Route::post('events/{event}/rundown', [App\Http\Controllers\RundownController::class, 'store']);
     Route::put('events/{event}/rundown/{rundownItem}', [App\Http\Controllers\RundownController::class, 'update']);
     Route::delete('events/{event}/rundown/{rundownItem}', [App\Http\Controllers\RundownController::class, 'destroy']);
     Route::post('events/{event}/rundown/reorder', [App\Http\Controllers\RundownController::class, 'reorder']);
+
+    // Mini order images
+    Route::post('mini-orders/{miniOrder}/images', [App\Http\Controllers\Api\MiniOrderImageController::class, 'store']);
+    Route::delete('mini-orders/{miniOrder}/images/{image}', [App\Http\Controllers\Api\MiniOrderImageController::class, 'destroy']);
     
     // Task Assignment Management
     Route::get('events/{event}/tasks', [App\Http\Controllers\TaskAssignmentController::class, 'index']);
@@ -234,6 +260,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('employee-attendances/check-out', [App\Http\Controllers\Api\EmployeeAttendanceController::class, 'checkOut']);
     Route::post('employee-attendances/{id}/approve', [App\Http\Controllers\Api\EmployeeAttendanceController::class, 'approve']);
     Route::apiResource('employee-attendances', App\Http\Controllers\Api\EmployeeAttendanceController::class);
+
+    // Payroll & operational costs
+    Route::apiResource('employee-payrolls', App\Http\Controllers\Api\EmployeePayrollController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
+    Route::apiResource('operational-costs', App\Http\Controllers\Api\OperationalCostController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
     
     // Vendor Management
     Route::apiResource('vendor-categories', App\Http\Controllers\VendorCategoryController::class);
@@ -268,5 +300,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('settings-backup-delete/{filename}', [App\Http\Controllers\SettingsController::class, 'deleteBackup']);
     Route::post('settings-backup-restore/{filename}', [App\Http\Controllers\SettingsController::class, 'restoreBackup']);
     Route::get('settings-system-info', [App\Http\Controllers\SettingsController::class, 'getSystemInfo']);
+    Route::post('settings-logs-cleanup', [App\Http\Controllers\SettingsController::class, 'cleanupLogs']);
     Route::post('settings-clear-cache', [App\Http\Controllers\SettingsController::class, 'clearCache']);
 });

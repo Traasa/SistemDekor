@@ -115,6 +115,7 @@ const PaymentsPage: React.FC = () => {
 
     const getPaymentTypeBadge = (type: string) => {
         const badges: Record<string, string> = {
+            booking: 'bg-amber-100 text-amber-800',
             dp: 'bg-blue-100 text-blue-800',
             full: 'bg-purple-100 text-purple-800',
             installment: 'bg-indigo-100 text-indigo-800',
@@ -157,6 +158,7 @@ const PaymentsPage: React.FC = () => {
                                 className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                             >
                                 <option value="">Semua Tipe</option>
+                                <option value="booking">Booking</option>
                                 <option value="dp">DP</option>
                                 <option value="full">Full Payment</option>
                                 <option value="installment">Installment</option>

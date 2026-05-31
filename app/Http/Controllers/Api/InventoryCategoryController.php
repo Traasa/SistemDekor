@@ -42,6 +42,7 @@ class InventoryCategoryController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'code' => 'required|string|max:50|unique:inventory_categories,code',
+            'category_group' => 'required|in:catering,dekor,makeup,sound,lainnya',
             'description' => 'nullable|string',
             'color' => 'nullable|string|max:7',
             'is_active' => 'boolean',
@@ -102,6 +103,7 @@ class InventoryCategoryController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'sometimes|required|string|max:255',
             'code' => 'sometimes|required|string|max:50|unique:inventory_categories,code,' . $id,
+            'category_group' => 'sometimes|required|in:catering,dekor,makeup,sound,lainnya',
             'description' => 'nullable|string',
             'color' => 'nullable|string|max:7',
             'is_active' => 'boolean',

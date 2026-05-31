@@ -124,7 +124,7 @@ export interface PaymentTransaction {
     id: number;
     order_id: number;
     amount: number;
-    payment_type: 'dp' | 'pelunasan';
+    payment_type: 'booking' | 'dp' | 'installment' | 'full';
     payment_method: string;
     payment_date: string;
     status: 'pending' | 'verified' | 'rejected';
@@ -186,6 +186,111 @@ export const orderService = {
 
     updateStatus: async (id: number, status: string) => {
         const response = await api.patch<{ success: boolean; data: Order; message: string }>(`/orders/${id}/status`, { status });
+        return response.data;
+    },
+};
+
+// Vendor Client API
+export interface VendorClient {
+    id: number;
+    name: string;
+    company_name?: string | null;
+    email?: string | null;
+    phone: string;
+    address?: string | null;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CreateVendorClientData {
+    name: string;
+    company_name?: string;
+    email?: string;
+    phone: string;
+    address?: string;
+}
+
+export const vendorClientService = {
+    getAll: async () => {
+        const response = await api.get<{ success: boolean; data: VendorClient[] }>('/vendor-clients');
+        return response.data;
+    },
+
+    create: async (data: CreateVendorClientData) => {
+        const response = await api.post<{ success: boolean; data: VendorClient; message?: string }>('/vendor-clients', data);
+        return response.data;
+    },
+};
+
+// Mini Order Management API
+export interface MiniOrder {
+    id: number;
+    vendor_client_id: number;
+    order_number: string;
+    event_name: string;
+    event_type: string;
+    event_date: string;
+    event_location: string;
+    event_address: string;
+    status: string;
+    total_price: number;
+    final_price: number;
+    notes: string | null;
+    created_at: string;
+    updated_at: string;
+    vendor_client?: {
+        id: number;
+        name: string;
+        phone: string;
+        email?: string | null;
+        company_name?: string | null;
+    };
+}
+
+export interface CreateMiniOrderData {
+    vendor_client_id: number | string;
+    event_name: string;
+    event_type: string;
+    event_date: string;
+    event_address: string;
+    event_location?: string;
+    notes?: string | null;
+    special_requests?: string | null;
+}
+
+export const miniOrderService = {
+    getAll: async (params?: { status?: string; search?: string; date_from?: string; date_to?: string; per_page?: number }) => {
+        const response = await api.get<{ success: boolean; data: { data: MiniOrder[]; total: number; per_page: number; current_page: number } }>(
+            '/mini-orders',
+            { params },
+        );
+        return response.data;
+    },
+
+    create: async (data: CreateMiniOrderData) => {
+        const response = await api.post<{ success: boolean; data: MiniOrder; message?: string }>('/mini-orders', data);
+        return response.data;
+    },
+
+    updateStatus: async (id: number, status: string) => {
+        const response = await api.patch<{ success: boolean; data: MiniOrder; message?: string }>(`/mini-orders/${id}/status`, { status });
+        return response.data;
+    },
+
+    delete: async (id: number) => {
+        const response = await api.delete<{ success: boolean; message?: string }>(`/mini-orders/${id}`);
+        return response.data;
+    },
+    uploadImages: async (id: number, files: File[]) => {
+        const formData = new FormData();
+        files.forEach((file) => formData.append('images[]', file));
+        const response = await api.post<{ success: boolean; data: Array<{ id: number; image_url: string }> }>(`/mini-orders/${id}/images`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' },
+        });
+        return response.data;
+    },
+    deleteImage: async (orderId: number, imageId: number) => {
+        const response = await api.delete<{ success: boolean; message?: string }>(`/mini-orders/${orderId}/images/${imageId}`);
         return response.data;
     },
 };

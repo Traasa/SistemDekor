@@ -7,6 +7,11 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\UserActivityController;
 use App\Http\Controllers\OrderNegotiationController;
+use App\Http\Controllers\OrderDocumentController;
+use App\Http\Controllers\MiniOrderController;
+use App\Http\Controllers\MiniOrderNegotiationController;
+use App\Http\Controllers\MiniOrderPaymentController;
+use App\Http\Controllers\MiniOrderDocumentController;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 
@@ -32,6 +37,8 @@ Route::get('/gallery', function () {
 // Payment upload page (public with token)
 Route::get('/payment/{token}', [PaymentController::class, 'show'])->name('payment.show');
 Route::post('/payment/{token}', [PaymentController::class, 'upload'])->name('payment.upload');
+Route::get('/mini-payment/{token}', [MiniOrderPaymentController::class, 'show'])->name('mini-payment.show');
+Route::post('/mini-payment/{token}', [MiniOrderPaymentController::class, 'upload'])->name('mini-payment.upload');
 
 Route::get('/transaction/{id}', function ($id) {
     return Inertia::render('TransactionDetailPage', ['transactionId' => $id]);
@@ -46,6 +53,8 @@ Route::middleware(['auth'])->group(function () {
     // Client orders page
     Route::get('/my-orders', [App\Http\Controllers\ClientOrderController::class, 'myOrders']);
     Route::get('/my-orders/{id}', [App\Http\Controllers\ClientOrderController::class, 'showDetail'])->name('client.orders.detail');
+    Route::get('/my-orders/{id}/invoice', [OrderDocumentController::class, 'downloadInvoiceClient'])->name('client.orders.invoice');
+    Route::get('/my-orders/{id}/contract', [OrderDocumentController::class, 'downloadContractClient'])->name('client.orders.contract');
 });
 
 // Admin routes (protected + admin role check)
@@ -127,11 +136,28 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/orders/{id}/edit', [OrderNegotiationController::class, 'edit'])->name('admin.orders.edit');
     Route::put('/orders/{id}', [OrderNegotiationController::class, 'update'])->name('admin.orders.update');
     Route::post('/orders/{id}/recalculate', [OrderNegotiationController::class, 'recalculate'])->name('admin.orders.recalculate');
+    Route::get('/orders/{id}/invoice', [OrderDocumentController::class, 'downloadInvoiceAdmin'])->name('admin.orders.invoice');
+    Route::get('/orders/{id}/contract', [OrderDocumentController::class, 'downloadContractAdmin'])->name('admin.orders.contract');
     Route::post('/orders/{id}/confirm', [ClientOrderController::class, 'confirmOrder'])->name('admin.orders.confirm');
     Route::post('/orders/{id}/update-status', [ClientOrderController::class, 'updateStatus'])->name('admin.orders.updateStatus');
+
+    // Mini Orders
+    Route::get('/mini-orders', function () {
+        return Inertia::render('admin/MiniOrdersPage');
+    });
+    Route::get('/mini-orders/create', function () {
+        return Inertia::render('admin/mini-orders/create');
+    });
+    Route::get('/mini-orders/{id}', [MiniOrderController::class, 'detail'])->name('admin.mini-orders.detail');
+    Route::get('/mini-orders/{id}/invoice', [MiniOrderDocumentController::class, 'downloadInvoiceAdmin'])->name('admin.mini-orders.invoice');
+    Route::get('/mini-orders/{id}/edit', [MiniOrderNegotiationController::class, 'edit'])->name('admin.mini-orders.edit');
+    Route::put('/mini-orders/{id}', [MiniOrderNegotiationController::class, 'update'])->name('admin.mini-orders.update');
+    Route::post('/mini-orders/{id}/recalculate', [MiniOrderNegotiationController::class, 'recalculate'])->name('admin.mini-orders.recalculate');
+    Route::post('/mini-orders/{id}/generate-payment-link', [MiniOrderPaymentController::class, 'generateLink']);
     
     // Payment link generation and verification
     Route::post('/orders/{id}/generate-payment-link', [PaymentController::class, 'generateLink']);
+    Route::post('/orders/{id}/direct-payment-confirm', [PaymentController::class, 'directConfirm']);
     Route::get('/payment-proofs', [PaymentController::class, 'index']);
     Route::post('/payment-proofs/{id}/verify', [PaymentController::class, 'verify']);
     Route::post('/payment-proofs/{id}/reject', [PaymentController::class, 'reject']);
@@ -199,6 +225,14 @@ Route::middleware(['auth'])->prefix('admin')->group(function () {
     Route::get('/employees/attendance', function () {
         return Inertia::render('admin/employees/attendance/index');
     })->name('admin.employees.attendance');
+
+    Route::get('/payroll', function () {
+        return Inertia::render('admin/payroll/index');
+    })->name('admin.payroll.index');
+
+    Route::get('/operational-costs', function () {
+        return Inertia::render('admin/operational-costs/index');
+    })->name('admin.operational-costs.index');
     
     // Vendors
     Route::get('/vendors', function () {

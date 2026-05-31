@@ -7,6 +7,7 @@ interface Category {
     id: number;
     name: string;
     code: string;
+    category_group: 'catering' | 'dekor' | 'makeup' | 'sound' | 'lainnya';
     description: string | null;
     color: string;
     is_active: boolean;
@@ -16,6 +17,7 @@ interface Category {
 interface FormData {
     name: string;
     code: string;
+    category_group: 'catering' | 'dekor' | 'makeup' | 'sound' | 'lainnya';
     description: string;
     color: string;
     is_active: boolean;
@@ -29,6 +31,7 @@ const CategoriesPage: React.FC = () => {
     const [formData, setFormData] = useState<FormData>({
         name: '',
         code: '',
+        category_group: 'lainnya',
         description: '',
         color: '#3b82f6',
         is_active: true,
@@ -57,6 +60,7 @@ const CategoriesPage: React.FC = () => {
             setFormData({
                 name: category.name,
                 code: category.code,
+                category_group: category.category_group,
                 description: category.description || '',
                 color: category.color,
                 is_active: category.is_active,
@@ -66,6 +70,7 @@ const CategoriesPage: React.FC = () => {
             setFormData({
                 name: '',
                 code: '',
+                category_group: 'lainnya',
                 description: '',
                 color: '#3b82f6',
                 is_active: true,
@@ -80,6 +85,7 @@ const CategoriesPage: React.FC = () => {
         setFormData({
             name: '',
             code: '',
+            category_group: 'lainnya',
             description: '',
             color: '#3b82f6',
             is_active: true,
@@ -181,6 +187,9 @@ const CategoriesPage: React.FC = () => {
                                         Code
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        Group
+                                    </th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                         Items
                                     </th>
                                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -215,6 +224,9 @@ const CategoriesPage: React.FC = () => {
                                             >
                                                 {category.code}
                                             </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
+                                            {category.category_group}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
@@ -300,6 +312,25 @@ const CategoriesPage: React.FC = () => {
                                         placeholder="e.g., SOUND"
                                     />
                                     <p className="mt-1 text-xs text-gray-500">Will be automatically converted to uppercase</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                                        Group Kategori <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="category_group"
+                                        value={formData.category_group}
+                                        onChange={(e) => setFormData((prev) => ({ ...prev, category_group: e.target.value as FormData['category_group'] }))}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                        required
+                                    >
+                                        <option value="catering">Catering</option>
+                                        <option value="dekor">Dekor</option>
+                                        <option value="makeup">Makeup</option>
+                                        <option value="sound">Sound</option>
+                                        <option value="lainnya">Lainnya</option>
+                                    </select>
                                 </div>
 
                                 <div>

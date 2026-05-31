@@ -1,17 +1,29 @@
-import { Link, router, usePage } from '@inertiajs/react';
+import { Head, Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { PublicLayout } from '../layouts/PublicLayout';
+import { images } from '../config/theme';
 
 interface Package {
     id: number;
     name: string;
-    price: string;
-    features: string[];
-    popular?: boolean;
-    color: string;
+    description: string;
+    base_price: number;
+    includes_venue?: boolean;
+    venue_id?: number | null;
+    venue_price?: number;
+    is_active?: boolean;
+}
+
+interface Venue {
+    id: number;
+    name: string;
+    city?: string;
+    is_active?: boolean;
 }
 
 interface CheckoutForm {
+    package_id: string;
     package_name: string;
     package_price: number;
     client_name: string;
@@ -19,22 +31,83 @@ interface CheckoutForm {
     client_phone: string;
     event_date: string;
     event_location: string;
+    is_venue_included: boolean;
+    venue_id: string;
+    venue_price: string;
     guest_count: string;
     notes: string;
 }
 
+interface AuthUser {
+    id: number;
+    name: string;
+    email: string;
+    role: string;
+}
+
+const formatCurrency = (value: number) =>
+    new Intl.NumberFormat('id-ID', {
+        style: 'currency',
+        currency: 'IDR',
+        minimumFractionDigits: 0,
+    }).format(value);
+
+const parseFeatureList = (description: string) => {
+    const normalized = description
+        .split(/\n|\.|,/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+
+    if (normalized.length > 0) {
+        return normalized.slice(0, 4);
+    }
+
+    return ['Paket dapat dikustomisasi sesuai kebutuhan acara'];
+};
+
+const FEATURED_TIERS = [
+    {
+        key: 'silver',
+        name: 'Silver',
+        tagline: 'Pilihan elegan untuk intimate wedding yang rapi dan hangat.',
+        price: 'Mulai Rp 18.000.000',
+        highlight: 'Ideal 100-200 tamu',
+        image: images.packages.silver,
+    },
+    {
+        key: 'gold',
+        name: 'Gold',
+        tagline: 'Keseimbangan dekorasi premium dan koordinasi menyeluruh.',
+        price: 'Mulai Rp 28.000.000',
+        highlight: 'Ideal 200-400 tamu',
+        image: images.packages.gold,
+    },
+    {
+        key: 'platinum',
+        name: 'Platinum',
+        tagline: 'Full service luxury dengan detail artistik yang dominan.',
+        price: 'Mulai Rp 42.000.000',
+        highlight: 'Ideal 400+ tamu',
+        image: images.packages.platinum,
+    },
+];
+
 const PackagesPage: React.FC = () => {
-    const [isScrolled, setIsScrolled] = useState(false);
+    const { auth } = usePage<{ auth?: { user?: AuthUser } }>().props;
+    const user = auth?.user;
+
+    const [packageList, setPackageList] = useState<Package[]>([]);
+    const [venues, setVenues] = useState<Venue[]>([]);
+    const [loading, setLoading] = useState(true);
     const [showCheckoutModal, setShowCheckoutModal] = useState(false);
     const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
-
-    const { auth } = usePage<{ auth: { user: { id: number; name: string; email: string; role: string } } }>().props;
-    const user = auth?.user;
+    const [visiblePackages, setVisiblePackages] = useState(6);
 
     const [formData, setFormData] = useState<CheckoutForm>({
+        package_id: '',
         package_name: '',
         package_price: 0,
         client_name: user?.name || '',
@@ -42,36 +115,50 @@ const PackagesPage: React.FC = () => {
         client_phone: '',
         event_date: '',
         event_location: '',
+        is_venue_included: false,
+        venue_id: '',
+        venue_price: '0',
         guest_count: '',
         notes: '',
     });
 
     useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 50);
+        const fetchData = async () => {
+            try {
+                setLoading(true);
+                const [packageResponse, venueResponse] = await Promise.all([
+                    axios.get('/api/packages'),
+                    axios.get('/api/venues?is_active=1'),
+                ]);
+
+                setPackageList(packageResponse.data?.data || []);
+                setVenues(venueResponse.data?.data || []);
+            } catch (error) {
+                console.error('Failed to load packages/venues', error);
+                setErrorMessage('Gagal memuat data paket. Silakan refresh halaman.');
+            } finally {
+                setLoading(false);
+            }
         };
 
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
+        fetchData();
     }, []);
 
     useEffect(() => {
-        if (user) {
-            setFormData((prev) => ({
-                ...prev,
-                client_name: user.name,
-                client_email: user.email,
-            }));
-        }
+        if (!user) return;
+
+        setFormData((prev) => ({
+            ...prev,
+            client_name: user.name,
+            client_email: user.email,
+        }));
     }, [user]);
 
-    const handleLogout = async () => {
-        try {
-            router.post('/logout');
-        } catch (error) {
-            console.error('Logout failed:', error);
-        }
-    };
+    const totalPrice = useMemo(() => {
+        const packagePrice = selectedPackage?.base_price || 0;
+        const venuePrice = formData.is_venue_included ? Number(formData.venue_price || 0) : 0;
+        return packagePrice + venuePrice;
+    }, [selectedPackage, formData.is_venue_included, formData.venue_price]);
 
     const handleOrderClick = (pkg: Package) => {
         if (!user) {
@@ -82,15 +169,19 @@ const PackagesPage: React.FC = () => {
         setSelectedPackage(pkg);
         setFormData((prev) => ({
             ...prev,
+            package_id: pkg.id.toString(),
             package_name: pkg.name,
-            package_price: parseFloat(pkg.price.replace(/\./g, '')),
+            package_price: pkg.base_price,
+            is_venue_included: !!pkg.includes_venue,
+            venue_id: pkg.venue_id ? pkg.venue_id.toString() : '',
+            venue_price: (pkg.venue_price || 0).toString(),
         }));
         setShowCheckoutModal(true);
         setSuccessMessage('');
         setErrorMessage('');
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
@@ -103,7 +194,17 @@ const PackagesPage: React.FC = () => {
         try {
             const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
-            const response = await axios.post('/api/client/orders', formData, {
+            const payload = {
+                ...formData,
+                package_id: formData.package_id ? Number(formData.package_id) : null,
+                package_name: selectedPackage?.name || formData.package_name,
+                package_price: totalPrice,
+                is_venue_included: !!formData.is_venue_included,
+                venue_id: formData.is_venue_included && formData.venue_id ? Number(formData.venue_id) : null,
+                venue_price: formData.is_venue_included ? Number(formData.venue_price || 0) : 0,
+            };
+
+            const response = await axios.post('/api/client/orders', payload, {
                 headers: {
                     'Content-Type': 'application/json',
                     'X-CSRF-TOKEN': token,
@@ -115,548 +216,284 @@ const PackagesPage: React.FC = () => {
                 setTimeout(() => {
                     setShowCheckoutModal(false);
                     router.visit('/my-orders');
-                }, 2000);
+                }, 1200);
             }
-        } catch (error: any) {
-            console.error('Order submission error:', error);
-            setErrorMessage(error.response?.data?.message || 'Terjadi kesalahan saat membuat pesanan');
+        } catch (error: unknown) {
+            if (axios.isAxiosError(error)) {
+                setErrorMessage(error.response?.data?.message || 'Terjadi kesalahan saat membuat pesanan');
+            } else {
+                setErrorMessage('Terjadi kesalahan saat membuat pesanan');
+            }
         } finally {
             setIsSubmitting(false);
         }
     };
 
-    const packages: Package[] = [
-        {
-            id: 1,
-            name: 'Silver Package',
-            price: '50.000.000',
-            color: 'from-gray-300 to-gray-500',
-            features: [
-                'Dekorasi Pelaminan Eksklusif',
-                'Backdrop Foto 3x4 meter',
-                'Bunga Fresh 100 tangkai',
-                'Lighting 8 titik',
-                'Karpet Gang 25 meter',
-                'Meja Akad/Pemberkatan',
-                'Janur & Pagar Dekor',
-                'Setup & Crew 4 orang',
-                'Konsultasi Design',
-                'Free 1x Revisi Design',
-            ],
-        },
-        {
-            id: 2,
-            name: 'Gold Package',
-            price: '100.000.000',
-            color: 'from-[#F4D03F] to-[#D4AF37]',
-            popular: true,
-            features: [
-                'Semua Benefit Silver Package',
-                'Dekorasi Pelaminan Premium',
-                'Backdrop Foto 5x6 meter',
-                'Bunga Fresh 200 tangkai',
-                'Lighting 15 titik + LED',
-                'Karpet Gang 50 meter',
-                'Dekorasi Photo Booth',
-                'Dekorasi Meja Tamu',
-                'Table Setting untuk 50 pax',
-                'Setup & Crew 8 orang',
-                'Free 3x Revisi Design',
-                'Wedding Coordinator',
-                'Dokumentasi Pre-Wedding',
-            ],
-        },
-        {
-            id: 3,
-            name: 'Platinum Package',
-            price: '150.000.000',
-            color: 'from-cyan-400 to-blue-600',
-            features: [
-                'Semua Benefit Gold Package',
-                'Dekorasi Pelaminan Super Premium',
-                'Backdrop Foto 7x8 meter',
-                'Bunga Fresh 350 tangkai',
-                'Lighting 25 titik + LED Moving',
-                'Karpet Gang 100 meter',
-                'Dekorasi Photo Booth Premium',
-                'Dekorasi Meja Tamu & Welcome Gate',
-                'Table Setting untuk 100 pax',
-                'Dessert Table Decoration',
-                'Setup & Crew 12 orang',
-                'Free Unlimited Revisi',
-                'Wedding Coordinator Team',
-                'MC Professional',
-                'Dokumentasi Full Day',
-            ],
-        },
-        {
-            id: 4,
-            name: 'Diamond Package',
-            price: '200.000.000',
-            color: 'from-purple-400 to-pink-600',
-            features: [
-                'Semua Benefit Platinum Package',
-                'Dekorasi Pelaminan Ultra Luxury',
-                'Backdrop Foto 10x10 meter + 3D',
-                'Bunga Fresh 500 tangkai + Import',
-                'Lighting 40 titik + Laser Show',
-                'Karpet Gang Full Venue',
-                'Photo Booth Luxe + Props',
-                'Welcome Gate & Garden Decoration',
-                'Table Setting untuk 200 pax',
-                'Dessert Table + Candy Corner',
-                'VIP Lounge Decoration',
-                'Setup & Crew 20 orang',
-                'Unlimited Revisi & Konsultasi',
-                'Wedding Coordinator Expert Team',
-                'MC & Singer Professional',
-                'Dokumentasi Pre-Wedding + Full Day',
-                'Cinematic Video',
-                'Drone Coverage',
-                'Same Day Edit',
-            ],
-        },
-    ];
-
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#FFF8F0] via-[#F5F1E8] to-[#FFE4E6]">
-            {/* Header */}
-            <header
-                className={`fixed top-0 z-50 w-full transition-all duration-500 ${isScrolled ? 'bg-white/95 shadow-lg backdrop-blur-md' : 'bg-transparent'}`}
-            >
-                <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between py-4">
-                        <Link href="/" className="group flex items-center space-x-3">
-                            <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-[#D4AF37] via-[#F4D03F] to-[#EC4899] p-0.5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">
-                                <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                                    <span className="font-serif text-2xl font-bold text-[#D4AF37]">D</span>
-                                </div>
-                            </div>
-                            <span
-                                className={`font-serif text-2xl font-bold transition-colors duration-300 ${isScrolled ? 'text-gray-900' : 'text-white drop-shadow-lg'}`}
-                            >
-                                Wedding Organizer
-                            </span>
-                        </Link>
+        <>
+            <Head title="Paket Wedding" />
+            <PublicLayout active="packages" wrapperClassName="min-h-screen bg-[#F6F1EA] text-[#2A2420]">
+                <main className="w-full px-4 py-14 font-sans sm:px-8 2xl:px-16">
+                    <section className="mb-10 rounded-[28px] border border-[#E7DCCB] bg-[#FFF9F1] p-8 shadow-[0_18px_45px_-35px_rgba(27,36,48,0.65)] sm:p-10">
+                        <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#B08A56]">Paket Wedding</p>
+                        <h1 className="mt-3 font-serif text-4xl font-bold text-[#2A2420] sm:text-5xl">Pilih Paket Sesuai Skala Acara Anda</h1>
+                        <p className="mt-3 max-w-2xl text-[#5B4A3C]">
+                            Seluruh paket dapat dikustomisasi. Venue bisa dipilih opsional: Anda bisa serahkan ke WO, atau gunakan venue sendiri.
+                        </p>
+                    </section>
 
-                        <nav className="hidden items-center space-x-8 md:flex">
-                            <Link
-                                href="/"
-                                className={`font-medium transition-all duration-300 ${isScrolled ? 'text-gray-700 hover:text-[#D4AF37]' : 'text-white drop-shadow hover:text-[#F4D03F]'} hover:scale-105`}
-                            >
-                                Beranda
-                            </Link>
-                            <Link
-                                href="/packages"
-                                className={`font-medium transition-all duration-300 ${isScrolled ? 'border-b-2 border-[#D4AF37] text-[#D4AF37]' : 'border-b-2 border-[#F4D03F] text-[#F4D03F] drop-shadow'}`}
-                            >
-                                Paket Wedding
-                            </Link>
-
-                            {user ? (
-                                <div className="flex items-center space-x-4">
-                                    {user.role === 'admin' && (
-                                        <Link
-                                            href="/admin"
-                                            className="group relative overflow-hidden rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
-                                        >
-                                            <span className="relative z-10">Admin Panel</span>
-                                        </Link>
-                                    )}
-                                    <button
-                                        onClick={handleLogout}
-                                        className={`text-sm font-medium transition-colors ${isScrolled ? 'text-gray-700 hover:text-red-600' : 'text-white drop-shadow hover:text-red-400'}`}
-                                    >
-                                        Logout
-                                    </button>
+                    <section className="mb-12 grid gap-6 lg:grid-cols-3">
+                        {FEATURED_TIERS.map((tier) => (
+                            <article key={tier.key} className="group overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] shadow-[0_16px_40px_-28px_rgba(27,36,48,0.6)]">
+                                <div className="relative h-56 overflow-hidden">
+                                    <img src={tier.image} alt={`${tier.name} package`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-[#1B2430]/75 via-[#1B2430]/20 to-transparent" />
+                                    <span className="absolute left-5 top-5 rounded-full bg-[#F3E6D6]/95 px-4 py-1 text-xs font-semibold uppercase text-[#7A5C44]">
+                                        {tier.name}
+                                    </span>
                                 </div>
-                            ) : (
-                                <div className="flex items-center space-x-4">
+                                <div className="space-y-3 p-6">
+                                    <p className="text-sm font-semibold uppercase tracking-[0.2em] text-[#B08A56]">Signature Tier</p>
+                                    <h3 className="font-serif text-2xl font-bold text-[#2A2420]">{tier.highlight}</h3>
+                                    <p className="text-sm text-[#5B4A3C]">{tier.tagline}</p>
+                                    <p className="text-lg font-semibold text-[#8A6A4F]">{tier.price}</p>
                                     <Link
-                                        href="/login"
-                                        className="group relative overflow-hidden rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-xl"
+                                        href="#packages-list"
+                                        className="inline-flex items-center gap-2 text-sm font-semibold text-[#7A5C44] hover:text-[#5B4636]"
                                     >
-                                        <span className="relative z-10">Login</span>
+                                        Lihat detail paket
+                                        <span aria-hidden="true">→</span>
                                     </Link>
                                 </div>
-                            )}
-                        </nav>
-                    </div>
-                </div>
-            </header>
+                            </article>
+                        ))}
+                    </section>
 
-            {/* Hero Section */}
-            <section className="relative min-h-[60vh] overflow-hidden pt-24">
-                {/* Animated Background */}
-                <div className="absolute inset-0 z-0">
-                    <div className="absolute inset-0 bg-gradient-to-br from-[#D4AF37]/20 via-transparent to-[#EC4899]/20"></div>
-                    <div className="absolute top-20 -left-20 h-72 w-72 animate-pulse rounded-full bg-[#D4AF37]/30 blur-3xl"></div>
-                    <div className="animation-delay-2000 absolute top-40 -right-20 h-96 w-96 animate-pulse rounded-full bg-[#EC4899]/30 blur-3xl"></div>
-                    <div className="animation-delay-4000 absolute bottom-20 left-1/2 h-64 w-64 animate-pulse rounded-full bg-[#F4D03F]/30 blur-3xl"></div>
-                </div>
+                    {loading ? (
+                        <section className="rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-10 text-center shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
+                            <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#B08A56] border-r-transparent" />
+                        </section>
+                    ) : (
+                        <section id="packages-list" className="grid gap-6 md:grid-cols-2">
+                            {packageList.slice(0, visiblePackages).map((pkg) => {
+                                const features = parseFeatureList(pkg.description || '');
+                                return (
+                                    <article key={pkg.id} className="rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-7 shadow-[0_14px_30px_-26px_rgba(27,36,48,0.6)] transition hover:-translate-y-1 hover:shadow-[0_20px_45px_-30px_rgba(27,36,48,0.7)]">
+                                        <div className="flex items-start justify-between gap-4">
+                                            <div>
+                                                <h2 className="font-serif text-3xl font-bold text-[#2A2420]">{pkg.name}</h2>
+                                                <p className="mt-2 text-3xl font-bold text-[#B08A56]">{formatCurrency(pkg.base_price)}</p>
+                                            </div>
+                                            {pkg.includes_venue && (
+                                                <span className="rounded-full bg-[#7A5C44] px-3 py-1 text-xs font-semibold uppercase text-white">Include venue</span>
+                                            )}
+                                        </div>
 
-                <div className="relative z-10 mx-auto max-w-7xl px-4 py-20 text-center sm:px-6 lg:px-8">
-                    <div className="animate-fade-in-up">
-                        <h1 className="font-serif text-5xl font-bold text-gray-900 md:text-7xl">
-                            Paket <span className="bg-gradient-to-r from-[#D4AF37] to-[#EC4899] bg-clip-text text-transparent">Wedding</span>{' '}
-                            Eksklusif
-                        </h1>
-                        <p className="mx-auto mt-6 max-w-2xl text-xl text-gray-600">
-                            Pilih paket yang sempurna untuk hari istimewa Anda. Dari dekorasi elegan hingga layanan premium.
-                        </p>
-                        <div className="mt-8 flex justify-center gap-4">
-                            <div className="flex items-center gap-2 rounded-full bg-white/80 px-6 py-3 shadow-lg backdrop-blur">
-                                <span className="text-2xl">💐</span>
-                                <span className="font-medium text-gray-700">Dekorasi Premium</span>
-                            </div>
-                            <div className="flex items-center gap-2 rounded-full bg-white/80 px-6 py-3 shadow-lg backdrop-blur">
-                                <span className="text-2xl">✨</span>
-                                <span className="font-medium text-gray-700">Setup Profesional</span>
-                            </div>
-                            <div className="flex items-center gap-2 rounded-full bg-white/80 px-6 py-3 shadow-lg backdrop-blur">
-                                <span className="text-2xl">🎊</span>
-                                <span className="font-medium text-gray-700">All-Inclusive</span>
-                            </div>
+                                        <ul className="mt-6 space-y-2 text-sm text-[#5B4A3C]">
+                                            {features.map((feature) => (
+                                                <li key={feature} className="flex items-start gap-2">
+                                                    <span className="mt-1 inline-block h-2 w-2 rounded-full bg-[#C8A46A]" />
+                                                    <span>{feature}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+
+                                        <button
+                                            onClick={() => handleOrderClick(pkg)}
+                                            className="mt-7 w-full rounded-2xl bg-gradient-to-r from-[#B08A56] to-[#7A5C44] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_25px_-18px_rgba(122,92,68,0.7)] transition hover:brightness-95"
+                                        >
+                                            {user ? 'Pesan Sekarang' : 'Login untuk Pesan'}
+                                        </button>
+                                    </article>
+                                );
+                            })}
+                        </section>
+                    )}
+
+                    {!loading && packageList.length > visiblePackages && (
+                        <div className="mt-8 flex justify-center">
+                            <button
+                                type="button"
+                                onClick={() => setVisiblePackages((prev) => prev + 6)}
+                                className="rounded-full border border-[#D7C3A8] bg-[#FFFBF6] px-6 py-3 text-sm font-semibold text-[#7A5C44] shadow-[0_12px_25px_-20px_rgba(27,36,48,0.5)] transition hover:bg-[#F2E7D8]"
+                            >
+                                Tampilkan lebih banyak
+                            </button>
                         </div>
-                    </div>
-                </div>
-            </section>
+                    )}
 
-            {/* Packages Grid */}
-            <section className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-2">
-                    {packages.map((pkg, index) => (
-                        <div
-                            key={pkg.id}
-                            className={`group animate-fade-in-up hover:shadow-3xl relative overflow-hidden rounded-3xl bg-white p-8 shadow-2xl transition-all duration-500 hover:-translate-y-2 ${
-                                pkg.popular ? 'ring-4 ring-[#D4AF37] ring-offset-4' : ''
-                            }`}
-                            style={{ animationDelay: `${index * 150}ms` }}
-                        >
-                            {/* Popular Badge */}
-                            {pkg.popular && (
-                                <div className="absolute top-8 right-8 z-20">
-                                    <div className="animate-bounce rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] px-4 py-2 text-sm font-bold text-white shadow-lg">
-                                        ⭐ PALING POPULER
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Gradient Header */}
-                            <div
-                                className={`absolute inset-x-0 top-0 h-32 bg-gradient-to-br ${pkg.color} opacity-10 transition-opacity duration-500 group-hover:opacity-20`}
-                            ></div>
-
-                            {/* Content */}
-                            <div className="relative z-10">
-                                <h3 className={`mb-2 bg-gradient-to-r font-serif text-3xl font-bold ${pkg.color} bg-clip-text text-transparent`}>
-                                    {pkg.name}
-                                </h3>
-                                <div className="mb-6 flex items-baseline">
-                                    <span className="text-5xl font-bold text-gray-900">Rp {pkg.price.split('.')[0]}</span>
-                                    <span className="ml-2 text-xl text-gray-500">juta</span>
-                                </div>
-
-                                <ul className="mb-8 space-y-3">
-                                    {pkg.features.map((feature, idx) => (
-                                        <li key={idx} className="flex items-start gap-3 text-gray-700">
-                                            <span
-                                                className={`mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-r ${pkg.color} text-xs text-white`}
-                                            >
-                                                ✓
-                                            </span>
-                                            <span className="text-sm">{feature}</span>
-                                        </li>
-                                    ))}
-                                </ul>
-
-                                <Link
-                                    href={user ? '/my-transactions' : '/login'}
-                                    onClick={(e) => {
-                                        if (user) {
-                                            e.preventDefault();
-                                            handleOrderClick(pkg);
-                                        }
-                                    }}
-                                    className={`group/btn relative block w-full overflow-hidden rounded-xl bg-gradient-to-r ${pkg.color} py-4 text-center font-bold text-white shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl`}
-                                >
-                                    <span className="relative z-10">{user ? 'Pesan Sekarang' : 'Login untuk Pesan'}</span>
-                                    <div className="absolute inset-0 bg-black/20 opacity-0 transition-opacity duration-300 group-hover/btn:opacity-100"></div>
-                                </Link>
-
-                                <p className="mt-4 text-center text-xs text-gray-500">*Harga dapat disesuaikan dengan kebutuhan</p>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </section>
-
-            {/* CTA Section */}
-            <section className="relative z-10 mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-                <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-[#D4AF37] via-[#F4D03F] to-[#EC4899] p-12 text-center shadow-2xl">
-                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmZmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48cGF0aCBkPSJNMzYgMzRjMC0yLjIwOS0xLjc5MS00LTQtNHMtNCAxLjc5MS00IDQgMS43OTEgNCA0IDQgNC0xLjc5MSA0LTR6bTAgMzBjMC0yLjIwOS0xLjc5MS00LTQtNHMtNCAxLjc5MS00IDQgMS43OTEgNCA0IDQgNC0xLjc5MSA0LTR6Ii8+PC9nPjwvZz48L3N2Zz4=')] opacity-20"></div>
-                    <div className="relative z-10">
-                        <h2 className="font-serif text-4xl font-bold text-white md:text-5xl">Butuh Paket Custom?</h2>
-                        <p className="mx-auto mt-4 max-w-2xl text-xl text-white/90">
-                            Kami siap membantu menyesuaikan paket sesuai budget dan kebutuhan Anda
-                        </p>
-                        <div className="mt-8 flex justify-center gap-4">
+                    <section className="mt-10 rounded-3xl bg-[#1B2430] p-8 text-[#F6F1EA] sm:p-10">
+                        <h3 className="font-serif text-3xl font-bold">Butuh Paket Custom?</h3>
+                        <p className="mt-2 text-[#C8B8A3]">Tim kami akan bantu hitung kebutuhan dekorasi, vendor, rundown acara, hingga venue.</p>
+                        <div className="mt-6 flex flex-wrap gap-3">
                             <a
                                 href="https://wa.me/6281234567890"
                                 target="_blank"
-                                rel="noopener noreferrer"
-                                className="group relative overflow-hidden rounded-full bg-white px-8 py-4 font-bold text-[#D4AF37] shadow-lg transition-all duration-300 hover:scale-105 hover:shadow-2xl"
+                                rel="noreferrer"
+                                className="rounded-full bg-gradient-to-r from-[#B08A56] to-[#7A5C44] px-5 py-3 text-sm font-semibold text-white"
                             >
-                                <span className="relative z-10 flex items-center gap-2">
-                                    <span className="text-2xl">📱</span>
-                                    Hubungi via WhatsApp
-                                </span>
+                                Konsultasi via WhatsApp
                             </a>
-                            <Link
-                                href="/"
-                                className="group relative overflow-hidden rounded-full border-2 border-white px-8 py-4 font-bold text-white transition-all duration-300 hover:scale-105 hover:bg-white hover:text-[#D4AF37]"
-                            >
-                                Kembali ke Beranda
+                            <Link href="/my-orders" className="rounded-full border border-white/30 px-5 py-3 text-sm font-semibold text-white">
+                                Lihat Status Order
                             </Link>
                         </div>
-                    </div>
-                </div>
-            </section>
+                    </section>
+                </main>
 
-            {/* Footer */}
-            <footer className="relative z-10 bg-gray-900/90 py-8 text-white backdrop-blur">
-                <div className="mx-auto max-w-7xl px-4 text-center sm:px-6 lg:px-8">
-                    <p className="text-sm text-gray-400">© 2024 Wedding Organizer. All rights reserved.</p>
-                </div>
-            </footer>
-
-            {/* Checkout Modal */}
-            {showCheckoutModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
-                    <div className="animate-fade-in-up relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-8 shadow-2xl">
-                        {/* Close Button */}
-                        <button
-                            onClick={() => setShowCheckoutModal(false)}
-                            className="absolute top-4 right-4 flex h-10 w-10 items-center justify-center rounded-full bg-gray-100 text-gray-600 transition-colors hover:bg-gray-200"
-                        >
-                            ✕
-                        </button>
-
-                        {/* Header */}
-                        <div className="mb-6">
-                            <h2 className="font-serif text-3xl font-bold text-gray-900">
-                                Pesan{' '}
-                                <span className={`bg-gradient-to-r ${selectedPackage?.color} bg-clip-text text-transparent`}>
-                                    {selectedPackage?.name}
-                                </span>
-                            </h2>
-                            <p className="mt-2 text-gray-600">
-                                Isi form di bawah ini untuk membuat pesanan. Tim kami akan menghubungi Anda via WhatsApp untuk konfirmasi.
-                            </p>
-                        </div>
-
-                        {/* Success Message */}
-                        {successMessage && (
-                            <div className="mb-6 rounded-lg bg-green-50 p-4 text-green-800">
-                                <p className="flex items-center gap-2">
-                                    <span className="text-2xl">✅</span>
-                                    {successMessage}
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Error Message */}
-                        {errorMessage && (
-                            <div className="mb-6 rounded-lg bg-red-50 p-4 text-red-800">
-                                <p className="flex items-center gap-2">
-                                    <span className="text-2xl">❌</span>
-                                    {errorMessage}
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Form */}
-                        <form onSubmit={handleSubmitOrder} className="space-y-4">
-                            <div className="grid gap-4 md:grid-cols-2">
-                                {/* Client Name */}
+                {showCheckoutModal && selectedPackage && (
+                    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4">
+                        <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
+                            <div className="mb-5 flex items-start justify-between gap-4">
                                 <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                        Nama Lengkap <span className="text-red-500">*</span>
-                                    </label>
+                                    <h2 className="font-serif text-3xl font-bold text-slate-900">Pesan {selectedPackage.name}</h2>
+                                    <p className="mt-1 text-sm text-slate-600">Isi data agar tim kami bisa menindaklanjuti order Anda.</p>
+                                </div>
+                                <button onClick={() => setShowCheckoutModal(false)} className="rounded-full border border-slate-200 px-3 py-1 text-sm text-slate-600">
+                                    Tutup
+                                </button>
+                            </div>
+
+                            {successMessage && <div className="mb-4 rounded-xl bg-emerald-50 p-3 text-sm text-emerald-700">{successMessage}</div>}
+                            {errorMessage && <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm text-red-700">{errorMessage}</div>}
+
+                            <form onSubmit={handleSubmitOrder} className="space-y-4">
+                                <div className="grid gap-4 sm:grid-cols-2">
                                     <input
-                                        type="text"
                                         name="client_name"
                                         value={formData.client_name}
                                         onChange={handleInputChange}
                                         required
-                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                        placeholder="Masukkan nama lengkap"
+                                        placeholder="Nama lengkap"
+                                        className="rounded-xl border border-slate-300 px-4 py-3"
                                     />
-                                </div>
-
-                                {/* Client Email */}
-                                <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                        Email <span className="text-red-500">*</span>
-                                    </label>
                                     <input
                                         type="email"
                                         name="client_email"
                                         value={formData.client_email}
                                         onChange={handleInputChange}
                                         required
-                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                        placeholder="email@example.com"
+                                        placeholder="Email"
+                                        className="rounded-xl border border-slate-300 px-4 py-3"
                                     />
-                                </div>
-
-                                {/* Client Phone */}
-                                <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                        No. WhatsApp <span className="text-red-500">*</span>
-                                    </label>
                                     <input
-                                        type="tel"
                                         name="client_phone"
                                         value={formData.client_phone}
                                         onChange={handleInputChange}
                                         required
-                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                        placeholder="08123456789"
+                                        placeholder="Nomor WhatsApp"
+                                        className="rounded-xl border border-slate-300 px-4 py-3"
                                     />
-                                </div>
-
-                                {/* Event Date */}
-                                <div>
-                                    <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                        Tanggal Acara <span className="text-red-500">*</span>
-                                    </label>
                                     <input
                                         type="date"
                                         name="event_date"
                                         value={formData.event_date}
                                         onChange={handleInputChange}
                                         required
-                                        min={new Date().toISOString().split('T')[0]}
-                                        className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                        className="rounded-xl border border-slate-300 px-4 py-3"
                                     />
                                 </div>
-                            </div>
 
-                            {/* Event Location */}
-                            <div>
-                                <label className="mb-2 block text-sm font-semibold text-gray-700">
-                                    Lokasi Acara <span className="text-red-500">*</span>
-                                </label>
                                 <input
-                                    type="text"
                                     name="event_location"
                                     value={formData.event_location}
                                     onChange={handleInputChange}
                                     required
-                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                    placeholder="Contoh: Gedung Pernikahan ABC, Jakarta"
+                                    placeholder="Lokasi acara"
+                                    className="w-full rounded-xl border border-slate-300 px-4 py-3"
                                 />
-                            </div>
 
-                            {/* Guest Count */}
-                            <div>
-                                <label className="mb-2 block text-sm font-semibold text-gray-700">Estimasi Jumlah Tamu</label>
+                                <div className="space-y-3 rounded-xl border border-slate-200 p-4">
+                                    <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={!!formData.is_venue_included}
+                                            onChange={(e) => {
+                                                const checked = e.target.checked;
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    is_venue_included: checked,
+                                                    venue_id: checked ? prev.venue_id : '',
+                                                    venue_price: checked ? prev.venue_price : '0',
+                                                }));
+                                            }}
+                                        />
+                                        Tambahkan venue dari WO
+                                    </label>
+
+                                    {formData.is_venue_included ? (
+                                        <div className="grid gap-3 sm:grid-cols-2">
+                                            <select name="venue_id" value={formData.venue_id} onChange={handleInputChange} className="rounded-xl border border-slate-300 px-4 py-3">
+                                                <option value="">Pilih venue</option>
+                                                {venues.map((venue) => (
+                                                    <option key={venue.id} value={venue.id.toString()}>
+                                                        {venue.name} {venue.city ? `(${venue.city})` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <input
+                                                type="number"
+                                                name="venue_price"
+                                                min={0}
+                                                value={formData.venue_price}
+                                                onChange={handleInputChange}
+                                                placeholder="Harga venue"
+                                                className="rounded-xl border border-slate-300 px-4 py-3"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-slate-500">Venue bisa Anda urus sendiri. Harga paket tidak ditambah biaya venue.</p>
+                                    )}
+                                </div>
+
                                 <input
                                     type="number"
                                     name="guest_count"
                                     value={formData.guest_count}
                                     onChange={handleInputChange}
-                                    min="1"
-                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                    placeholder="Contoh: 200"
+                                    placeholder="Estimasi tamu"
+                                    className="w-full rounded-xl border border-slate-300 px-4 py-3"
                                 />
-                            </div>
 
-                            {/* Notes */}
-                            <div>
-                                <label className="mb-2 block text-sm font-semibold text-gray-700">Catatan Khusus / Request</label>
                                 <textarea
                                     name="notes"
                                     value={formData.notes}
                                     onChange={handleInputChange}
-                                    rows={4}
-                                    className="w-full rounded-lg border border-gray-300 px-4 py-3 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                    placeholder="Tuliskan request khusus Anda di sini..."
+                                    rows={3}
+                                    placeholder="Catatan khusus"
+                                    className="w-full rounded-xl border border-slate-300 px-4 py-3"
                                 />
-                            </div>
 
-                            {/* Price Summary */}
-                            <div className="rounded-lg bg-gradient-to-r from-[#FFF8F0] to-[#FFE4E6] p-6">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-lg font-semibold text-gray-700">Total Harga:</span>
-                                    <span className="font-serif text-3xl font-bold text-[#D4AF37]">Rp {selectedPackage?.price}</span>
+                                <div className="space-y-1 rounded-xl bg-[#F9F2E7] px-4 py-3 text-sm text-slate-700">
+                                    <div className="flex items-center justify-between">
+                                        <span>Harga paket</span>
+                                        <span className="font-semibold">{formatCurrency(selectedPackage.base_price)}</span>
+                                    </div>
+                                    {formData.is_venue_included && (
+                                        <div className="flex items-center justify-between">
+                                            <span>Harga venue</span>
+                                            <span className="font-semibold">{formatCurrency(Number(formData.venue_price || 0))}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex items-center justify-between border-t border-[#e7d9bf] pt-2 text-base font-bold text-[#B88321]">
+                                        <span>Total</span>
+                                        <span>{formatCurrency(totalPrice)}</span>
+                                    </div>
                                 </div>
-                                <p className="mt-2 text-sm text-gray-600">*Harga dapat disesuaikan setelah konsultasi dengan tim kami</p>
-                            </div>
 
-                            {/* Submit Button */}
-                            <div className="flex gap-4 pt-4">
-                                <button
-                                    type="button"
-                                    onClick={() => setShowCheckoutModal(false)}
-                                    className="flex-1 rounded-xl border-2 border-gray-300 px-6 py-3 font-bold text-gray-700 transition-all hover:bg-gray-50"
-                                    disabled={isSubmitting}
-                                >
-                                    Batal
-                                </button>
                                 <button
                                     type="submit"
                                     disabled={isSubmitting}
-                                    className={`flex-1 rounded-xl bg-gradient-to-r ${selectedPackage?.color} px-6 py-3 font-bold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-50`}
+                                    className="w-full rounded-xl bg-gradient-to-r from-[#B08A56] to-[#7A5C44] px-5 py-3 font-semibold text-white disabled:opacity-60"
                                 >
-                                    {isSubmitting ? (
-                                        <span className="flex items-center justify-center gap-2">
-                                            <svg className="h-5 w-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                                                <path
-                                                    className="opacity-75"
-                                                    fill="currentColor"
-                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                />
-                                            </svg>
-                                            Memproses...
-                                        </span>
-                                    ) : (
-                                        'Kirim Pesanan'
-                                    )}
+                                    {isSubmitting ? 'Memproses...' : 'Kirim Pesanan'}
                                 </button>
-                            </div>
-                        </form>
+                            </form>
+                        </div>
                     </div>
-                </div>
-            )}
-
-            <style>{`
-                @keyframes fade-in-up {
-                    from {
-                        opacity: 0;
-                        transform: translateY(30px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-
-                .animate-fade-in-up {
-                    animation: fade-in-up 0.8s ease-out forwards;
-                }
-
-                .animation-delay-2000 {
-                    animation-delay: 2s;
-                }
-
-                .animation-delay-4000 {
-                    animation-delay: 4s;
-                }
-            `}</style>
-        </div>
+                )}
+            </PublicLayout>
+        </>
     );
 };
 

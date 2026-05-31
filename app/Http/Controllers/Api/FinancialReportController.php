@@ -8,6 +8,8 @@ use App\Models\Transaction;
 use App\Models\InventoryTransaction;
 use App\Models\InventoryItem;
 use App\Models\PaymentProof;
+use App\Models\EmployeePayroll;
+use App\Models\OperationalCost;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Carbon\Carbon;
@@ -42,10 +44,29 @@ class FinancialReportController extends Controller
                     return $transaction->quantity * ($transaction->item->purchase_price ?? 0);
                 });
 
-            // Other expenses (can be extended)
-            $otherExpenses = 0; // Placeholder for other expense types
+            // Employee payroll expenses (paid only)
+            $payrollExpenses = EmployeePayroll::query()
+                ->where('status', 'paid')
+                ->whereBetween('payment_date', [$startDate, $endDate])
+                ->sum('total_amount');
 
-            $totalExpenses = $inventoryExpenses + $otherExpenses;
+            // Operational costs by categories
+            $productionExpenses = OperationalCost::query()
+                ->where('cost_type', 'production')
+                ->whereBetween('cost_date', [$startDate, $endDate])
+                ->sum('amount');
+
+            $cateringRawMaterialExpenses = OperationalCost::query()
+                ->where('cost_type', 'catering_raw_material')
+                ->whereBetween('cost_date', [$startDate, $endDate])
+                ->sum('amount');
+
+            $otherExpenses = OperationalCost::query()
+                ->where('cost_type', 'other')
+                ->whereBetween('cost_date', [$startDate, $endDate])
+                ->sum('amount');
+
+            $totalExpenses = $inventoryExpenses + $payrollExpenses + $productionExpenses + $cateringRawMaterialExpenses + $otherExpenses;
             $netProfit = $income - $totalExpenses;
 
             return response()->json([
@@ -58,6 +79,9 @@ class FinancialReportController extends Controller
                     'income' => $income,
                     'expenses' => [
                         'inventory' => $inventoryExpenses,
+                        'payroll' => $payrollExpenses,
+                        'production' => $productionExpenses,
+                        'catering_raw_material' => $cateringRawMaterialExpenses,
                         'other' => $otherExpenses,
                         'total' => $totalExpenses,
                     ],
@@ -294,11 +318,34 @@ class FinancialReportController extends Controller
                     return abs($transaction->quantity) * ($transaction->item->purchase_price ?? 0);
                 });
 
-            $grossProfit = $orderRevenue - $cogs;
+            // Direct catering raw material costs and production costs
+            $cateringRawMaterialCosts = OperationalCost::query()
+                ->where('cost_type', 'catering_raw_material')
+                ->whereBetween('cost_date', [$startDate, $endDate])
+                ->sum('amount');
+
+            $productionCosts = OperationalCost::query()
+                ->where('cost_type', 'production')
+                ->whereBetween('cost_date', [$startDate, $endDate])
+                ->sum('amount');
+
+            $totalCogs = $cogs + $cateringRawMaterialCosts + $productionCosts;
+
+            $grossProfit = $orderRevenue - $totalCogs;
             $grossMargin = $orderRevenue > 0 ? ($grossProfit / $orderRevenue) * 100 : 0;
 
-            // Operating Expenses (placeholder - can be extended)
-            $operatingExpenses = 0;
+            // Operating Expenses: payroll + other operational costs
+            $payrollExpenses = EmployeePayroll::query()
+                ->where('status', 'paid')
+                ->whereBetween('payment_date', [$startDate, $endDate])
+                ->sum('total_amount');
+
+            $otherOperationalCosts = OperationalCost::query()
+                ->where('cost_type', 'other')
+                ->whereBetween('cost_date', [$startDate, $endDate])
+                ->sum('amount');
+
+            $operatingExpenses = $payrollExpenses + $otherOperationalCosts;
 
             $operatingIncome = $grossProfit - $operatingExpenses;
             $netIncome = $operatingIncome; // Simplified, can add other income/expenses
@@ -314,10 +361,19 @@ class FinancialReportController extends Controller
                         'orders' => $orderRevenue,
                         'total' => $orderRevenue,
                     ],
-                    'cost_of_goods_sold' => $cogs,
+                    'cost_of_goods_sold' => $totalCogs,
+                    'cost_breakdown' => [
+                        'inventory_usage' => $cogs,
+                        'catering_raw_material' => $cateringRawMaterialCosts,
+                        'production' => $productionCosts,
+                    ],
                     'gross_profit' => $grossProfit,
                     'gross_margin_percentage' => $grossMargin,
                     'operating_expenses' => $operatingExpenses,
+                    'operating_expenses_breakdown' => [
+                        'payroll' => $payrollExpenses,
+                        'other' => $otherOperationalCosts,
+                    ],
                     'operating_income' => $operatingIncome,
                     'net_income' => $netIncome,
                     'net_margin_percentage' => $orderRevenue > 0 ? ($netIncome / $orderRevenue) * 100 : 0,

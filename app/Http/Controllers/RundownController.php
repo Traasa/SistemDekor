@@ -4,12 +4,15 @@ namespace App\Http\Controllers;
 
 use App\Models\Event;
 use App\Models\RundownItem;
+use App\Services\EventRundownTemplateService;
 use Illuminate\Http\Request;
 
 class RundownController extends Controller
 {
     public function index(Request $request, Event $event)
     {
+        EventRundownTemplateService::ensureDefaultRundown($event);
+
         $rundownItems = $event->rundownItems()
             ->orderBy('order')
             ->get();

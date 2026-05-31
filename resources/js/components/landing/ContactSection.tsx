@@ -6,6 +6,8 @@ interface ContactSectionProps {
 }
 
 export const ContactSection: React.FC<ContactSectionProps> = ({ profile }) => {
+    const socialMedia = profile?.social_media || {};
+
     return (
         <section id="contact" className="relative overflow-hidden bg-gradient-to-br from-[#FFF8F0] via-[#F5F1E8] to-[#FFE4E6] py-24">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
@@ -56,6 +58,29 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ profile }) => {
                         <p className="mt-2 text-sm text-gray-500">Kunjungi Showroom</p>
                     </div>
                 </div>
+
+                {(socialMedia.instagram || socialMedia.facebook || socialMedia.whatsapp) && (
+                    <div className="mt-10 rounded-2xl border border-[#D4AF37]/20 bg-white/70 p-5">
+                        <p className="mb-3 text-center text-xs font-semibold tracking-wider text-[#B88321] uppercase">Media Sosial Dari Admin</p>
+                        <div className="flex flex-wrap justify-center gap-3 text-sm">
+                            {socialMedia.instagram && (
+                                <a href={socialMedia.instagram} target="_blank" rel="noreferrer" className="rounded-full bg-[#FCE7F3] px-4 py-2 font-semibold text-[#9D174D]">
+                                    Instagram
+                                </a>
+                            )}
+                            {socialMedia.facebook && (
+                                <a href={socialMedia.facebook} target="_blank" rel="noreferrer" className="rounded-full bg-[#DBEAFE] px-4 py-2 font-semibold text-[#1D4ED8]">
+                                    Facebook
+                                </a>
+                            )}
+                            {socialMedia.whatsapp && (
+                                <a href={socialMedia.whatsapp} target="_blank" rel="noreferrer" className="rounded-full bg-[#DCFCE7] px-4 py-2 font-semibold text-[#15803D]">
+                                    WhatsApp
+                                </a>
+                            )}
+                        </div>
+                    </div>
+                )}
             </div>
         </section>
     );

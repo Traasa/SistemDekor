@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\CompanyProfile;
+use App\Models\SystemNotification;
+use App\Models\UserActivity;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Storage;
@@ -32,12 +34,19 @@ class SettingsController extends Controller
         if (!$settings) {
             $settings = CompanyProfile::create([
                 'company_name' => 'Sistem Dekor',
+                'about' => 'SistemDekor adalah wedding organizer yang berfokus pada detail, estetika, dan pengalaman tamu.',
+                'description' => 'SistemDekor adalah wedding organizer yang berfokus pada detail, estetika, dan pengalaman tamu.',
+                'services' => [],
                 'email' => 'info@sistemdekor.com',
                 'phone' => '',
                 'address' => '',
-                'description' => '',
+                'website' => '',
                 'logo' => null,
                 'favicon' => null,
+                'hero_image' => null,
+                'hero_side_image' => null,
+                'about_gallery_images' => [],
+                'portfolio_highlight_images' => [],
                 'social_media' => [
                     'facebook' => '',
                     'instagram' => '',
@@ -52,14 +61,29 @@ class SettingsController extends Controller
 
     public function updateGeneralSettings(Request $request)
     {
+        $socialMediaRaw = $request->input('social_media');
+        if (is_string($socialMediaRaw)) {
+            $decoded = json_decode($socialMediaRaw, true);
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $request->merge(['social_media' => $decoded]);
+            }
+        }
+
         $validated = $request->validate([
             'company_name' => 'required|string|max:255',
             'email' => 'required|email|max:255',
             'phone' => 'nullable|string|max:20',
             'address' => 'nullable|string',
+            'website' => 'nullable|url|max:255',
             'description' => 'nullable|string',
             'logo' => 'nullable|image|max:2048',
             'favicon' => 'nullable|image|max:512',
+            'hero_image' => 'nullable|image|max:4096',
+            'hero_side_image' => 'nullable|image|max:4096',
+            'about_gallery_images' => 'nullable|array',
+            'about_gallery_images.*' => 'image|max:4096',
+            'portfolio_highlight_images' => 'nullable|array',
+            'portfolio_highlight_images.*' => 'image|max:4096',
             'social_media' => 'nullable|array',
         ]);
 
@@ -83,6 +107,50 @@ class SettingsController extends Controller
                 Storage::disk('public')->delete($settings->favicon);
             }
             $validated['favicon'] = $request->file('favicon')->store('company', 'public');
+        }
+
+        if ($request->hasFile('hero_image')) {
+            if ($settings->hero_image) {
+                Storage::disk('public')->delete($settings->hero_image);
+            }
+            $validated['hero_image'] = $request->file('hero_image')->store('company', 'public');
+        }
+
+        if ($request->hasFile('hero_side_image')) {
+            if ($settings->hero_side_image) {
+                Storage::disk('public')->delete($settings->hero_side_image);
+            }
+            $validated['hero_side_image'] = $request->file('hero_side_image')->store('company', 'public');
+        }
+
+        if ($request->hasFile('about_gallery_images')) {
+            if (is_array($settings->about_gallery_images)) {
+                foreach ($settings->about_gallery_images as $path) {
+                    Storage::disk('public')->delete($path);
+                }
+            }
+
+            $validated['about_gallery_images'] = collect($request->file('about_gallery_images'))
+                ->map(fn ($file) => $file->store('company', 'public'))
+                ->values()
+                ->all();
+        }
+
+        if ($request->hasFile('portfolio_highlight_images')) {
+            if (is_array($settings->portfolio_highlight_images)) {
+                foreach ($settings->portfolio_highlight_images as $path) {
+                    Storage::disk('public')->delete($path);
+                }
+            }
+
+            $validated['portfolio_highlight_images'] = collect($request->file('portfolio_highlight_images'))
+                ->map(fn ($file) => $file->store('company', 'public'))
+                ->values()
+                ->all();
+        }
+
+        if (!empty($validated['description'])) {
+            $validated['about'] = $validated['description'];
         }
 
         $settings->fill($validated);
@@ -417,6 +485,83 @@ class SettingsController extends Controller
             ],
             'cache_driver' => config('cache.default'),
             'session_driver' => config('session.driver'),
+        ]);
+    }
+
+    /**
+     * Manual cleanup for activities/notifications with optional custom date range.
+     */
+    public function cleanupLogs(Request $request)
+    {
+        if (!$request->user() || !$request->user()->isAdmin()) {
+            return response()->json(['message' => 'Akses ditolak'], 403);
+        }
+
+        $validated = $request->validate([
+            'target' => 'required|in:activities,notifications,both',
+            'use_custom_range' => 'nullable|boolean',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date|after_or_equal:date_from',
+        ]);
+
+        $target = $validated['target'];
+        $useCustomRange = (bool) ($validated['use_custom_range'] ?? false);
+        $dateFrom = isset($validated['date_from']) ? Carbon::parse($validated['date_from'])->startOfDay() : null;
+        $dateTo = isset($validated['date_to']) ? Carbon::parse($validated['date_to'])->endOfDay() : null;
+
+        if ($useCustomRange && !$dateFrom && !$dateTo) {
+            return response()->json([
+                'message' => 'Rentang waktu custom harus diisi minimal tanggal awal atau tanggal akhir.',
+            ], 422);
+        }
+
+        $deletedActivities = 0;
+        $deletedNotifications = 0;
+
+        if (in_array($target, ['activities', 'both'], true)) {
+            $activityQuery = UserActivity::query();
+
+            if ($useCustomRange) {
+                if ($dateFrom) {
+                    $activityQuery->where('created_at', '>=', $dateFrom);
+                }
+                if ($dateTo) {
+                    $activityQuery->where('created_at', '<=', $dateTo);
+                }
+            } else {
+                $activityQuery->where('created_at', '<', now()->subMonth());
+            }
+
+            $deletedActivities = (clone $activityQuery)->delete();
+        }
+
+        if (in_array($target, ['notifications', 'both'], true)) {
+            $notificationQuery = SystemNotification::query();
+
+            if ($useCustomRange) {
+                if ($dateFrom) {
+                    $notificationQuery->where('created_at', '>=', $dateFrom);
+                }
+                if ($dateTo) {
+                    $notificationQuery->where('created_at', '<=', $dateTo);
+                }
+            } else {
+                $notificationQuery->where('created_at', '<', now()->subMonths(3));
+            }
+
+            $deletedNotifications = (clone $notificationQuery)->delete();
+        }
+
+        return response()->json([
+            'message' => 'Cleanup manual selesai dijalankan.',
+            'data' => [
+                'target' => $target,
+                'use_custom_range' => $useCustomRange,
+                'date_from' => $dateFrom?->toDateTimeString(),
+                'date_to' => $dateTo?->toDateTimeString(),
+                'deleted_activities' => $deletedActivities,
+                'deleted_notifications' => $deletedNotifications,
+            ],
         ]);
     }
 

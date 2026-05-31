@@ -10,6 +10,7 @@ class InventoryCategory extends Model
     protected $fillable = [
         'name',
         'code',
+        'category_group',
         'description',
         'color',
         'is_active',

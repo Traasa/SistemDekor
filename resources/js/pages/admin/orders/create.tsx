@@ -135,8 +135,8 @@ const CreateOrderPage: React.FC = () => {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Buat Order Baru</h1>
-                        <p className="mt-1 text-sm text-gray-600">Tambahkan order baru untuk client</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Buat Wedding Order Baru</h1>
+                        <p className="mt-1 text-sm text-gray-600">Tambahkan wedding order baru untuk client</p>
                     </div>
                     <button
                         onClick={() => router.visit('/admin/orders')}
@@ -378,7 +378,7 @@ const CreateOrderPage: React.FC = () => {
                             disabled={loading}
                             className="rounded-lg bg-[#D4AF37] px-6 py-3 font-semibold text-white hover:bg-[#B8941F] disabled:opacity-50"
                         >
-                            {loading ? 'Menyimpan...' : '✓ Buat Order'}
+                            {loading ? 'Menyimpan...' : '✓ Buat Wedding Order'}
                         </button>
                     </div>
                 </form>

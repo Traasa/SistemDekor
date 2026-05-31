@@ -58,6 +58,14 @@ class Employee extends Model
     }
 
     /**
+     * Get employee payroll records
+     */
+    public function payrolls(): HasMany
+    {
+        return $this->hasMany(EmployeePayroll::class);
+    }
+
+    /**
      * Scope for active employees
      */
     public function scopeActive($query)

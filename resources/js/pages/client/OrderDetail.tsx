@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
 import React from 'react';
+import { PublicLayout } from '../../layouts/PublicLayout';
 
 interface OrderDetail {
     id: number;
@@ -98,15 +99,15 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
 
     const getStatusColor = (status: string) => {
         const colors: Record<string, string> = {
-            pending_confirmation: 'bg-blue-100 text-blue-800',
-            awaiting_dp_payment: 'bg-yellow-100 text-yellow-800',
-            dp_paid: 'bg-green-100 text-green-800',
-            awaiting_full_payment: 'bg-orange-100 text-orange-800',
-            paid: 'bg-green-100 text-green-800',
-            confirmed: 'bg-green-100 text-green-800',
-            processing: 'bg-purple-100 text-purple-800',
-            completed: 'bg-gray-100 text-gray-800',
-            cancelled: 'bg-red-100 text-red-800',
+            pending_confirmation: 'bg-[#F2E6D6] text-[#7A5C44]',
+            awaiting_dp_payment: 'bg-[#F2E6D6] text-[#7A5C44]',
+            dp_paid: 'bg-[#E6F0E4] text-[#3F6A4A]',
+            awaiting_full_payment: 'bg-[#F2E6D6] text-[#7A5C44]',
+            paid: 'bg-[#E6F0E4] text-[#3F6A4A]',
+            confirmed: 'bg-[#E6F0E4] text-[#3F6A4A]',
+            processing: 'bg-[#E8EEF5] text-[#1B2430]',
+            completed: 'bg-[#E8EEF5] text-[#1B2430]',
+            cancelled: 'bg-[#F3E7E2] text-[#8A4E3A]',
         };
         return colors[status] || 'bg-gray-100 text-gray-800';
     };
@@ -145,11 +146,35 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
         return labels[method] || method;
     };
 
+    const formatRundownTime = (value: string) => {
+        if (!value) return '-';
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+        }
+        return value;
+    };
+
+    const getRundownStatusLabel = (status: string) => {
+        if (status === 'completed') return 'Selesai';
+        if (status === 'in_progress') return 'Berlangsung';
+        if (status === 'skipped') return 'Dilewati';
+        return 'Belum';
+    };
+
+    const getTaskStatusLabel = (status: string) => {
+        if (status === 'completed') return 'Selesai';
+        if (status === 'in_progress') return 'Berlangsung';
+        if (status === 'pending') return 'Menunggu';
+        return 'Belum';
+    };
+
     // Use total_paid from backend for consistency
     const totalPaid = order.total_paid || 0;
     const remainingAmount = order.remaining_amount || (order.final_price - totalPaid);
 
     const paymentProgress = order.final_price > 0 ? (totalPaid / order.final_price) * 100 : 0;
+    const showQuickActions = ['confirmed', 'processing', 'completed'].includes(order.status);
 
     // Timeline data
     const timeline = [
@@ -160,10 +185,10 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
             status: 'completed',
             icon: '📝',
         },
-        ...order.payment_transactions.map((payment) => ({
+        ...(order.payment_transactions || []).map((payment) => ({
             date: payment.created_at,
             title: `Pembayaran ${getPaymentTypeLabel(payment.payment_type)}`,
-            description: `${getPaymentMethodLabel(payment.payment_method)} - Rp ${(parseFloat(payment.amount.toString()) / 1000000).toFixed(2)}jt - ${payment.status === 'verified' ? 'Terverifikasi' : 'Menunggu Verifikasi'}`,
+            description: `${getPaymentMethodLabel(payment.payment_method)} - Rp ${(payment.amount / 1000000).toFixed(2)}jt - ${payment.status === 'verified' ? 'Terverifikasi' : 'Menunggu Verifikasi'}`,
             status: payment.status === 'verified' ? 'completed' : 'pending',
             icon: payment.status === 'verified' ? '✅' : '⏳',
         })),
@@ -177,52 +202,24 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
     ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-[#FFF8F0] via-[#F5F1E8] to-[#FFE4E6]">
-            {/* Header */}
-            <header className="bg-white/95 shadow-lg backdrop-blur-md">
-                <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between">
-                        <Link href="/" className="group flex items-center space-x-3">
-                            <div className="relative h-12 w-12 rounded-full bg-gradient-to-br from-[#D4AF37] via-[#F4D03F] to-[#EC4899] p-0.5 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-12">
-                                <div className="flex h-full w-full items-center justify-center rounded-full bg-white">
-                                    <span className="font-serif text-2xl font-bold text-[#D4AF37]">D</span>
-                                </div>
-                            </div>
-                            <span className="font-serif text-2xl font-bold text-gray-900">Wedding Organizer</span>
-                        </Link>
-
-                        <nav className="flex items-center space-x-6">
-                            <Link href="/" className="font-medium text-gray-700 hover:text-[#D4AF37]">
-                                Beranda
-                            </Link>
-                            <Link href="/packages" className="font-medium text-gray-700 hover:text-[#D4AF37]">
-                                Paket
-                            </Link>
-                            <Link href="/my-orders" className="font-medium text-gray-700 hover:text-[#D4AF37]">
-                                Pesanan Saya
-                            </Link>
-                        </nav>
-                    </div>
-                </div>
-            </header>
-
+        <PublicLayout active="orders" wrapperClassName="min-h-screen bg-[#F6F1EA] text-[#2A2420]">
             {/* Main Content */}
-            <main className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+            <main className="w-full px-4 py-8 font-sans sm:px-8 2xl:px-16">
                 {/* Back Button */}
                 <Link
                     href="/my-orders"
-                    className="mb-6 inline-flex items-center gap-2 text-gray-600 transition-colors hover:text-[#D4AF37]"
+                    className="mb-6 inline-flex items-center gap-2 text-[#7A5C44] transition-colors hover:text-[#5B4636]"
                 >
                     <span className="text-xl">←</span>
                     <span className="font-medium">Kembali ke Pesanan Saya</span>
                 </Link>
 
                 {/* Order Header */}
-                <div className="mb-8 overflow-hidden rounded-3xl bg-white p-8 shadow-xl">
+                <div className="mb-8 overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-8 shadow-[0_18px_45px_-35px_rgba(27,36,48,0.65)]">
                     <div className="flex flex-col gap-6 md:flex-row md:items-start md:justify-between">
                         <div>
-                            <h1 className="mb-2 font-serif text-4xl font-bold text-gray-900">{order.order_number}</h1>
-                            <p className="mb-4 text-lg text-gray-600">{order.event_name}</p>
+                            <h1 className="mb-2 font-serif text-4xl font-bold text-[#2A2420]">{order.order_number}</h1>
+                            <p className="mb-4 text-lg text-[#5B4A3C]">{order.event_name}</p>
                             <div className="flex flex-wrap gap-2">
                                 <span className={`rounded-full px-4 py-2 text-sm font-semibold ${getStatusColor(order.status)}`}>
                                     {getStatusLabel(order.status)}
@@ -233,16 +230,16 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                             </div>
                         </div>
                         <div className="text-right">
-                            <p className="text-sm text-gray-500">Total Biaya</p>
-                            <p className="mb-2 font-serif text-4xl font-bold text-[#D4AF37]">
+                            <p className="text-sm text-[#7A5C44]">Total Biaya</p>
+                            <p className="mb-2 font-serif text-4xl font-bold text-[#B08A56]">
                                 Rp {(order.final_price / 1000000).toFixed(1)}jt
                             </p>
-                            <p className="text-sm text-gray-600">
-                                Terbayar: <span className="font-semibold text-green-600">Rp {(totalPaid / 1000000).toFixed(2)}jt</span>
+                            <p className="text-sm text-[#5B4A3C]">
+                                Terbayar: <span className="font-semibold text-[#3F6A4A]">Rp {(totalPaid / 1000000).toFixed(2)}jt</span>
                             </p>
                             {remainingAmount > 0 && (
-                                <p className="text-sm text-gray-600">
-                                    Sisa: <span className="font-semibold text-orange-600">Rp {(remainingAmount / 1000000).toFixed(2)}jt</span>
+                                <p className="text-sm text-[#5B4A3C]">
+                                    Sisa: <span className="font-semibold text-[#8A4E3A]">Rp {(remainingAmount / 1000000).toFixed(2)}jt</span>
                                 </p>
                             )}
                         </div>
@@ -251,12 +248,12 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                     {/* Payment Progress Bar */}
                     <div className="mt-6">
                         <div className="mb-2 flex items-center justify-between">
-                            <span className="text-sm font-medium text-gray-700">Progress Pembayaran</span>
-                            <span className="text-sm font-semibold text-[#D4AF37]">{paymentProgress.toFixed(0)}%</span>
+                            <span className="text-sm font-medium text-[#5B4A3C]">Progress Pembayaran</span>
+                            <span className="text-sm font-semibold text-[#B08A56]">{paymentProgress.toFixed(0)}%</span>
                         </div>
-                        <div className="h-3 w-full overflow-hidden rounded-full bg-gray-200">
+                        <div className="h-3 w-full overflow-hidden rounded-full bg-[#E3D7C7]">
                             <div
-                                className="h-full rounded-full bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] transition-all duration-500"
+                                className="h-full rounded-full bg-gradient-to-r from-[#B08A56] to-[#7A5C44] transition-all duration-500"
                                 style={{ width: `${paymentProgress}%` }}
                             />
                         </div>
@@ -267,24 +264,24 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                     {/* Left Column - Main Info */}
                     <div className="space-y-8 lg:col-span-2">
                         {/* Event Details */}
-                        <div className="overflow-hidden rounded-3xl bg-white p-6 shadow-xl">
-                            <h2 className="mb-6 flex items-center gap-2 font-serif text-2xl font-bold text-gray-900">
+                        <div className="overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-6 shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
+                            <h2 className="mb-6 flex items-center gap-2 font-serif text-2xl font-bold text-[#2A2420]">
                                 <span className="text-3xl">🎊</span>
                                 Detail Event
                             </h2>
                             <div className="space-y-4">
                                 <div className="grid gap-4 md:grid-cols-2">
                                     <div>
-                                        <p className="mb-1 text-sm font-medium text-gray-500">Nama Event</p>
-                                        <p className="font-semibold text-gray-900">{order.event_name}</p>
+                                        <p className="mb-1 text-sm font-medium text-[#7A5C44]">Nama Event</p>
+                                        <p className="font-semibold text-[#2A2420]">{order.event_name}</p>
                                     </div>
                                     <div>
-                                        <p className="mb-1 text-sm font-medium text-gray-500">Jenis Event</p>
-                                        <p className="font-semibold text-gray-900">{order.event_type}</p>
+                                        <p className="mb-1 text-sm font-medium text-[#7A5C44]">Jenis Event</p>
+                                        <p className="font-semibold text-[#2A2420]">{order.event_type}</p>
                                     </div>
                                     <div>
-                                        <p className="mb-1 text-sm font-medium text-gray-500">Tanggal Event</p>
-                                        <p className="font-semibold text-gray-900">
+                                        <p className="mb-1 text-sm font-medium text-[#7A5C44]">Tanggal Event</p>
+                                        <p className="font-semibold text-[#2A2420]">
                                             {new Date(order.event_date).toLocaleDateString('id-ID', {
                                                 weekday: 'long',
                                                 year: 'numeric',
@@ -294,66 +291,66 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                                         </p>
                                     </div>
                                     <div>
-                                        <p className="mb-1 text-sm font-medium text-gray-500">Jumlah Tamu</p>
-                                        <p className="font-semibold text-gray-900">{order.guest_count} orang</p>
+                                        <p className="mb-1 text-sm font-medium text-[#7A5C44]">Jumlah Tamu</p>
+                                        <p className="font-semibold text-[#2A2420]">{order.guest_count} orang</p>
                                     </div>
                                     <div className="md:col-span-2">
-                                        <p className="mb-1 text-sm font-medium text-gray-500">Lokasi</p>
-                                        <p className="font-semibold text-gray-900">{order.event_location}</p>
-                                        <p className="text-sm text-gray-600">{order.event_address}</p>
+                                        <p className="mb-1 text-sm font-medium text-[#7A5C44]">Lokasi</p>
+                                        <p className="font-semibold text-[#2A2420]">{order.event_location}</p>
+                                        <p className="text-sm text-[#5B4A3C]">{order.event_address}</p>
                                     </div>
                                     <div className="md:col-span-2">
-                                        <p className="mb-1 text-sm font-medium text-gray-500">Tema</p>
-                                        <p className="font-semibold text-gray-900">{order.event_theme}</p>
+                                        <p className="mb-1 text-sm font-medium text-[#7A5C44]">Tema</p>
+                                        <p className="font-semibold text-[#2A2420]">{order.event_theme}</p>
                                     </div>
                                 </div>
 
                                 {order.package && (
-                                    <div className="mt-4 rounded-lg border-2 border-[#D4AF37]/20 bg-gradient-to-r from-[#D4AF37]/5 to-[#EC4899]/5 p-4">
-                                        <p className="mb-1 text-sm font-medium text-gray-500">Paket Dipilih</p>
-                                        <p className="mb-2 text-lg font-bold text-[#D4AF37]">{order.package.name}</p>
-                                        <p className="text-sm text-gray-600">{order.package.description}</p>
+                                    <div className="mt-4 rounded-lg border border-[#E7DCCB] bg-[#F8F1E8] p-4">
+                                        <p className="mb-1 text-sm font-medium text-[#7A5C44]">Paket Dipilih</p>
+                                        <p className="mb-2 text-lg font-bold text-[#B08A56]">{order.package.name}</p>
+                                        <p className="text-sm text-[#5B4A3C]">{order.package.description}</p>
                                     </div>
                                 )}
 
                                 {order.special_requests && (
-                                    <div className="rounded-lg bg-blue-50 p-4">
-                                        <p className="mb-1 text-sm font-medium text-blue-900">Permintaan Khusus</p>
-                                        <p className="text-sm text-blue-800">{order.special_requests}</p>
+                                    <div className="rounded-lg border border-[#E7DCCB] bg-[#F4EBDD] p-4">
+                                        <p className="mb-1 text-sm font-medium text-[#7A5C44]">Permintaan Khusus</p>
+                                        <p className="text-sm text-[#5B4A3C]">{order.special_requests}</p>
                                     </div>
                                 )}
 
                                 {order.notes && (
-                                    <div className="rounded-lg bg-gray-50 p-4">
-                                        <p className="mb-1 text-sm font-medium text-gray-900">Catatan</p>
-                                        <p className="text-sm text-gray-700">{order.notes}</p>
+                                    <div className="rounded-lg border border-[#E7DCCB] bg-[#F8F1E8] p-4">
+                                        <p className="mb-1 text-sm font-medium text-[#2A2420]">Catatan</p>
+                                        <p className="text-sm text-[#5B4A3C]">{order.notes}</p>
                                     </div>
                                 )}
                             </div>
                         </div>
 
                         {/* Timeline */}
-                        <div className="overflow-hidden rounded-3xl bg-white p-6 shadow-xl">
-                            <h2 className="mb-6 flex items-center gap-2 font-serif text-2xl font-bold text-gray-900">
+                        <div className="overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-6 shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
+                            <h2 className="mb-6 flex items-center gap-2 font-serif text-2xl font-bold text-[#2A2420]">
                                 <span className="text-3xl">⏱️</span>
                                 Timeline Pesanan
                             </h2>
                             <div className="relative space-y-6">
-                                {timeline.map((item, index) => (
-                                    <div key={index} className="relative flex gap-4">
+                                {timeline.map((item) => (
+                                    <div key={`timeline-${item.date}-${item.title}`} className="relative flex gap-4">
                                         {/* Timeline line */}
-                                        {index < timeline.length - 1 && (
-                                            <div className="absolute left-6 top-12 h-full w-0.5 bg-gray-200" />
+                                        {timeline.indexOf(item) < timeline.length - 1 && (
+                                            <div className="absolute left-6 top-12 h-full w-0.5 bg-[#E3D7C7]" />
                                         )}
 
                                         {/* Icon */}
                                         <div
                                             className={`relative z-10 flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full text-2xl ${
                                                 item.status === 'completed'
-                                                    ? 'bg-green-100'
+                                                    ? 'bg-[#E6F0E4]'
                                                     : item.status === 'pending'
-                                                      ? 'bg-yellow-100'
-                                                      : 'bg-blue-100'
+                                                      ? 'bg-[#F2E6D6]'
+                                                      : 'bg-[#E8EEF5]'
                                             }`}
                                         >
                                             {item.icon}
@@ -361,9 +358,9 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
 
                                         {/* Content */}
                                         <div className="flex-1 pb-6">
-                                            <p className="mb-1 font-semibold text-gray-900">{item.title}</p>
-                                            <p className="mb-2 text-sm text-gray-600">{item.description}</p>
-                                            <p className="text-xs text-gray-400">
+                                            <p className="mb-1 font-semibold text-[#2A2420]">{item.title}</p>
+                                            <p className="mb-2 text-sm text-[#5B4A3C]">{item.description}</p>
+                                            <p className="text-xs text-[#9A8773]">
                                                 {new Date(item.date).toLocaleDateString('id-ID', {
                                                     year: 'numeric',
                                                     month: 'long',
@@ -380,8 +377,8 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
 
                         {/* Rundown Event (if available) */}
                         {order.event && order.event.rundown_items && order.event.rundown_items.length > 0 && (
-                            <div className="overflow-hidden rounded-3xl bg-white p-6 shadow-xl">
-                                <h2 className="mb-6 flex items-center gap-2 font-serif text-2xl font-bold text-gray-900">
+                            <div className="overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-6 shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
+                                <h2 className="mb-6 flex items-center gap-2 font-serif text-2xl font-bold text-[#2A2420]">
                                     <span className="text-3xl">📋</span>
                                     Rundown Event
                                 </h2>
@@ -389,15 +386,15 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                                     {order.event.rundown_items
                                         .sort((a, b) => a.order - b.order)
                                         .map((item) => (
-                                            <div key={item.id} className="flex items-start gap-4 rounded-lg border-l-4 border-[#D4AF37] bg-gray-50 p-4">
+                                            <div key={item.id} className="flex items-start gap-4 rounded-lg border-l-4 border-[#B08A56] bg-[#F8F1E8] p-4">
                                                 <div className="flex-shrink-0">
-                                                    <p className="font-mono text-sm font-bold text-[#D4AF37]">{item.time}</p>
+                                                    <p className="font-mono text-sm font-bold text-[#B08A56]">{formatRundownTime(item.time)}</p>
                                                 </div>
                                                 <div className="flex-1">
-                                                    <p className="mb-1 font-semibold text-gray-900">{item.activity}</p>
-                                                    {item.description && <p className="mb-2 text-sm text-gray-600">{item.description}</p>}
+                                                    <p className="mb-1 font-semibold text-[#2A2420]">{item.activity}</p>
+                                                    {item.description && <p className="mb-2 text-sm text-[#5B4A3C]">{item.description}</p>}
                                                     {item.pic && (
-                                                        <p className="text-xs text-gray-500">
+                                                        <p className="text-xs text-[#8D7A67]">
                                                             PIC: <span className="font-medium">{item.pic}</span>
                                                         </p>
                                                     )}
@@ -406,17 +403,13 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                                                     <span
                                                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
                                                             item.status === 'completed'
-                                                                ? 'bg-green-100 text-green-800'
+                                                                ? 'bg-[#E6F0E4] text-[#3F6A4A]'
                                                                 : item.status === 'in_progress'
-                                                                  ? 'bg-blue-100 text-blue-800'
-                                                                  : 'bg-gray-100 text-gray-800'
+                                                                  ? 'bg-[#E8EEF5] text-[#1B2430]'
+                                                                  : 'bg-[#F2E6D6] text-[#7A5C44]'
                                                         }`}
                                                     >
-                                                        {item.status === 'completed'
-                                                            ? 'Selesai'
-                                                            : item.status === 'in_progress'
-                                                              ? 'Berlangsung'
-                                                              : 'Belum'}
+                                                        {getRundownStatusLabel(item.status)}
                                                     </span>
                                                 </div>
                                             </div>
@@ -427,32 +420,32 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
 
                         {/* Item Details */}
                         {order.order_details && order.order_details.length > 0 && (
-                            <div className="overflow-hidden rounded-3xl bg-white p-6 shadow-xl">
-                                <h2 className="mb-6 flex items-center gap-2 font-serif text-2xl font-bold text-gray-900">
+                            <div className="overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-6 shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
+                                <h2 className="mb-6 flex items-center gap-2 font-serif text-2xl font-bold text-[#2A2420]">
                                     <span className="text-3xl">📦</span>
                                     Detail Item Pesanan
                                 </h2>
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
                                         <thead>
-                                            <tr className="border-b-2 border-gray-200">
-                                                <th className="pb-3 text-left text-sm font-semibold text-gray-700">Item</th>
-                                                <th className="pb-3 text-left text-sm font-semibold text-gray-700">Jenis</th>
-                                                <th className="pb-3 text-center text-sm font-semibold text-gray-700">Qty</th>
-                                                <th className="pb-3 text-right text-sm font-semibold text-gray-700">Harga</th>
-                                                <th className="pb-3 text-right text-sm font-semibold text-gray-700">Subtotal</th>
+                                            <tr className="border-b-2 border-[#E3D7C7]">
+                                                <th className="pb-3 text-left text-sm font-semibold text-[#7A5C44]">Item</th>
+                                                <th className="pb-3 text-left text-sm font-semibold text-[#7A5C44]">Jenis</th>
+                                                <th className="pb-3 text-center text-sm font-semibold text-[#7A5C44]">Qty</th>
+                                                <th className="pb-3 text-right text-sm font-semibold text-[#7A5C44]">Harga</th>
+                                                <th className="pb-3 text-right text-sm font-semibold text-[#7A5C44]">Subtotal</th>
                                             </tr>
                                         </thead>
-                                        <tbody className="divide-y divide-gray-100">
+                                        <tbody className="divide-y divide-[#EFE4D6]">
                                             {order.order_details.map((item) => (
                                                 <tr key={item.id}>
-                                                    <td className="py-3 text-sm text-gray-900">{item.item_name}</td>
-                                                    <td className="py-3 text-sm text-gray-600">{item.item_type}</td>
-                                                    <td className="py-3 text-center text-sm text-gray-900">{item.quantity}</td>
-                                                    <td className="py-3 text-right text-sm text-gray-900">
+                                                    <td className="py-3 text-sm text-[#2A2420]">{item.item_name}</td>
+                                                    <td className="py-3 text-sm text-[#5B4A3C]">{item.item_type}</td>
+                                                    <td className="py-3 text-center text-sm text-[#2A2420]">{item.quantity}</td>
+                                                    <td className="py-3 text-right text-sm text-[#2A2420]">
                                                         Rp {(item.price / 1000).toFixed(0)}k
                                                     </td>
-                                                    <td className="py-3 text-right text-sm font-semibold text-gray-900">
+                                                    <td className="py-3 text-right text-sm font-semibold text-[#2A2420]">
                                                         Rp {(item.subtotal / 1000).toFixed(0)}k
                                                     </td>
                                                 </tr>
@@ -467,8 +460,8 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                     {/* Right Column - Payment & Contact */}
                     <div className="space-y-8">
                         {/* Payment History */}
-                        <div className="overflow-hidden rounded-3xl bg-white p-6 shadow-xl">
-                            <h2 className="mb-6 flex items-center gap-2 font-serif text-2xl font-bold text-gray-900">
+                        <div className="overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-6 shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
+                            <h2 className="mb-6 flex items-center gap-2 font-serif text-2xl font-bold text-[#2A2420]">
                                 <span className="text-3xl">💳</span>
                                 Riwayat Pembayaran
                             </h2>
@@ -481,20 +474,20 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                                                 key={payment.id}
                                                 className={`rounded-lg border-2 p-4 ${
                                                     payment.status === 'verified'
-                                                        ? 'border-green-200 bg-green-50'
+                                                        ? 'border-[#D7E8D4] bg-[#F1F7EF]'
                                                         : payment.status === 'pending'
-                                                          ? 'border-yellow-200 bg-yellow-50'
-                                                          : 'border-red-200 bg-red-50'
+                                                          ? 'border-[#E9DCCB] bg-[#F8F1E8]'
+                                                          : 'border-[#F0DAD2] bg-[#F7ECE7]'
                                                 }`}
                                             >
                                                 <div className="mb-2 flex items-center justify-between">
                                                     <span
                                                         className={`rounded-full px-3 py-1 text-xs font-semibold ${
                                                             payment.status === 'verified'
-                                                                ? 'bg-green-100 text-green-800'
+                                                                ? 'bg-[#E6F0E4] text-[#3F6A4A]'
                                                                 : payment.status === 'pending'
-                                                                  ? 'bg-yellow-100 text-yellow-800'
-                                                                  : 'bg-red-100 text-red-800'
+                                                                  ? 'bg-[#F2E6D6] text-[#7A5C44]'
+                                                                  : 'bg-[#F3E7E2] text-[#8A4E3A]'
                                                         }`}
                                                     >
                                                         {payment.status === 'verified'
@@ -504,12 +497,12 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                                                               : '✗ Ditolak'}
                                                     </span>
                                                 </div>
-                                                <p className="mb-1 text-lg font-bold text-gray-900">
-                                                    Rp {(parseFloat(payment.amount.toString()) / 1000000).toFixed(2)}jt
+                                                <p className="mb-1 text-lg font-bold text-[#2A2420]">
+                                                    Rp {(payment.amount / 1000000).toFixed(2)}jt
                                                 </p>
-                                                <p className="mb-1 text-sm text-gray-600">{getPaymentTypeLabel(payment.payment_type)}</p>
-                                                <p className="mb-2 text-sm text-gray-600">{getPaymentMethodLabel(payment.payment_method)}</p>
-                                                <p className="text-xs text-gray-400">
+                                                <p className="mb-1 text-sm text-[#5B4A3C]">{getPaymentTypeLabel(payment.payment_type)}</p>
+                                                <p className="mb-2 text-sm text-[#5B4A3C]">{getPaymentMethodLabel(payment.payment_method)}</p>
+                                                <p className="text-xs text-[#9A8773]">
                                                     Tanggal Upload: {new Date(payment.created_at).toLocaleDateString('id-ID', {
                                                         year: 'numeric',
                                                         month: 'long',
@@ -520,12 +513,12 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                                                 </p>
                                                 {payment.proof_url && (
                                                     <div className="mt-3">
-                                                        <p className="mb-1 text-xs font-semibold text-gray-600">Bukti Pembayaran</p>
+                                                        <p className="mb-1 text-xs font-semibold text-[#7A5C44]">Bukti Pembayaran</p>
                                                         <a
                                                             href={payment.proof_url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="block overflow-hidden rounded-lg border-2 border-gray-200 transition-all hover:border-[#D4AF37]"
+                                                            className="block overflow-hidden rounded-lg border-2 border-[#E7DCCB] transition-all hover:border-[#7A5C44]"
                                                         >
                                                             <img
                                                                 src={payment.proof_url}
@@ -538,92 +531,99 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                                                                 }}
                                                             />
                                                         </a>
-                                                        <p className="mt-1 text-xs text-gray-500">Klik untuk memperbesar</p>
+                                                        <p className="mt-1 text-xs text-[#9A8773]">Klik untuk memperbesar</p>
                                                     </div>
                                                 )}
                                                 {payment.notes && (
-                                                    <p className="mt-2 text-xs italic text-gray-500">Catatan Admin: {payment.notes}</p>
+                                                    <p className="mt-2 text-xs italic text-[#9A8773]">Catatan Admin: {payment.notes}</p>
                                                 )}
                                             </div>
                                         ))}
                                 </div>
                             ) : (
-                                <div className="rounded-lg bg-gray-50 p-6 text-center">
+                                <div className="rounded-lg border border-[#E7DCCB] bg-[#F8F1E8] p-6 text-center">
                                     <p className="text-3xl">💰</p>
-                                    <p className="mt-2 text-sm text-gray-600">Belum ada pembayaran</p>
+                                    <p className="mt-2 text-sm text-[#5B4A3C]">Belum ada pembayaran</p>
                                 </div>
                             )}
                         </div>
 
                         {/* Contact Section */}
-                        <div className="overflow-hidden rounded-3xl bg-gradient-to-br from-[#D4AF37] to-[#EC4899] p-6 shadow-xl">
-                            <h2 className="mb-4 flex items-center gap-2 font-serif text-2xl font-bold text-white">
+                        <div className="overflow-hidden rounded-3xl bg-[#1B2430] p-6 shadow-xl">
+                            <h2 className="mb-4 flex items-center gap-2 font-serif text-2xl font-bold text-[#F6F1EA]">
                                 <span className="text-3xl">📞</span>
                                 Butuh Bantuan?
                             </h2>
-                            <p className="mb-6 text-white/90">Tim kami siap membantu Anda 24/7</p>
+                            <p className="mb-6 text-[#C8B8A3]">Tim kami siap membantu Anda 24/7</p>
                             <a
-                                href={`https://wa.me/6281234567890?text=Halo, saya ingin menanyakan tentang pesanan ${order.order_number}`}
+                                href={`https://wa.me/${import.meta.env.VITE_WHATSAPP_NUMBER || '6281234567890'}?text=Halo, saya ingin menanyakan tentang pesanan ${order.order_number}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="flex w-full items-center justify-center gap-2 rounded-full bg-white px-6 py-3 font-bold text-[#D4AF37] shadow-lg transition-all hover:scale-105"
+                                className="flex w-full items-center justify-center gap-2 rounded-full bg-[#F6F1EA] px-6 py-3 font-bold text-[#7A5C44] shadow-lg transition-all hover:scale-105"
                             >
                                 <span className="text-xl">💬</span>
                                 Hubungi via WhatsApp
                             </a>
                         </div>
 
-                        {/* Quick Actions */}
-                        <div className="overflow-hidden rounded-3xl bg-white p-6 shadow-xl">
-                            <h2 className="mb-4 font-serif text-xl font-bold text-gray-900">Aksi Cepat</h2>
-                            <div className="space-y-3">
-                                {order.payment_status !== 'paid' && (
-                                    <button className="w-full rounded-lg bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] px-4 py-3 font-semibold text-white shadow-md transition-all hover:scale-105">
-                                        💰 Bayar Sekarang
-                                    </button>
-                                )}
-                                <button className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 font-semibold text-gray-700 transition-all hover:border-[#D4AF37] hover:bg-gray-50">
-                                    🖨️ Download Invoice
-                                </button>
-                                <button className="w-full rounded-lg border-2 border-gray-300 bg-white px-4 py-3 font-semibold text-gray-700 transition-all hover:border-[#D4AF37] hover:bg-gray-50">
-                                    📄 Download Kontrak
-                                </button>
+                        {showQuickActions && (
+                            <div className="overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-6 shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
+                                <h2 className="mb-4 font-serif text-xl font-bold text-[#2A2420]">Aksi Cepat</h2>
+                                <div className="space-y-3">
+                                    {order.payment_status !== 'paid' && (
+                                        <button className="w-full rounded-lg bg-gradient-to-r from-[#B08A56] to-[#7A5C44] px-4 py-3 font-semibold text-white shadow-md transition-all hover:scale-105">
+                                            💰 Bayar Sekarang
+                                        </button>
+                                    )}
+                                    <a
+                                        href={`/my-orders/${order.id}/invoice`}
+                                        className="w-full rounded-lg border-2 border-[#E7DCCB] bg-white px-4 py-3 text-center font-semibold text-[#5B4A3C] transition-all hover:border-[#B08A56] hover:bg-[#F8F1E8]"
+                                    >
+                                        🖨️ Download Invoice
+                                    </a>
+                                    <a
+                                        href={`/my-orders/${order.id}/contract`}
+                                        className="w-full rounded-lg border-2 border-[#E7DCCB] bg-white px-4 py-3 text-center font-semibold text-[#5B4A3C] transition-all hover:border-[#B08A56] hover:bg-[#F8F1E8]"
+                                    >
+                                        📄 Download Kontrak
+                                    </a>
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Event Progress (if event exists) */}
                         {order.event && (
-                            <div className="overflow-hidden rounded-3xl bg-white p-6 shadow-xl">
-                                <h2 className="mb-4 flex items-center gap-2 font-serif text-xl font-bold text-gray-900">
+                            <div className="overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-6 shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
+                                <h2 className="mb-4 flex items-center gap-2 font-serif text-xl font-bold text-[#2A2420]">
                                     <span className="text-2xl">🎯</span>
                                     Progress Event
                                 </h2>
                                 <div className="space-y-3">
                                     {order.event.task_assignments && order.event.task_assignments.length > 0 ? (
                                         order.event.task_assignments.map((task) => (
-                                            <div key={task.id} className="rounded-lg border border-gray-200 p-3">
+                                            <div key={task.id} className="rounded-lg border border-[#E7DCCB] p-3">
                                                 <div className="mb-2 flex items-start justify-between">
-                                                    <p className="font-semibold text-gray-900">{task.task_name}</p>
+                                                    <p className="font-semibold text-[#2A2420]">{task.task_name}</p>
                                                     <span
                                                         className={`rounded-full px-2 py-1 text-xs font-semibold ${
                                                             task.status === 'completed'
-                                                                ? 'bg-green-100 text-green-800'
+                                                                ? 'bg-[#E6F0E4] text-[#3F6A4A]'
                                                                 : task.status === 'in_progress'
-                                                                  ? 'bg-blue-100 text-blue-800'
-                                                                  : 'bg-gray-100 text-gray-800'
+                                                                  ? 'bg-[#E8EEF5] text-[#1B2430]'
+                                                                  : 'bg-[#F2E6D6] text-[#7A5C44]'
                                                         }`}
                                                     >
-                                                        {task.status === 'completed' ? '✓' : task.status === 'in_progress' ? '⋯' : '○'}
+                                                        {getTaskStatusLabel(task.status)}
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-gray-600">{task.task_description}</p>
+                                                <p className="text-xs text-[#5B4A3C]">{task.task_description}</p>
                                                 {task.assigned_to && (
-                                                    <p className="mt-1 text-xs text-gray-500">PIC: {task.assigned_to}</p>
+                                                    <p className="mt-1 text-xs text-[#8D7A67]">PIC: {task.assigned_to}</p>
                                                 )}
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-center text-sm text-gray-500">Progress akan diupdate segera</p>
+                                        <p className="text-center text-sm text-[#8D7A67]">Progress akan diupdate segera</p>
                                     )}
                                 </div>
                             </div>
@@ -631,7 +631,8 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                     </div>
                 </div>
             </main>
-        </div>
+
+        </PublicLayout>
     );
 };
 

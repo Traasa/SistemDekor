@@ -5,16 +5,18 @@ import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-reac
 
 interface Event {
     id: number;
-    event_code: string;
-    event_name: string;
-    event_type: string;
-    event_type_label: string;
-    event_date: string;
-    start_time: string;
-    end_time: string;
-    venue: string;
-    status: string;
-    status_label: string;
+    source?: 'order' | 'mini';
+    title: string;
+    type: string;
+    start: string;
+    note?: string | null;
+    venue?: string | null;
+    start_time?: string;
+    end_time?: string;
+    client?: string;
+    status?: string;
+    event_code?: string;
+    mini_order_id?: number;
 }
 
 export default function CalendarPage() {
@@ -54,7 +56,7 @@ export default function CalendarPage() {
 
     const getEventsForDate = (day: number) => {
         const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-        return events.filter(event => event.event_date === dateStr);
+        return events.filter(event => event.start === dateStr);
     };
 
     const navigateMonth = (direction: 'prev' | 'next') => {
@@ -173,14 +175,15 @@ export default function CalendarPage() {
                                                 <button
                                                     key={event.id}
                                                     onClick={() => setSelectedEvent(event)}
-                                                    className={`w-full text-left px-2 py-1 rounded text-xs text-white hover:opacity-80 ${getEventTypeColor(event.event_type)}`}
+                                                    className={`w-full text-left px-2 py-1 rounded text-xs text-white hover:opacity-80 ${getEventTypeColor(event.type)}`}
                                                 >
                                                     <div className="font-medium truncate">
-                                                        {event.event_name}
+                                                        {event.title}
                                                     </div>
                                                     <div className="text-[10px] opacity-90">
-                                                        {event.start_time?.substring(0, 5)}
+                                                        {(event.start_time || '').substring(0, 5)}
                                                     </div>
+                                                    {event.note && <div className="text-[10px] opacity-80 truncate">{event.note}</div>}
                                                 </button>
                                             ))}
                                         </div>
@@ -223,7 +226,7 @@ export default function CalendarPage() {
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                         <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
                             <h3 className="text-xl font-bold text-gray-900 mb-4">
-                                {selectedEvent.event_name}
+                                {selectedEvent.title}
                             </h3>
 
                             <div className="space-y-3 mb-6">
@@ -235,14 +238,14 @@ export default function CalendarPage() {
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-sm text-gray-500">Jenis:</span>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEventTypeColor(selectedEvent.event_type)} text-white`}>
-                                        {selectedEvent.event_type_label}
+                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${getEventTypeColor(selectedEvent.type)} text-white`}>
+                                        {selectedEvent.type}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-sm text-gray-500">Tanggal:</span>
                                     <span className="text-sm font-medium text-gray-900">
-                                        {new Date(selectedEvent.event_date).toLocaleDateString('id-ID', {
+                                        {new Date(selectedEvent.start).toLocaleDateString('id-ID', {
                                             weekday: 'long',
                                             year: 'numeric',
                                             month: 'long',
@@ -253,30 +256,43 @@ export default function CalendarPage() {
                                 <div className="flex justify-between">
                                     <span className="text-sm text-gray-500">Waktu:</span>
                                     <span className="text-sm font-medium text-gray-900">
-                                        {selectedEvent.start_time} - {selectedEvent.end_time}
+                                        {selectedEvent.start_time || '-'} - {selectedEvent.end_time || '-'}
                                     </span>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-sm text-gray-500">Lokasi:</span>
                                     <span className="text-sm font-medium text-gray-900">
-                                        {selectedEvent.venue}
+                                        {selectedEvent.venue || '-'}
                                     </span>
+                                </div>
+                                <div>
+                                    <span className="text-sm text-gray-500">Catatan Event:</span>
+                                    <p className="mt-1 rounded bg-gray-50 p-2 text-sm text-gray-900">{selectedEvent.note || '-'}</p>
                                 </div>
                                 <div className="flex justify-between">
                                     <span className="text-sm text-gray-500">Status:</span>
                                     <span className="text-sm font-medium text-gray-900">
-                                        {selectedEvent.status_label}
+                                        {selectedEvent.status || '-'}
                                     </span>
                                 </div>
                             </div>
 
                             <div className="flex gap-3">
-                                <a
-                                    href={`/admin/events/${selectedEvent.id}/rundown`}
-                                    className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 text-center"
-                                >
-                                    Lihat Rundown
-                                </a>
+                                {selectedEvent.source === 'mini' ? (
+                                    <a
+                                        href={`/admin/mini-orders/${selectedEvent.mini_order_id ?? selectedEvent.id}`}
+                                        className="flex-1 px-4 py-2 text-sm font-medium text-white bg-slate-900 rounded-lg hover:bg-slate-700 text-center"
+                                    >
+                                        Buka Mini Order
+                                    </a>
+                                ) : (
+                                    <a
+                                        href={`/admin/events/${selectedEvent.id}/rundown`}
+                                        className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700 text-center"
+                                    >
+                                        Lihat Rundown
+                                    </a>
+                                )}
                                 <button
                                     onClick={() => setSelectedEvent(null)}
                                     className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"

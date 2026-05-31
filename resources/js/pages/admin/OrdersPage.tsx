@@ -262,15 +262,15 @@ const OrdersPage: React.FC = () => {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-3xl font-bold text-gray-900">Transaksi & Order Management</h1>
-                        <p className="mt-1 text-sm text-gray-600">Kelola order, pembayaran, dan invoice dalam satu tempat</p>
+                        <h1 className="text-3xl font-bold text-gray-900">Wedding Order Management</h1>
+                        <p className="mt-1 text-sm text-gray-600">Kelola wedding order, pembayaran, dan invoice dalam satu tempat</p>
                     </div>
                     <button
                         onClick={() => router.visit('/admin/orders/create')}
                         className="flex items-center space-x-2 rounded-lg bg-pink-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-pink-600"
                     >
                         <span>➕</span>
-                        <span>Buat Order Baru</span>
+                        <span>Buat Wedding Order Baru</span>
                     </button>
                 </div>
 
@@ -287,7 +287,7 @@ const OrdersPage: React.FC = () => {
                             activeTab === 'orders' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
                         }`}
                     >
-                        📋 Semua Order
+                        📋 Wedding Order
                     </button>
                     <button
                         onClick={() => {

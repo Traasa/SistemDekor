@@ -7,9 +7,9 @@ export const theme = {
             darkGold: '#B8941F',
         },
         secondary: {
-            pink: '#EC4899',
-            lightPink: '#F9A8D4',
-            darkPink: '#BE185D',
+            cocoa: '#8A6A4F',
+            lightCocoa: '#C2A48A',
+            darkCocoa: '#5E4533',
         },
         neutral: {
             cream: '#FFF8F0',
@@ -30,9 +30,9 @@ export const theme = {
     },
     gradients: {
         primary: 'linear-gradient(135deg, #D4AF37 0%, #F4D03F 100%)',
-        secondary: 'linear-gradient(135deg, #EC4899 0%, #D4AF37 100%)',
+        secondary: 'linear-gradient(135deg, #D4AF37 0%, #8A6A4F 100%)',
         hero: 'linear-gradient(135deg, #1A1A1A 0%, #2D2D2D 50%, #1A1A1A 100%)',
-        background: 'linear-gradient(135deg, #FFF8F0 0%, #F5F1E8 50%, #FFE4E6 100%)',
+        background: 'linear-gradient(135deg, #FFF8F0 0%, #F5F1E8 50%, #EADBC8 100%)',
         card: 'linear-gradient(145deg, rgba(255,255,255,0.9) 0%, rgba(255,248,240,0.8) 100%)',
     },
     shadows: {
@@ -58,7 +58,7 @@ export const images = {
         decoration: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=800&q=80',
         catering: 'https://images.unsplash.com/photo-1555244162-803834f70033?w=800&q=80',
         photography: 'https://images.unsplash.com/photo-1606216794074-735e91aa2c92?w=800&q=80',
-        venue: '/1.mp4',
+        venue: 'https://images.unsplash.com/photo-1519741497674-611481863552?w=800&q=80',
         planning: 'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?w=800&q=80',
         entertainment: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&q=80',
     },

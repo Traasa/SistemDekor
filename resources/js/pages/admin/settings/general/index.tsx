@@ -10,9 +10,14 @@ interface CompanyProfile {
     email: string;
     phone: string;
     address: string;
+    website: string;
     description: string;
     logo: string | null;
     favicon: string | null;
+    hero_image: string | null;
+    hero_side_image: string | null;
+    about_gallery_images: string[];
+    portfolio_highlight_images: string[];
     social_media: {
         facebook: string;
         instagram: string;
@@ -29,9 +34,14 @@ export default function GeneralSettingsPage() {
         email: '',
         phone: '',
         address: '',
+        website: '',
         description: '',
         logo: null,
         favicon: null,
+        hero_image: null,
+        hero_side_image: null,
+        about_gallery_images: [],
+        portfolio_highlight_images: [],
         social_media: {
             facebook: '',
             instagram: '',
@@ -41,7 +51,63 @@ export default function GeneralSettingsPage() {
     });
     const [logoPreview, setLogoPreview] = useState<string | null>(null);
     const [faviconPreview, setFaviconPreview] = useState<string | null>(null);
+    const [heroPreview, setHeroPreview] = useState<string | null>(null);
+    const [heroSidePreview, setHeroSidePreview] = useState<string | null>(null);
+    const [aboutGalleryPreviews, setAboutGalleryPreviews] = useState<string[]>([]);
+    const [portfolioPreviews, setPortfolioPreviews] = useState<string[]>([]);
     const [errors, setErrors] = useState<any>({});
+
+    const normalizeStringArray = (value: unknown): string[] => {
+        if (Array.isArray(value)) {
+            return value.map((item) => String(item)).filter(Boolean);
+        }
+
+        if (typeof value === 'string') {
+            const trimmed = value.trim();
+            if (!trimmed) return [];
+
+            try {
+                const parsed = JSON.parse(trimmed);
+                if (Array.isArray(parsed)) {
+                    return parsed.map((item) => String(item)).filter(Boolean);
+                }
+            } catch {
+                return [];
+            }
+        }
+
+        return [];
+    };
+
+    const normalizeSettings = (data: Partial<CompanyProfile>): CompanyProfile => {
+        const social = data.social_media || {
+            facebook: '',
+            instagram: '',
+            twitter: '',
+            whatsapp: '',
+        };
+
+        return {
+            company_name: data.company_name || '',
+            email: data.email || '',
+            phone: data.phone || '',
+            address: data.address || '',
+            website: data.website || '',
+            description: data.description || '',
+            logo: data.logo ?? null,
+            favicon: data.favicon ?? null,
+            hero_image: data.hero_image ?? null,
+            hero_side_image: data.hero_side_image ?? null,
+            about_gallery_images: normalizeStringArray(data.about_gallery_images),
+            portfolio_highlight_images: normalizeStringArray(data.portfolio_highlight_images),
+            social_media: {
+                facebook: social.facebook || '',
+                instagram: social.instagram || '',
+                twitter: social.twitter || '',
+                whatsapp: social.whatsapp || '',
+            },
+        };
+    };
 
     useEffect(() => {
         fetchSettings();
@@ -51,13 +117,25 @@ export default function GeneralSettingsPage() {
         try {
             setLoading(true);
             const response = await axios.get('/api/settings-general');
-            setSettings(response.data);
+            setSettings(normalizeSettings(response.data));
             if (response.data.logo) {
                 setLogoPreview(`/storage/${response.data.logo}`);
             }
             if (response.data.favicon) {
                 setFaviconPreview(`/storage/${response.data.favicon}`);
             }
+            if (response.data.hero_image) {
+                setHeroPreview(`/storage/${response.data.hero_image}`);
+            }
+            if (response.data.hero_side_image) {
+                setHeroSidePreview(`/storage/${response.data.hero_side_image}`);
+            }
+            setAboutGalleryPreviews(
+                normalizeStringArray(response.data.about_gallery_images).map((path) => `/storage/${path}`),
+            );
+            setPortfolioPreviews(
+                normalizeStringArray(response.data.portfolio_highlight_images).map((path) => `/storage/${path}`),
+            );
         } catch (error) {
             console.error('Error fetching settings:', error);
         } finally {
@@ -87,6 +165,60 @@ export default function GeneralSettingsPage() {
         }
     };
 
+    const handleHeroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setHeroPreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleHeroSideChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setHeroSidePreview(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleAboutGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+            Promise.all(
+                files.map(
+                    (file) =>
+                        new Promise<string>((resolve) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result as string);
+                            reader.readAsDataURL(file);
+                        }),
+                ),
+            ).then((previews) => setAboutGalleryPreviews(previews));
+        }
+    };
+
+    const handlePortfolioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const files = Array.from(e.target.files || []);
+        if (files.length > 0) {
+            Promise.all(
+                files.map(
+                    (file) =>
+                        new Promise<string>((resolve) => {
+                            const reader = new FileReader();
+                            reader.onloadend = () => resolve(reader.result as string);
+                            reader.readAsDataURL(file);
+                        }),
+                ),
+            ).then((previews) => setPortfolioPreviews(previews));
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
@@ -98,8 +230,13 @@ export default function GeneralSettingsPage() {
             formData.append('email', settings.email);
             formData.append('phone', settings.phone);
             formData.append('address', settings.address);
-            formData.append('description', settings.description);
-            formData.append('social_media', JSON.stringify(settings.social_media));
+            formData.append('website', settings.website || '');
+            formData.append('description', settings.description || '');
+            const socialMedia = settings.social_media || { facebook: '', instagram: '', twitter: '', whatsapp: '' };
+            formData.append('social_media[facebook]', socialMedia.facebook || '');
+            formData.append('social_media[instagram]', socialMedia.instagram || '');
+            formData.append('social_media[twitter]', socialMedia.twitter || '');
+            formData.append('social_media[whatsapp]', socialMedia.whatsapp || '');
 
             const logoInput = document.getElementById('logo') as HTMLInputElement;
             if (logoInput?.files?.[0]) {
@@ -109,6 +246,30 @@ export default function GeneralSettingsPage() {
             const faviconInput = document.getElementById('favicon') as HTMLInputElement;
             if (faviconInput?.files?.[0]) {
                 formData.append('favicon', faviconInput.files[0]);
+            }
+
+            const heroInput = document.getElementById('hero_image') as HTMLInputElement;
+            if (heroInput?.files?.[0]) {
+                formData.append('hero_image', heroInput.files[0]);
+            }
+
+            const heroSideInput = document.getElementById('hero_side_image') as HTMLInputElement;
+            if (heroSideInput?.files?.[0]) {
+                formData.append('hero_side_image', heroSideInput.files[0]);
+            }
+
+            const aboutGalleryInput = document.getElementById('about_gallery_images') as HTMLInputElement;
+            if (aboutGalleryInput?.files?.length) {
+                Array.from(aboutGalleryInput.files).forEach((file) => {
+                    formData.append('about_gallery_images[]', file);
+                });
+            }
+
+            const portfolioInput = document.getElementById('portfolio_highlight_images') as HTMLInputElement;
+            if (portfolioInput?.files?.length) {
+                Array.from(portfolioInput.files).forEach((file) => {
+                    formData.append('portfolio_highlight_images[]', file);
+                });
             }
 
             const response = await axios.post('/api/settings-general', formData, {
@@ -223,6 +384,22 @@ export default function GeneralSettingsPage() {
                                 </div>
                             </div>
 
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Website
+                                </label>
+                                <div className="relative">
+                                    <Globe className="absolute left-3 top-2.5 w-5 h-5 text-gray-400" />
+                                    <input
+                                        type="url"
+                                        value={settings.website}
+                                        onChange={(e) => setSettings({ ...settings, website: e.target.value })}
+                                        className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                        placeholder="https://www.example.com"
+                                    />
+                                </div>
+                            </div>
+
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700 mb-1">
                                     Deskripsi Perusahaan
@@ -283,6 +460,105 @@ export default function GeneralSettingsPage() {
                                 />
                                 {errors.favicon && (
                                     <p className="text-red-500 text-sm mt-1">{errors.favicon[0]}</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Homepage Images */}
+                    <div className="bg-white rounded-lg shadow p-6">
+                        <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                            <ImageIcon className="w-5 h-5 text-blue-600" />
+                            Gambar Homepage
+                        </h2>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Hero Utama (Max 4MB)
+                                </label>
+                                {heroPreview && (
+                                    <div className="mb-3 overflow-hidden rounded-lg border border-gray-200">
+                                        <img src={heroPreview} alt="Hero" className="h-36 w-full object-cover" />
+                                    </div>
+                                )}
+                                <input
+                                    type="file"
+                                    id="hero_image"
+                                    accept="image/*"
+                                    onChange={handleHeroChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                />
+                                {errors.hero_image && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.hero_image[0]}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Hero Side (Max 4MB)
+                                </label>
+                                {heroSidePreview && (
+                                    <div className="mb-3 overflow-hidden rounded-lg border border-gray-200">
+                                        <img src={heroSidePreview} alt="Hero side" className="h-36 w-full object-cover" />
+                                    </div>
+                                )}
+                                <input
+                                    type="file"
+                                    id="hero_side_image"
+                                    accept="image/*"
+                                    onChange={handleHeroSideChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                />
+                                {errors.hero_side_image && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.hero_side_image[0]}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Gallery Kecil (2 Foto)
+                                </label>
+                                {aboutGalleryPreviews.length > 0 && (
+                                    <div className="mb-3 grid grid-cols-2 gap-2">
+                                        {aboutGalleryPreviews.slice(0, 2).map((src, idx) => (
+                                            <img key={idx} src={src} alt={`Gallery ${idx + 1}`} className="h-24 w-full rounded-lg object-cover" />
+                                        ))}
+                                    </div>
+                                )}
+                                <input
+                                    type="file"
+                                    id="about_gallery_images"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handleAboutGalleryChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                />
+                                {errors.about_gallery_images && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.about_gallery_images[0]}</p>
+                                )}
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    Portfolio Highlight (4 Foto)
+                                </label>
+                                {portfolioPreviews.length > 0 && (
+                                    <div className="mb-3 grid grid-cols-2 gap-2">
+                                        {portfolioPreviews.slice(0, 4).map((src, idx) => (
+                                            <img key={idx} src={src} alt={`Portfolio ${idx + 1}`} className="h-24 w-full rounded-lg object-cover" />
+                                        ))}
+                                    </div>
+                                )}
+                                <input
+                                    type="file"
+                                    id="portfolio_highlight_images"
+                                    accept="image/*"
+                                    multiple
+                                    onChange={handlePortfolioChange}
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                                />
+                                {errors.portfolio_highlight_images && (
+                                    <p className="text-red-500 text-sm mt-1">{errors.portfolio_highlight_images[0]}</p>
                                 )}
                             </div>
                         </div>

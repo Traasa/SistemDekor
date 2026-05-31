@@ -4,7 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\Client;
+use App\Services\EventScheduleService;
+use App\Services\SystemNotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -72,7 +73,16 @@ class OrderController extends Controller
             'package_id' => 'nullable|exists:packages,id',
             'event_name' => 'required|string|max:255',
             'event_type' => 'required|string|max:100',
-            'event_date' => 'required|date|after:today',
+            'event_date' => [
+                'required',
+                'date',
+                'after:today',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (EventScheduleService::isDateFullyBooked((string) $value)) {
+                        $fail('Tanggal acara sudah penuh (maksimal 3 event terkonfirmasi per hari).');
+                    }
+                },
+            ],
             'event_address' => 'required|string',
             'event_location' => 'nullable|string|max:255',
             'event_theme' => 'nullable|string|max:255',
@@ -96,7 +106,7 @@ class OrderController extends Controller
             
             if ($request->package_id) {
                 $package = \App\Models\Package::findOrFail($request->package_id);
-                $totalPrice = $package->price ?? 0;
+                $totalPrice = $package->base_price ?? 0;
                 $finalPrice = $totalPrice;
             }
             
@@ -126,6 +136,8 @@ class OrderController extends Controller
             ]);
 
             $order->load(['client', 'package']);
+
+            SystemNotificationService::orderCreated($order, 'admin panel');
 
             return response()->json([
                 'success' => true,
@@ -191,6 +203,13 @@ class OrderController extends Controller
             ], 422);
         }
 
+        if ($request->filled('event_date') && EventScheduleService::isDateFullyBooked($request->event_date, $order->id)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tanggal acara sudah penuh (maksimal 3 event terkonfirmasi per hari).',
+            ], 422);
+        }
+
         $order->update($request->only([
             'event_date',
             'event_location',
@@ -235,8 +254,11 @@ class OrderController extends Controller
             ], 422);
         }
 
+        $previousStatus = $order->status;
         $order->status = $request->status;
         $order->save();
+
+        SystemNotificationService::orderStatusUpdated($order, $previousStatus);
 
         return response()->json([
             'success' => true,

@@ -1,7 +1,37 @@
 import { AdminLayout } from '../../../layouts/AdminLayout';
-import { useState, useEffect } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import axios from 'axios';
-import { Plus, Edit, Trash2, X } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Search } from 'lucide-react';
+
+type CategoryGroup = 'catering' | 'dekor' | 'makeup' | 'sound' | 'lainnya';
+
+interface InventoryItem {
+    id: number;
+    name: string;
+    unit: string;
+    quantity: number;
+    category?: {
+        id: number;
+        name: string;
+        category_group: CategoryGroup;
+    };
+}
+
+interface PackageInventoryItem {
+    id: number;
+    name: string;
+    unit: string;
+    quantity: number;
+    category?: {
+        id: number;
+        name: string;
+        category_group: CategoryGroup;
+    };
+    pivot?: {
+        quantity: number;
+        notes?: string | null;
+    };
+}
 
 interface Package {
     id: number;
@@ -11,97 +41,207 @@ interface Package {
     slug: string;
     image_url: string | null;
     is_active: boolean;
+    includes_venue?: boolean;
+    venue_id?: number | null;
+    venue_price?: number;
+    venue?: {
+        id: number;
+        name: string;
+        city?: string;
+    } | null;
+    inventory_items?: PackageInventoryItem[];
 }
+
+interface Venue {
+    id: number;
+    name: string;
+    city?: string;
+    is_active?: boolean;
+}
+
+interface SelectedItemForm {
+    inventory_item_id: number;
+    quantity: number;
+    notes: string;
+}
+
+const defaultForm = {
+    name: '',
+    description: '',
+    base_price: '',
+    includes_venue: false,
+    venue_id: '',
+    venue_price: '0',
+    slug: '',
+    image_url: '',
+    is_active: true,
+};
 
 export default function PackagesPage() {
     const [packages, setPackages] = useState<Package[]>([]);
+    const [venues, setVenues] = useState<Venue[]>([]);
+    const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [editingId, setEditingId] = useState<number | null>(null);
-    const [formData, setFormData] = useState({
-        name: '',
-        description: '',
-        base_price: '',
-        slug: '',
-        image_url: '',
-        is_active: true,
-    });
+    const [searchItem, setSearchItem] = useState('');
+    const [groupFilter, setGroupFilter] = useState<CategoryGroup | 'all'>('all');
+    const [selectedItems, setSelectedItems] = useState<SelectedItemForm[]>([]);
+
+    const [formData, setFormData] = useState(defaultForm);
 
     useEffect(() => {
-        fetchPackages();
+        fetchInitialData();
     }, []);
 
-    const fetchPackages = async () => {
+    const fetchInitialData = async () => {
         try {
-            const response = await axios.get('/api/packages');
-            setPackages(response.data.data);
+            setLoading(true);
+            const [packageResponse, inventoryResponse, venueResponse] = await Promise.all([
+                axios.get('/api/packages?admin=1'),
+                axios.get('/api/inventory-items'),
+                axios.get('/api/venues?is_active=1'),
+            ]);
+
+            setPackages(packageResponse.data.data || []);
+            setInventoryItems(inventoryResponse.data.data || []);
+            setVenues(venueResponse.data.data || []);
         } catch (error) {
-            console.error('Failed to fetch packages:', error);
+            console.error('Failed to fetch packages/inventory:', error);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const submitData = {
-                ...formData,
-                base_price: parseFloat(formData.base_price),
-            };
-
-            if (editingId) {
-                await axios.put(`/api/packages/${editingId}`, submitData);
-            } else {
-                await axios.post('/api/packages', submitData);
+    const filteredInventory = useMemo(() => {
+        return inventoryItems.filter((item) => {
+            if (groupFilter !== 'all' && item.category?.category_group !== groupFilter) {
+                return false;
             }
-            
-            setShowModal(false);
-            resetForm();
-            fetchPackages();
-            alert('Paket berhasil disimpan!');
-        } catch (error) {
-            console.error('Failed to save package:', error);
-            alert('Gagal menyimpan paket');
-        }
+            if (searchItem && !item.name.toLowerCase().includes(searchItem.toLowerCase())) {
+                return false;
+            }
+            return true;
+        });
+    }, [inventoryItems, groupFilter, searchItem]);
+
+    const openCreate = () => {
+        setEditingId(null);
+        setFormData(defaultForm);
+        setSelectedItems([]);
+        setSearchItem('');
+        setGroupFilter('all');
+        setShowModal(true);
     };
 
-    const handleEdit = (pkg: Package) => {
+    const openEdit = (pkg: Package) => {
         setEditingId(pkg.id);
         setFormData({
             name: pkg.name,
             description: pkg.description,
             base_price: pkg.base_price.toString(),
+            includes_venue: !!pkg.includes_venue,
+            venue_id: pkg.venue_id?.toString() || '',
+            venue_price: (pkg.venue_price || 0).toString(),
             slug: pkg.slug,
             image_url: pkg.image_url || '',
             is_active: pkg.is_active,
         });
+
+        const mappedItems = (pkg.inventory_items || []).map((item) => ({
+            inventory_item_id: item.id,
+            quantity: item.pivot?.quantity || 1,
+            notes: item.pivot?.notes || '',
+        }));
+
+        setSelectedItems(mappedItems);
+        setSearchItem('');
+        setGroupFilter('all');
         setShowModal(true);
+    };
+
+    const closeModal = () => {
+        setShowModal(false);
+        setEditingId(null);
+        setFormData(defaultForm);
+        setSelectedItems([]);
+    };
+
+    const toggleItem = (itemId: number) => {
+        const exists = selectedItems.find((item) => item.inventory_item_id === itemId);
+        if (exists) {
+            setSelectedItems((prev) => prev.filter((item) => item.inventory_item_id !== itemId));
+            return;
+        }
+        setSelectedItems((prev) => [...prev, { inventory_item_id: itemId, quantity: 1, notes: '' }]);
+    };
+
+    const updateSelectedItem = (itemId: number, field: 'quantity' | 'notes', value: string | number) => {
+        setSelectedItems((prev) =>
+            prev.map((item) => {
+                if (item.inventory_item_id !== itemId) return item;
+                return {
+                    ...item,
+                    [field]: field === 'quantity' ? Number(value) : value,
+                };
+            }),
+        );
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const payload = {
+                ...formData,
+                base_price: Number(formData.base_price),
+                includes_venue: !!formData.includes_venue,
+                venue_id: formData.includes_venue && formData.venue_id ? Number(formData.venue_id) : null,
+                venue_price: formData.includes_venue ? Number(formData.venue_price || 0) : 0,
+                inventory_items: selectedItems.map((item) => ({
+                    inventory_item_id: item.inventory_item_id,
+                    quantity: item.quantity,
+                    notes: item.notes || null,
+                })),
+            };
+
+            if (editingId) {
+                await axios.put(`/api/packages/${editingId}`, payload);
+            } else {
+                await axios.post('/api/packages', payload);
+            }
+
+            closeModal();
+            await fetchInitialData();
+            alert('Paket berhasil disimpan');
+        } catch (error: any) {
+            alert(error.response?.data?.message || 'Gagal menyimpan paket');
+        }
     };
 
     const handleDelete = async (id: number) => {
         if (!confirm('Yakin ingin menghapus paket ini?')) return;
-        
+
         try {
             await axios.delete(`/api/packages/${id}`);
-            fetchPackages();
-            alert('Paket berhasil dihapus');
+            fetchInitialData();
         } catch (error) {
-            console.error('Failed to delete package:', error);
             alert('Gagal menghapus paket');
         }
     };
 
-    const resetForm = () => {
-        setFormData({
-            name: '',
-            description: '',
-            base_price: '',
-            slug: '',
-            image_url: '',
-            is_active: true,
-        });
-        setEditingId(null);
+    const getGroupLabel = (group?: CategoryGroup) => {
+        switch (group) {
+            case 'catering':
+                return 'Catering';
+            case 'dekor':
+                return 'Dekor';
+            case 'makeup':
+                return 'Makeup';
+            case 'sound':
+                return 'Sound';
+            default:
+                return 'Lainnya';
+        }
     };
 
     return (
@@ -109,54 +249,53 @@ export default function PackagesPage() {
             <div className="p-6">
                 <div className="mb-6 flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Paket</h1>
-                        <p className="mt-1 text-sm text-gray-500">Kelola paket layanan yang ditawarkan</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Paket Wedding</h1>
+                        <p className="mt-1 text-sm text-gray-500">
+                            Kustomisasi item inventori per paket (khusus admin, tidak ditampilkan ke landing page).
+                        </p>
                     </div>
-                    <button
-                        onClick={() => setShowModal(true)}
-                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
-                    >
+                    <button onClick={openCreate} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">
                         <Plus className="h-5 w-5" />
                         Tambah Paket
                     </button>
                 </div>
 
                 {loading ? (
-                    <div className="text-center py-12">
-                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent"></div>
+                    <div className="py-12 text-center">
+                        <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-blue-600 border-r-transparent" />
                     </div>
                 ) : (
-                    <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
                         <table className="min-w-full divide-y divide-gray-200">
                             <thead className="bg-gray-50">
                                 <tr>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nama</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Harga Dasar</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Aksi</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Paket</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Harga Dasar</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Item Inventori</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Status</th>
+                                    <th className="px-6 py-3 text-left text-xs font-medium uppercase text-gray-500">Aksi</th>
                                 </tr>
                             </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
+                            <tbody className="divide-y divide-gray-200 bg-white">
                                 {packages.map((pkg) => (
                                     <tr key={pkg.id}>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm font-medium text-gray-900">{pkg.name}</div>
-                                            <div className="text-sm text-gray-500">{pkg.description.substring(0, 50)}...</div>
+                                        <td className="px-6 py-4">
+                                            <div className="text-sm font-semibold text-gray-900">{pkg.name}</div>
+                                            <div className="text-xs text-gray-500">{pkg.description.substring(0, 80)}...</div>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            Rp {pkg.base_price.toLocaleString('id-ID')}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className={`px-2 py-1 text-xs font-semibold rounded-full ${pkg.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                        <td className="px-6 py-4 text-sm text-gray-900">Rp {pkg.base_price.toLocaleString('id-ID')}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-700">{pkg.inventory_items?.length || 0} item</td>
+                                        <td className="px-6 py-4">
+                                            <span className={`rounded-full px-2 py-1 text-xs font-semibold ${pkg.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                                                 {pkg.is_active ? 'Aktif' : 'Nonaktif'}
                                             </span>
                                         </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button onClick={() => handleEdit(pkg)} className="text-blue-600 hover:text-blue-900 mr-3">
-                                                <Edit className="h-5 w-5" />
+                                        <td className="px-6 py-4 text-sm font-medium">
+                                            <button onClick={() => openEdit(pkg)} className="mr-3 text-blue-600 hover:text-blue-800">
+                                                <Edit className="h-4 w-4" />
                                             </button>
-                                            <button onClick={() => handleDelete(pkg.id)} className="text-red-600 hover:text-red-900">
-                                                <Trash2 className="h-5 w-5" />
+                                            <button onClick={() => handleDelete(pkg.id)} className="text-red-600 hover:text-red-800">
+                                                <Trash2 className="h-4 w-4" />
                                             </button>
                                         </td>
                                     </tr>
@@ -166,98 +305,173 @@ export default function PackagesPage() {
                     </div>
                 )}
 
-                {/* Modal */}
                 {showModal && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                        <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
-                            <div className="flex items-center justify-between mb-4">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50 p-4">
+                        <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-lg bg-white p-6">
+                            <div className="mb-4 flex items-center justify-between">
                                 <h3 className="text-lg font-bold">{editingId ? 'Edit Paket' : 'Tambah Paket'}</h3>
-                                <button onClick={() => { setShowModal(false); resetForm(); }}>
+                                <button onClick={closeModal}>
                                     <X className="h-6 w-6" />
                                 </button>
                             </div>
 
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Nama *</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({...formData, name: e.target.value})}
-                                        className="w-full px-3 py-2 border rounded-lg"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Deskripsi *</label>
-                                    <textarea
-                                        required
-                                        rows={3}
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({...formData, description: e.target.value})}
-                                        className="w-full px-3 py-2 border rounded-lg"
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
+                            <form onSubmit={handleSubmit} className="space-y-5">
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Harga Dasar *</label>
-                                        <input
-                                            type="number"
-                                            required
-                                            value={formData.base_price}
-                                            onChange={(e) => setFormData({...formData, base_price: e.target.value})}
-                                            className="w-full px-3 py-2 border rounded-lg"
-                                        />
+                                        <label className="mb-1 block text-sm font-medium text-gray-700">Nama Paket *</label>
+                                        <input type="text" required value={formData.name} onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))} className="w-full rounded-lg border px-3 py-2" />
                                     </div>
-
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Slug</label>
-                                        <input
-                                            type="text"
-                                            value={formData.slug}
-                                            onChange={(e) => setFormData({...formData, slug: e.target.value})}
-                                            className="w-full px-3 py-2 border rounded-lg"
-                                        />
+                                        <label className="mb-1 block text-sm font-medium text-gray-700">Harga Dasar *</label>
+                                        <input type="number" required value={formData.base_price} onChange={(e) => setFormData((prev) => ({ ...prev, base_price: e.target.value }))} className="w-full rounded-lg border px-3 py-2" />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700">Slug</label>
+                                        <input type="text" value={formData.slug} onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))} className="w-full rounded-lg border px-3 py-2" />
+                                    </div>
+                                    <div>
+                                        <label className="mb-1 block text-sm font-medium text-gray-700">Image URL</label>
+                                        <input type="text" value={formData.image_url} onChange={(e) => setFormData((prev) => ({ ...prev, image_url: e.target.value }))} className="w-full rounded-lg border px-3 py-2" />
                                     </div>
                                 </div>
 
+                                <div className="rounded-lg border border-gray-200 p-4">
+                                    <h4 className="mb-3 text-sm font-semibold text-gray-900">Pengaturan Venue</h4>
+                                    <label className="mb-3 inline-flex items-center gap-2 text-sm text-gray-700">
+                                        <input
+                                            type="checkbox"
+                                            checked={!!formData.includes_venue}
+                                            onChange={(e) =>
+                                                setFormData((prev) => ({
+                                                    ...prev,
+                                                    includes_venue: e.target.checked,
+                                                    venue_id: e.target.checked ? prev.venue_id : '',
+                                                    venue_price: e.target.checked ? prev.venue_price : '0',
+                                                }))
+                                            }
+                                        />
+                                        Paket termasuk venue
+                                    </label>
+
+                                    {formData.includes_venue && (
+                                        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                            <div>
+                                                <label className="mb-1 block text-sm font-medium text-gray-700">Pilih Venue</label>
+                                                <select
+                                                    value={formData.venue_id}
+                                                    onChange={(e) => setFormData((prev) => ({ ...prev, venue_id: e.target.value }))}
+                                                    className="w-full rounded-lg border px-3 py-2"
+                                                >
+                                                    <option value="">Pilih venue</option>
+                                                    {venues.map((venue) => (
+                                                        <option key={venue.id} value={venue.id.toString()}>
+                                                            {venue.name} {venue.city ? `(${venue.city})` : ''}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="mb-1 block text-sm font-medium text-gray-700">Harga Venue</label>
+                                                <input
+                                                    type="number"
+                                                    min={0}
+                                                    value={formData.venue_price}
+                                                    onChange={(e) => setFormData((prev) => ({ ...prev, venue_price: e.target.value }))}
+                                                    className="w-full rounded-lg border px-3 py-2"
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">URL Gambar</label>
-                                    <input
-                                        type="text"
-                                        value={formData.image_url}
-                                        onChange={(e) => setFormData({...formData, image_url: e.target.value})}
-                                        className="w-full px-3 py-2 border rounded-lg"
-                                        placeholder="/images/packages/example.jpg"
-                                    />
+                                    <label className="mb-1 block text-sm font-medium text-gray-700">Deskripsi *</label>
+                                    <textarea required rows={3} value={formData.description} onChange={(e) => setFormData((prev) => ({ ...prev, description: e.target.value }))} className="w-full rounded-lg border px-3 py-2" />
                                 </div>
 
-                                <div className="flex items-center">
-                                    <input
-                                        type="checkbox"
-                                        checked={formData.is_active}
-                                        onChange={(e) => setFormData({...formData, is_active: e.target.checked})}
-                                        className="mr-2"
-                                    />
-                                    <label className="text-sm text-gray-700">Aktif</label>
+                                <label className="inline-flex items-center gap-2 text-sm text-gray-700">
+                                    <input type="checkbox" checked={formData.is_active} onChange={(e) => setFormData((prev) => ({ ...prev, is_active: e.target.checked }))} />
+                                    Paket aktif
+                                </label>
+
+                                <div className="rounded-lg border border-gray-200 p-4">
+                                    <h4 className="mb-3 text-sm font-semibold text-gray-900">Item Inventori untuk Paket</h4>
+
+                                    <div className="mb-3 grid grid-cols-1 gap-3 md:grid-cols-3">
+                                        <div className="relative md:col-span-2">
+                                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                                            <input
+                                                value={searchItem}
+                                                onChange={(e) => setSearchItem(e.target.value)}
+                                                placeholder="Cari nama barang..."
+                                                className="w-full rounded-lg border py-2 pl-10 pr-3 text-sm"
+                                            />
+                                        </div>
+                                        <select value={groupFilter} onChange={(e) => setGroupFilter(e.target.value as CategoryGroup | 'all')} className="rounded-lg border px-3 py-2 text-sm">
+                                            <option value="all">Semua Group</option>
+                                            <option value="catering">Catering</option>
+                                            <option value="dekor">Dekor</option>
+                                            <option value="makeup">Makeup</option>
+                                            <option value="sound">Sound</option>
+                                            <option value="lainnya">Lainnya</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="max-h-72 overflow-y-auto rounded border border-gray-200">
+                                        <table className="min-w-full divide-y divide-gray-100">
+                                            <thead className="bg-gray-50">
+                                                <tr>
+                                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">Pilih</th>
+                                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">Item</th>
+                                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">Group</th>
+                                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">Qty Paket</th>
+                                                    <th className="px-3 py-2 text-left text-xs font-medium uppercase text-gray-500">Catatan</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-100 bg-white">
+                                                {filteredInventory.map((item) => {
+                                                    const selected = selectedItems.find((x) => x.inventory_item_id === item.id);
+                                                    return (
+                                                        <tr key={item.id}>
+                                                            <td className="px-3 py-2">
+                                                                <input type="checkbox" checked={!!selected} onChange={() => toggleItem(item.id)} />
+                                                            </td>
+                                                            <td className="px-3 py-2 text-sm text-gray-900">
+                                                                <div>{item.name}</div>
+                                                                <div className="text-xs text-gray-500">Stok: {item.quantity} {item.unit}</div>
+                                                            </td>
+                                                            <td className="px-3 py-2 text-sm text-gray-700">{getGroupLabel(item.category?.category_group)}</td>
+                                                            <td className="px-3 py-2">
+                                                                <input
+                                                                    type="number"
+                                                                    min={1}
+                                                                    disabled={!selected}
+                                                                    value={selected?.quantity || 1}
+                                                                    onChange={(e) => updateSelectedItem(item.id, 'quantity', Number(e.target.value))}
+                                                                    className="w-24 rounded border px-2 py-1 text-sm disabled:bg-gray-100"
+                                                                />
+                                                            </td>
+                                                            <td className="px-3 py-2">
+                                                                <input
+                                                                    type="text"
+                                                                    disabled={!selected}
+                                                                    value={selected?.notes || ''}
+                                                                    onChange={(e) => updateSelectedItem(item.id, 'notes', e.target.value)}
+                                                                    className="w-full rounded border px-2 py-1 text-sm disabled:bg-gray-100"
+                                                                    placeholder="opsional"
+                                                                />
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
+                                    </div>
                                 </div>
 
-                                <div className="flex justify-end gap-3 mt-6">
-                                    <button
-                                        type="button"
-                                        onClick={() => { setShowModal(false); resetForm(); }}
-                                        className="px-4 py-2 border rounded-lg"
-                                    >
-                                        Batal
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                                    >
-                                        Simpan
-                                    </button>
+                                <div className="mt-6 flex justify-end gap-3 border-t pt-4">
+                                    <button type="button" onClick={closeModal} className="rounded-lg border px-4 py-2">Batal</button>
+                                    <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">Simpan Paket</button>
                                 </div>
                             </form>
                         </div>
