@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import { AdminLayout } from '../../../layouts/AdminLayout';
 import api from '../../../services/api';
+import { formatRupiah } from '@/utils/formatRupiah';
 
 interface Invoice {
     id: number;
@@ -190,13 +191,13 @@ const InvoicesPage: React.FC = () => {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900">
-                                                    Rp {invoice.total_price.toLocaleString('id-ID')}
+                                                    {formatRupiah(invoice.total_price)}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-green-600">
-                                                    Rp {paid.toLocaleString('id-ID')}
+                                                    {formatRupiah(paid)}
                                                 </td>
                                                 <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-red-600">
-                                                    Rp {remaining.toLocaleString('id-ID')}
+                                                    {formatRupiah(remaining)}
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span

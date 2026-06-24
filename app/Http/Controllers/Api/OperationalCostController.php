@@ -33,7 +33,7 @@ class OperationalCostController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'cost_type' => 'required|in:production,catering_raw_material,other',
+            'cost_type' => 'required|in:production,catering_raw_material,other,payroll',
             'title' => 'required|string|max:150',
             'description' => 'nullable|string',
             'amount' => 'required|numeric|min:0',
@@ -54,8 +54,15 @@ class OperationalCostController extends Controller
 
     public function update(Request $request, OperationalCost $operationalCost): JsonResponse
     {
+        // Prevent direct editing of payroll-managed entries
+        if ($operationalCost->cost_type === 'payroll' && $operationalCost->reference_type === 'employee_payroll') {
+            return response()->json([
+                'message' => 'Biaya payroll dikelola otomatis melalui menu Payroll Karyawan. Silakan edit di halaman Payroll.'
+            ], 422);
+        }
+
         $validated = $request->validate([
-            'cost_type' => 'required|in:production,catering_raw_material,other',
+            'cost_type' => 'required|in:production,catering_raw_material,other,payroll',
             'title' => 'required|string|max:150',
             'description' => 'nullable|string',
             'amount' => 'required|numeric|min:0',
@@ -72,6 +79,13 @@ class OperationalCostController extends Controller
 
     public function destroy(OperationalCost $operationalCost): JsonResponse
     {
+        // Prevent direct deletion of payroll-managed entries
+        if ($operationalCost->cost_type === 'payroll' && $operationalCost->reference_type === 'employee_payroll') {
+            return response()->json([
+                'message' => 'Biaya payroll dikelola otomatis melalui menu Payroll Karyawan. Hapus dari halaman Payroll.'
+            ], 422);
+        }
+
         $operationalCost->delete();
 
         return response()->json(['message' => 'Biaya operasional berhasil dihapus']);

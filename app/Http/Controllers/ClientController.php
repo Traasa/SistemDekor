@@ -69,6 +69,54 @@ class ClientController extends Controller
         return response()->json($clients);
     }
 
+    public function getClientTestimonial($id)
+    {
+        $client = Client::findOrFail($id);
+        $testimonial = $client->testimonials()->latest()->first();
+
+        return response()->json([
+            'success' => true,
+            'data' => $testimonial,
+        ]);
+    }
+
+    public function upsertClientTestimonial(Request $request, $id)
+    {
+        $client = Client::findOrFail($id);
+
+        $validated = $request->validate([
+            'testimonial' => 'required|string',
+            'rating' => 'required|integer|min:1|max:5',
+            'event_type' => 'nullable|string|max:255',
+            'photo_url' => 'nullable|string',
+            'is_featured' => 'nullable|boolean',
+        ]);
+
+        $existing = $client->testimonials()->latest()->first();
+        $data = [
+            'client_id' => $client->id,
+            'client_name' => $client->name,
+            'event_type' => $validated['event_type'] ?? $existing?->event_type,
+            'testimonial' => $validated['testimonial'],
+            'rating' => $validated['rating'],
+            'photo_url' => $validated['photo_url'] ?? $existing?->photo_url,
+            'is_featured' => $validated['is_featured'] ?? ($existing?->is_featured ?? true),
+            'order_id' => $existing?->order_id,
+        ];
+
+        if ($existing) {
+            $existing->update($data);
+            $testimonial = $existing;
+        } else {
+            $testimonial = $client->testimonials()->create($data);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => $testimonial,
+        ]);
+    }
+
     /**
      * Store a newly created resource in storage.
      */

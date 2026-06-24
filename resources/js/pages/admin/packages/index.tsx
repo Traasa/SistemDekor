@@ -2,6 +2,7 @@ import { AdminLayout } from '../../../layouts/AdminLayout';
 import { useMemo, useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Edit, Trash2, X, Search } from 'lucide-react';
+import { formatRupiah } from '@/utils/formatRupiah';
 
 type CategoryGroup = 'catering' | 'dekor' | 'makeup' | 'sound' | 'lainnya';
 
@@ -283,7 +284,7 @@ export default function PackagesPage() {
                                             <div className="text-sm font-semibold text-gray-900">{pkg.name}</div>
                                             <div className="text-xs text-gray-500">{pkg.description.substring(0, 80)}...</div>
                                         </td>
-                                        <td className="px-6 py-4 text-sm text-gray-900">Rp {pkg.base_price.toLocaleString('id-ID')}</td>
+                                        <td className="px-6 py-4 text-sm text-gray-900">{formatRupiah(pkg.base_price)}</td>
                                         <td className="px-6 py-4 text-sm text-gray-700">{pkg.inventory_items?.length || 0} item</td>
                                         <td className="px-6 py-4">
                                             <span className={`rounded-full px-2 py-1 text-xs font-semibold ${pkg.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>

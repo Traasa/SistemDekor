@@ -109,7 +109,7 @@ class OrderNegotiationController extends Controller
                 'date',
                 function (string $attribute, mixed $value, \Closure $fail) use ($order) {
                     if (EventScheduleService::isDateFullyBooked((string) $value, $order->id)) {
-                        $fail('Tanggal acara sudah penuh (maksimal 3 event terkonfirmasi per hari).');
+                        $fail('Tanggal acara sudah penuh (maksimal 1 event terkonfirmasi per hari).');
                     }
                 },
             ],

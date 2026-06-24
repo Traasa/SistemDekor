@@ -1,7 +1,7 @@
 import { AdminLayout } from '../../../layouts/AdminLayout';
 import { useEffect, useMemo, useState } from 'react';
 import axios from 'axios';
-import { Plus, X, Trash2 } from 'lucide-react';
+import { Plus, X, Trash2, Info } from 'lucide-react';
 
 interface Employee {
     id: number;
@@ -185,6 +185,15 @@ export default function PayrollPage() {
                     >
                         <Plus className="h-5 w-5" /> Tambah Payroll
                     </button>
+                </div>
+
+                {/* Integration Info Banner */}
+                <div className="mb-4 flex items-start gap-2 rounded-lg border border-blue-200 bg-blue-50 p-3">
+                    <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-blue-800">
+                        Payroll dengan status <strong>Paid</strong> otomatis tercatat sebagai pengeluaran di <strong>Biaya Operasional</strong>. 
+                        Perubahan status atau nominal akan otomatis disinkronkan.
+                    </p>
                 </div>
 
                 {loading ? (

@@ -318,7 +318,7 @@ const MiniOrderDetailPage: React.FC<Props> = ({ order }) => {
                         )}
 
                         <div className="rounded-xl bg-white p-6 shadow-sm">
-                            <h2 className="mb-4 text-lg font-bold text-gray-900">Riwayat Pembayaran</h2>
+                            <h2 className="mb-4 text-lg font-bold text-gray-900">Bukti Pembayaran</h2>
                             {order.payment_proofs.length === 0 ? (
                                 <div className="text-sm text-gray-500">Belum ada pembayaran tercatat.</div>
                             ) : (

@@ -36,10 +36,12 @@ class AuthenticatedSessionController extends Controller
         // Redirect berdasarkan role user
         $user = Auth::user();
         
-        if ($user->role === 'admin' || $user->role === 'sales') {
+        // Admin, Owner (super_admin), dan Marketing → dashboard manajemen
+        if (in_array($user->role, ['super_admin', 'admin', 'marketing'])) {
             return redirect()->intended('/admin');
         }
 
+        // Client / user biasa → homepage
         return redirect()->intended('/');
     }
 

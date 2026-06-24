@@ -1,6 +1,8 @@
 import { router } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
-import { AdminLayout } from '../../../layouts/AdminLayout';
+import { Head } from '@inertiajs/react';
+import { AdminLayout } from '@/layouts/AdminLayout';
+import { formatRupiah } from '@/utils/formatRupiah';
 import api from '../../../services/api';
 
 interface Order {
@@ -228,7 +230,7 @@ const PaymentsPage: React.FC = () => {
                                                 {payment.payment_method ? payment.payment_method.replace('_', ' ') : 'Transfer'}
                                             </td>
                                             <td className="px-6 py-4 text-sm font-medium whitespace-nowrap text-gray-900">
-                                                Rp {payment.amount.toLocaleString('id-ID')}
+                                                {formatRupiah(payment.amount)}
                                             </td>
                                             <td className="px-6 py-4 text-sm whitespace-nowrap text-gray-500">
                                                 {new Date(payment.created_at).toLocaleDateString('id-ID')}

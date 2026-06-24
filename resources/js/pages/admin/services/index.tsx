@@ -1,4 +1,5 @@
 import { AdminLayout } from '../../../layouts/AdminLayout';
+import { formatRupiah } from '../../../utils/formatRupiah';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Plus, Edit, Trash2, X } from 'lucide-react';
@@ -146,7 +147,7 @@ export default function ServicesPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{service.category || '-'}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                                            Rp {service.price.toLocaleString('id-ID')}
+                                            {formatRupiah(service.price)}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className={`px-2 py-1 text-xs font-semibold rounded-full ${service.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>

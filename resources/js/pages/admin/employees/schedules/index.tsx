@@ -11,7 +11,10 @@ import {
   Clock,
   User,
   MapPin,
-  AlertCircle
+  AlertCircle,
+  Users,
+  CheckSquare,
+  Square
 } from 'lucide-react';
 import api from '@/services/api';
 
@@ -46,6 +49,8 @@ const EmployeeSchedulesPage: React.FC = () => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState<'calendar' | 'list'>('calendar');
   const [conflictError, setConflictError] = useState('');
+  const [bulkResult, setBulkResult] = useState('');
+  const [submitting, setSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     employee_id: 0,
@@ -59,10 +64,10 @@ const EmployeeSchedulesPage: React.FC = () => {
   });
 
   const [bulkFormData, setBulkFormData] = useState({
-    employee_id: 0,
+    employee_ids: [] as number[],
     start_date: new Date().toISOString().split('T')[0],
     end_date: new Date().toISOString().split('T')[0],
-    days: [] as number[], // 0 = Sunday, 1 = Monday, etc.
+    days: [] as number[],
     shift_start: '09:00',
     shift_end: '17:00',
     shift_type: 'morning' as 'morning' | 'afternoon' | 'evening' | 'night' | 'full_day',
@@ -109,9 +114,11 @@ const EmployeeSchedulesPage: React.FC = () => {
       const month = currentDate.getMonth() + 1;
       
       const params = new URLSearchParams();
+      params.append('year', year.toString());
+      params.append('month', month.toString());
       if (selectedEmployee) params.append('employee_id', selectedEmployee.toString());
       
-      const response = await api.get(`/employee-schedules/calendar/${year}/${month}?${params.toString()}`);
+      const response = await api.get(`/employee-schedules-calendar?${params.toString()}`);
       setSchedules(response.data.data);
     } catch (error) {
       console.error('Error fetching schedules:', error);
@@ -123,6 +130,7 @@ const EmployeeSchedulesPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setConflictError('');
+    setSubmitting(true);
     
     try {
       if (editingSchedule) {
@@ -136,27 +144,56 @@ const EmployeeSchedulesPage: React.FC = () => {
       console.error('Error saving schedule:', error);
       if (error.response?.status === 422 && error.response?.data?.message) {
         setConflictError(error.response.data.message);
+      } else if (error.response?.status === 422 && error.response?.data?.errors) {
+        const errors = Object.values(error.response.data.errors).flat().join(', ');
+        setConflictError(errors as string);
       } else {
-        alert('Gagal menyimpan jadwal');
+        setConflictError('Gagal menyimpan jadwal');
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
   const handleBulkSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setConflictError('');
+    setBulkResult('');
+    setSubmitting(true);
+
+    if (bulkFormData.employee_ids.length === 0) {
+      setConflictError('Pilih minimal 1 karyawan');
+      setSubmitting(false);
+      return;
+    }
+
+    if (bulkFormData.days.length === 0) {
+      setConflictError('Pilih minimal 1 hari kerja');
+      setSubmitting(false);
+      return;
+    }
     
     try {
-      await api.post('/employee-schedules/bulk', bulkFormData);
+      const response = await api.post('/employee-schedules/bulk', bulkFormData);
+      const msg = response.data.message || 'Jadwal berhasil dibuat';
+      setBulkResult(msg);
       fetchSchedules();
-      closeBulkModal();
+      // Auto close after 2 seconds
+      setTimeout(() => {
+        closeBulkModal();
+      }, 2000);
     } catch (error: any) {
       console.error('Error creating bulk schedules:', error);
       if (error.response?.data?.message) {
         setConflictError(error.response.data.message);
+      } else if (error.response?.data?.errors) {
+        const errors = Object.values(error.response.data.errors).flat().join(', ');
+        setConflictError(errors as string);
       } else {
-        alert('Gagal membuat jadwal');
+        setConflictError('Gagal membuat jadwal');
       }
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -182,8 +219,8 @@ const EmployeeSchedulesPage: React.FC = () => {
         shift_end: schedule.shift_end,
         shift_type: schedule.shift_type,
         status: schedule.status,
-        location: schedule.location,
-        notes: schedule.notes
+        location: schedule.location || '',
+        notes: schedule.notes || ''
       });
     } else {
       setEditingSchedule(null);
@@ -210,7 +247,7 @@ const EmployeeSchedulesPage: React.FC = () => {
 
   const openBulkModal = () => {
     setBulkFormData({
-      employee_id: selectedEmployee || 0,
+      employee_ids: selectedEmployee ? [selectedEmployee] : [],
       start_date: new Date().toISOString().split('T')[0],
       end_date: new Date().toISOString().split('T')[0],
       days: [],
@@ -221,12 +258,14 @@ const EmployeeSchedulesPage: React.FC = () => {
       notes: ''
     });
     setConflictError('');
+    setBulkResult('');
     setShowBulkModal(true);
   };
 
   const closeBulkModal = () => {
     setShowBulkModal(false);
     setConflictError('');
+    setBulkResult('');
   };
 
   const handleDayToggle = (day: number) => {
@@ -236,6 +275,23 @@ const EmployeeSchedulesPage: React.FC = () => {
         ? prev.days.filter(d => d !== day)
         : [...prev.days, day]
     }));
+  };
+
+  const handleEmployeeToggle = (empId: number) => {
+    setBulkFormData(prev => ({
+      ...prev,
+      employee_ids: prev.employee_ids.includes(empId)
+        ? prev.employee_ids.filter(id => id !== empId)
+        : [...prev.employee_ids, empId]
+    }));
+  };
+
+  const handleSelectAllEmployees = () => {
+    if (bulkFormData.employee_ids.length === employees.length) {
+      setBulkFormData(prev => ({ ...prev, employee_ids: [] }));
+    } else {
+      setBulkFormData(prev => ({ ...prev, employee_ids: employees.map(e => e.id) }));
+    }
   };
 
   const getDaysInMonth = (date: Date) => {
@@ -307,7 +363,7 @@ const EmployeeSchedulesPage: React.FC = () => {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-gray-800">Jadwal Kerja Karyawan</h1>
-          <p className="text-gray-600">Kelola jadwal dan shift kerja karyawan</p>
+          <p className="text-gray-600">Kelola jadwal dan shift kerja karyawan. Dalam satu hari bisa banyak karyawan bertugas.</p>
         </div>
 
         {/* Filters and Actions */}
@@ -351,8 +407,8 @@ const EmployeeSchedulesPage: React.FC = () => {
                   onClick={openBulkModal}
                   className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
                 >
-                  <CalendarIcon className="w-5 h-5" />
-                  Buat Jadwal Berulang
+                  <Users className="w-5 h-5" />
+                  Batch Jadwal
                 </button>
                 <button
                   onClick={() => openModal()}
@@ -423,11 +479,18 @@ const EmployeeSchedulesPage: React.FC = () => {
                         className={`border rounded-lg p-2 min-h-[120px] ${isToday ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-200'} hover:shadow-md transition-shadow cursor-pointer`}
                         onClick={() => openModal(undefined, date.toISOString().split('T')[0])}
                       >
-                        <div className="text-sm font-semibold mb-2 text-gray-700">
-                          {date.getDate()}
+                        <div className="flex items-center justify-between mb-1">
+                          <div className="text-sm font-semibold text-gray-700">
+                            {date.getDate()}
+                          </div>
+                          {daySchedules.length > 0 && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full font-medium">
+                              {daySchedules.length}
+                            </span>
+                          )}
                         </div>
                         <div className="space-y-1">
-                          {daySchedules.map(schedule => (
+                          {daySchedules.slice(0, 3).map(schedule => (
                             <div
                               key={schedule.id}
                               onClick={(e) => {
@@ -443,6 +506,11 @@ const EmployeeSchedulesPage: React.FC = () => {
                               </div>
                             </div>
                           ))}
+                          {daySchedules.length > 3 && (
+                            <div className="text-xs text-gray-500 text-center">
+                              +{daySchedules.length - 3} lagi
+                            </div>
+                          )}
                         </div>
                       </div>
                     );
@@ -467,7 +535,7 @@ const EmployeeSchedulesPage: React.FC = () => {
               <div className="flex items-center justify-center h-64">
                 <div className="text-center">
                   <CalendarIcon className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600">Tidak ada jadwal</p>
+                  <p className="text-gray-600">Tidak ada jadwal untuk bulan ini</p>
                 </div>
               </div>
             ) : (
@@ -700,9 +768,10 @@ const EmployeeSchedulesPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  disabled={submitting}
+                  className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
                 >
-                  {editingSchedule ? 'Simpan Perubahan' : 'Tambah Jadwal'}
+                  {submitting ? 'Menyimpan...' : (editingSchedule ? 'Simpan Perubahan' : 'Tambah Jadwal')}
                 </button>
               </div>
             </form>
@@ -710,13 +779,15 @@ const EmployeeSchedulesPage: React.FC = () => {
         </div>
       )}
 
-      {/* Bulk Schedule Modal */}
+      {/* Bulk Schedule Modal — Multi Employee */}
       {showBulkModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl">
+          <div className="bg-white rounded-lg shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="border-b border-gray-200 px-6 py-4">
-              <h2 className="text-xl font-bold text-gray-800">Buat Jadwal Berulang</h2>
-              <p className="text-sm text-gray-600 mt-1">Buat jadwal untuk beberapa hari sekaligus</p>
+              <h2 className="text-xl font-bold text-gray-800">Batch Jadwal Kerja</h2>
+              <p className="text-sm text-gray-600 mt-1">
+                Buat jadwal untuk banyak karyawan sekaligus dalam satu kali entry
+              </p>
             </div>
 
             <form onSubmit={handleBulkSubmit} className="p-6">
@@ -727,53 +798,94 @@ const EmployeeSchedulesPage: React.FC = () => {
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Karyawan <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={bulkFormData.employee_id}
-                    onChange={(e) => setBulkFormData({ ...bulkFormData, employee_id: Number(e.target.value) })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value={0}>Pilih Karyawan</option>
-                    {employees.map(emp => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.name} - {emp.position}
-                      </option>
-                    ))}
-                  </select>
+              {bulkResult && (
+                <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-start gap-2">
+                  <CheckSquare className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-green-800 font-medium">{bulkResult}</div>
                 </div>
+              )}
 
+              <div className="space-y-6">
+                {/* Employee Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tanggal Mulai <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={bulkFormData.start_date}
-                    onChange={(e) => setBulkFormData({ ...bulkFormData, start_date: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Pilih Karyawan <span className="text-red-500">*</span>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleSelectAllEmployees}
+                      className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      {bulkFormData.employee_ids.length === employees.length ? 'Hapus Semua' : 'Pilih Semua'}
+                    </button>
+                  </div>
+                  <div className="border border-gray-300 rounded-lg max-h-48 overflow-y-auto p-2 space-y-1">
+                    {employees.map(emp => {
+                      const isSelected = bulkFormData.employee_ids.includes(emp.id);
+                      return (
+                        <button
+                          key={emp.id}
+                          type="button"
+                          onClick={() => handleEmployeeToggle(emp.id)}
+                          className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
+                            isSelected
+                              ? 'bg-blue-50 border border-blue-200'
+                              : 'hover:bg-gray-50 border border-transparent'
+                          }`}
+                        >
+                          {isSelected ? (
+                            <CheckSquare className="w-4 h-4 text-blue-600 flex-shrink-0" />
+                          ) : (
+                            <Square className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                          )}
+                          <div>
+                            <div className="text-sm font-medium text-gray-900">{emp.name}</div>
+                            <div className="text-xs text-gray-500">{emp.position} • {emp.employee_code}</div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                    {employees.length === 0 && (
+                      <p className="text-sm text-gray-500 text-center py-4">Tidak ada karyawan aktif</p>
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-gray-500">
+                    {bulkFormData.employee_ids.length} karyawan dipilih
+                  </p>
                 </div>
 
+                {/* Date Range */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tanggal Mulai <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={bulkFormData.start_date}
+                      onChange={(e) => setBulkFormData({ ...bulkFormData, start_date: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tanggal Selesai <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={bulkFormData.end_date}
+                      onChange={(e) => setBulkFormData({ ...bulkFormData, end_date: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                </div>
+
+                {/* Day Selection */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tanggal Selesai <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={bulkFormData.end_date}
-                    onChange={(e) => setBulkFormData({ ...bulkFormData, end_date: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Hari Kerja <span className="text-red-500">*</span>
                   </label>
@@ -795,63 +907,67 @@ const EmployeeSchedulesPage: React.FC = () => {
                   </div>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipe Shift <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    required
-                    value={bulkFormData.shift_type}
-                    onChange={(e) => setBulkFormData({ ...bulkFormData, shift_type: e.target.value as any })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="morning">Pagi</option>
-                    <option value="afternoon">Siang</option>
-                    <option value="evening">Sore</option>
-                    <option value="night">Malam</option>
-                    <option value="full_day">Full Day</option>
-                  </select>
+                {/* Shift Settings */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Tipe Shift <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      required
+                      value={bulkFormData.shift_type}
+                      onChange={(e) => setBulkFormData({ ...bulkFormData, shift_type: e.target.value as any })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="morning">Pagi</option>
+                      <option value="afternoon">Siang</option>
+                      <option value="evening">Sore</option>
+                      <option value="night">Malam</option>
+                      <option value="full_day">Full Day</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Lokasi
+                    </label>
+                    <input
+                      type="text"
+                      value={bulkFormData.location}
+                      onChange={(e) => setBulkFormData({ ...bulkFormData, location: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Jam Mulai <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="time"
+                      required
+                      value={bulkFormData.shift_start}
+                      onChange={(e) => setBulkFormData({ ...bulkFormData, shift_start: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Jam Selesai <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="time"
+                      required
+                      value={bulkFormData.shift_end}
+                      onChange={(e) => setBulkFormData({ ...bulkFormData, shift_end: e.target.value })}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
                 </div>
 
+                {/* Notes */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Lokasi
-                  </label>
-                  <input
-                    type="text"
-                    value={bulkFormData.location}
-                    onChange={(e) => setBulkFormData({ ...bulkFormData, location: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Jam Mulai <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={bulkFormData.shift_start}
-                    onChange={(e) => setBulkFormData({ ...bulkFormData, shift_start: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Jam Selesai <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="time"
-                    required
-                    value={bulkFormData.shift_end}
-                    onChange={(e) => setBulkFormData({ ...bulkFormData, shift_end: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="md:col-span-2">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Catatan
                   </label>
@@ -874,9 +990,10 @@ const EmployeeSchedulesPage: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                  disabled={submitting}
+                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors disabled:opacity-50"
                 >
-                  Buat Jadwal
+                  {submitting ? 'Membuat jadwal...' : `Buat Jadwal (${bulkFormData.employee_ids.length} karyawan)`}
                 </button>
               </div>
             </form>

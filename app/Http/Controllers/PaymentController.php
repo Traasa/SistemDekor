@@ -564,7 +564,7 @@ class PaymentController extends Controller
         }
 
         if (EventScheduleService::isDateFullyBooked($order->event_date?->format('Y-m-d') ?? now()->toDateString(), $order->id)) {
-            throw new \RuntimeException('Tanggal event sudah penuh. Maksimal 3 event terkonfirmasi per hari.');
+            throw new \RuntimeException('Tanggal event sudah penuh. Maksimal 1 event terkonfirmasi per hari.');
         }
         
         // Create event

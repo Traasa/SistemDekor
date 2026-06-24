@@ -9,11 +9,38 @@ use App\Services\EventOutlineTemplateService;
 use App\Services\EventScheduleService;
 use App\Services\EventRundownTemplateService;
 use App\Services\EventTaskTemplateService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class EventController extends Controller
 {
+    public function unavailableDates(Request $request)
+    {
+        $fromInput = $request->input('from');
+        $toInput = $request->input('to');
+
+        $fromDate = $fromInput ? Carbon::parse($fromInput)->startOfDay() : now()->startOfDay();
+        $toDate = $toInput ? Carbon::parse($toInput)->endOfDay() : now()->addMonths(12)->endOfDay();
+
+        $dates = Event::query()
+            ->whereNotNull('event_date')
+            ->whereDate('event_date', '>=', $fromDate)
+            ->whereDate('event_date', '<=', $toDate)
+            ->where('status', '!=', 'cancelled')
+            ->orderBy('event_date')
+            ->get(['event_date'])
+            ->map(function (Event $event) {
+                return Carbon::parse($event->event_date)->toDateString();
+            })
+            ->unique()
+            ->values();
+
+        return response()->json([
+            'data' => $dates,
+        ]);
+    }
+
     public function index(Request $request)
     {
         $query = Event::with(['client', 'order', 'eventOutlineItems'])
@@ -146,7 +173,7 @@ class EventController extends Controller
                 'date',
                 function (string $attribute, mixed $value, \Closure $fail) {
                     if (EventScheduleService::isDateFullyBooked((string) $value)) {
-                        $fail('Tanggal event sudah penuh (maksimal 3 event terkonfirmasi per hari).');
+                        $fail('Tanggal event sudah penuh (maksimal 1 event terkonfirmasi per hari).');
                     }
                 },
             ],
@@ -192,7 +219,7 @@ class EventController extends Controller
                 'date',
                 function (string $attribute, mixed $value, \Closure $fail) use ($event) {
                     if (EventScheduleService::isDateFullyBooked((string) $value, $event->order_id)) {
-                        $fail('Tanggal event sudah penuh (maksimal 3 event terkonfirmasi per hari).');
+                        $fail('Tanggal event sudah penuh (maksimal 1 event terkonfirmasi per hari).');
                     }
                 },
             ],

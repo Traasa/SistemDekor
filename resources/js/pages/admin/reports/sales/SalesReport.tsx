@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
 import { AdminLayout } from '@/layouts/AdminLayout';
+import { formatRupiah } from '@/utils/formatRupiah';
 import {
     TrendingUp,
     DollarSign,
@@ -246,7 +247,7 @@ export default function SalesReportPage() {
                             <div>
                                 <p className="text-gray-600 text-sm">Total Revenue</p>
                                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                                    Rp {(data?.summary.total_revenue || 0).toLocaleString('id-ID')}
+                                    {formatRupiah(data?.summary.total_revenue || 0)}
                                 </p>
                                 {data?.summary.revenue_growth !== undefined && (
                                     <p className={`text-sm mt-1 flex items-center gap-1 ${
@@ -326,19 +327,19 @@ export default function SalesReportPage() {
                         <div className="border-l-4 border-green-500 pl-4">
                             <p className="text-sm text-gray-600">Total Terbayar</p>
                             <p className="text-2xl font-bold text-gray-900">
-                                Rp {(data?.payment_summary.total_paid || 0).toLocaleString('id-ID')}
+                                {formatRupiah(data?.payment_summary.total_paid || 0)}
                             </p>
                         </div>
                         <div className="border-l-4 border-yellow-500 pl-4">
                             <p className="text-sm text-gray-600">Pembayaran Pending</p>
                             <p className="text-2xl font-bold text-gray-900">
-                                Rp {(data?.payment_summary.pending_payments || 0).toLocaleString('id-ID')}
+                                {formatRupiah(data?.payment_summary.pending_payments || 0)}
                             </p>
                         </div>
                         <div className="border-l-4 border-blue-500 pl-4">
                             <p className="text-sm text-gray-600">Total DP</p>
                             <p className="text-2xl font-bold text-gray-900">
-                                Rp {(data?.payment_summary.dp_payments || 0).toLocaleString('id-ID')}
+                                {formatRupiah(data?.payment_summary.dp_payments || 0)}
                             </p>
                         </div>
                     </div>
@@ -378,10 +379,10 @@ export default function SalesReportPage() {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
-                                        Rp {pkg.total_revenue.toLocaleString('id-ID')}
+                                        {formatRupiah(pkg.total_revenue)}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm text-gray-900">
-                                        Rp {Math.round(pkg.total_revenue / pkg.total_orders).toLocaleString('id-ID')}
+                                        {formatRupiah(Math.round(pkg.total_revenue / pkg.total_orders))}
                                     </td>
                                 </tr>
                             ))}

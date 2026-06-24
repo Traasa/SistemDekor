@@ -22,7 +22,6 @@ import {
     Globe,
     HardDrive,
     Image,
-    Layers,
     LayoutDashboard,
     List,
     LogOut,
@@ -37,7 +36,6 @@ import {
     Shield,
     Star,
     Sun,
-    UserCheck,
     UserCircle2,
     UserRound,
     Users,
@@ -55,7 +53,25 @@ interface MenuItem {
     path?: string;
     badge?: string;
     children?: MenuItem[];
+    roles?: string[]; // Roles yang bisa melihat menu ini
 }
+
+const ALL_ADMIN_ROLES = ['super_admin', 'admin'];
+const ALL_PANEL_ROLES = ['super_admin', 'admin', 'marketing'];
+
+const formatRoleLabel = (role: string): string => {
+    const labels: Record<string, string> = {
+        super_admin: 'Owner',
+        admin: 'Admin',
+        marketing: 'Marketing',
+        user: 'User',
+        client: 'Client',
+        sales: 'Sales',
+        manager: 'Manager',
+        staff: 'Staff',
+    };
+    return labels[role] || role;
+};
 
 type ThemeMode = 'light' | 'dark';
 
@@ -80,15 +96,17 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
         setThemeMode((prev) => (prev === 'light' ? 'dark' : 'light'));
     };
 
-    const menuItems: MenuItem[] = [
+    const allMenuItems: MenuItem[] = [
         {
             name: 'Dashboard',
             icon: <LayoutDashboard className="h-4 w-4" />,
             path: '/admin',
+            roles: ALL_PANEL_ROLES,
         },
         {
             name: 'Manajemen User',
             icon: <Users className="h-4 w-4" />,
+            roles: ALL_ADMIN_ROLES,
             children: [
                 { name: 'Daftar User', icon: <List className="h-4 w-4" />, path: '/admin/users' },
                 { name: 'Role & Permission', icon: <Shield className="h-4 w-4" />, path: '/admin/roles' },
@@ -99,6 +117,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
         {
             name: 'Website Content',
             icon: <Globe className="h-4 w-4" />,
+            roles: ALL_PANEL_ROLES,
             children: [
                 { name: 'Pengaturan Umum', icon: <Wrench className="h-4 w-4" />, path: '/admin/settings/general' },
                 { name: 'Company Profile', icon: <Building2 className="h-4 w-4" />, path: '/admin/company-profile' },
@@ -113,6 +132,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
             name: 'Inventaris',
             icon: <Archive className="h-4 w-4" />,
             badge: '12',
+            roles: ALL_ADMIN_ROLES,
             children: [
                 { name: 'Kategori', icon: <FolderKanban className="h-4 w-4" />, path: '/admin/inventory/categories' },
                 { name: 'Daftar Barang', icon: <ClipboardList className="h-4 w-4" />, path: '/admin/inventory/items' },
@@ -123,6 +143,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
         {
             name: 'Transaksi & Order',
             icon: <DollarSign className="h-4 w-4" />,
+            roles: ALL_ADMIN_ROLES,
             children: [
                 { name: 'Wedding Order', icon: <ClipboardList className="h-4 w-4" />, path: '/admin/orders' },
                 { name: 'Mini Order', icon: <ClipboardList className="h-4 w-4" />, path: '/admin/mini-orders' },
@@ -132,6 +153,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
         {
             name: 'Event & Rundown',
             icon: <CalendarCheck2 className="h-4 w-4" />,
+            roles: ALL_ADMIN_ROLES,
             children: [
                 { name: 'Daftar Event', icon: <Calendar className="h-4 w-4" />, path: '/admin/events' },
                 { name: 'Rundown Acara', icon: <List className="h-4 w-4" />, path: '/admin/rundowns' },
@@ -142,26 +164,26 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
         {
             name: 'Venue',
             icon: <MapPin className="h-4 w-4" />,
+            roles: ALL_ADMIN_ROLES,
             children: [
                 { name: 'Daftar Venue', icon: <ClipboardList className="h-4 w-4" />, path: '/admin/venues' },
-                { name: 'Ketersediaan', icon: <Calendar className="h-4 w-4" />, path: '/admin/venues/availability' },
                 { name: 'Pricing', icon: <DollarSign className="h-4 w-4" />, path: '/admin/venues/pricing' },
             ],
         },
         {
             name: 'Karyawan',
             icon: <UserRound className="h-4 w-4" />,
+            roles: ALL_ADMIN_ROLES,
             children: [
                 { name: 'Daftar Karyawan', icon: <ClipboardList className="h-4 w-4" />, path: '/admin/employees' },
                 { name: 'Jadwal Kerja', icon: <Calendar className="h-4 w-4" />, path: '/admin/employees/schedules' },
-                { name: 'Penugasan', icon: <Layers className="h-4 w-4" />, path: '/admin/employees/assignments' },
-                { name: 'Absensi', icon: <UserCheck className="h-4 w-4" />, path: '/admin/employees/attendance' },
                 { name: 'Payroll', icon: <Scale className="h-4 w-4" />, path: '/admin/payroll' },
             ],
         },
         {
             name: 'Biaya Operasional',
             icon: <Database className="h-4 w-4" />,
+            roles: ALL_ADMIN_ROLES,
             children: [
                 { name: 'Produksi & Bahan Baku', icon: <Briefcase className="h-4 w-4" />, path: '/admin/operational-costs' },
             ],
@@ -169,6 +191,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
         {
             name: 'Vendor',
             icon: <Building2 className="h-4 w-4" />,
+            roles: ALL_ADMIN_ROLES,
             children: [
                 { name: 'Daftar Vendor', icon: <ClipboardList className="h-4 w-4" />, path: '/admin/vendors' },
                 { name: 'Kategori Vendor', icon: <FolderKanban className="h-4 w-4" />, path: '/admin/vendor-categories' },
@@ -179,6 +202,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
         {
             name: 'Clients',
             icon: <UserCircle2 className="h-4 w-4" />,
+            roles: ALL_ADMIN_ROLES,
             children: [
                 { name: 'Daftar Client', icon: <ClipboardList className="h-4 w-4" />, path: '/admin/clients' },
                 { name: 'Verifikasi Order', icon: <BadgeCheck className="h-4 w-4" />, path: '/admin/client-verification' },
@@ -187,6 +211,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
         {
             name: 'Laporan',
             icon: <FileSpreadsheet className="h-4 w-4" />,
+            roles: ALL_ADMIN_ROLES,
             children: [
                 { name: 'Laporan Penjualan', icon: <DollarSign className="h-4 w-4" />, path: '/admin/reports/sales' },
                 { name: 'Laporan Inventaris', icon: <Archive className="h-4 w-4" />, path: '/admin/reports/inventory' },
@@ -197,6 +222,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
         {
             name: 'Pengaturan',
             icon: <Settings className="h-4 w-4" />,
+            roles: ALL_ADMIN_ROLES,
             children: [
                 { name: 'Notifikasi', icon: <Bell className="h-4 w-4" />, path: '/admin/settings/notifications' },
                 { name: 'Email Templates', icon: <Mail className="h-4 w-4" />, path: '/admin/settings/email-templates' },
@@ -204,6 +230,12 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
             ],
         },
     ];
+
+    // Filter menu berdasarkan role user
+    const menuItems = allMenuItems.filter((item) => {
+        if (!item.roles) return true;
+        return user?.role && item.roles.includes(user.role);
+    });
 
     const toggleMenu = (menuName: string) => {
         setOpenMenus((prev) => (prev.includes(menuName) ? prev.filter((m) => m !== menuName) : [...prev, menuName]));
@@ -335,7 +367,7 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
                             </div>
                             <div className="flex-1">
                                 <p className="text-sm font-medium">{user?.name}</p>
-                                <p className="text-xs text-[var(--admin-sidebar-muted)]">{user?.role}</p>
+                                <p className="text-xs text-[var(--admin-sidebar-muted)]">{user?.role ? formatRoleLabel(user.role) : ''}</p>
                             </div>
                         </div>
                         <button

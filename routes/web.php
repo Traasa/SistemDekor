@@ -57,8 +57,8 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/my-orders/{id}/contract', [OrderDocumentController::class, 'downloadContractClient'])->name('client.orders.contract');
 });
 
-// Admin routes (protected + admin role check)
-Route::middleware(['auth'])->prefix('admin')->group(function () {
+// Admin routes (protected + role check via AdminMiddleware)
+Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     Route::get('/', function () {
         return Inertia::render('admin/NewAdminDashboard');
     });

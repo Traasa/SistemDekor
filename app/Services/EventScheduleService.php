@@ -6,7 +6,7 @@ use App\Models\Event;
 
 class EventScheduleService
 {
-    public const MAX_EVENTS_PER_DAY = 3;
+    public const MAX_EVENTS_PER_DAY = 1;
 
     public static function countBookedEventsOnDate(string $eventDate, ?int $excludeOrderId = null): int
     {

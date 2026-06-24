@@ -143,12 +143,14 @@ class EmployeeScheduleController extends Controller
     }
 
     /**
-     * Bulk create schedules
+     * Bulk create schedules for multiple employees
      */
     public function bulkStore(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'employee_id' => 'required|exists:employees,id',
+        // Support both employee_id (single) and employee_ids (array)
+        $hasEmployeeIds = $request->has('employee_ids') && is_array($request->employee_ids) && count($request->employee_ids) > 0;
+
+        $rules = [
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'shift_start' => 'required|date_format:H:i',
@@ -156,48 +158,72 @@ class EmployeeScheduleController extends Controller
             'shift_type' => 'required|in:morning,afternoon,evening,night,full_day',
             'location' => 'nullable|string|max:100',
             'notes' => 'nullable|string',
-            'days' => 'required|array', // Array of day numbers (0=Sunday, 6=Saturday)
+            'days' => 'required|array',
             'days.*' => 'integer|min:0|max:6'
-        ]);
+        ];
+
+        if ($hasEmployeeIds) {
+            $rules['employee_ids'] = 'required|array|min:1';
+            $rules['employee_ids.*'] = 'exists:employees,id';
+        } else {
+            $rules['employee_id'] = 'required|exists:employees,id';
+        }
+
+        $validator = Validator::make($request->all(), $rules);
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
+        $employeeIds = $hasEmployeeIds
+            ? $request->employee_ids
+            : [$request->employee_id];
+
         $startDate = Carbon::parse($request->start_date);
         $endDate = Carbon::parse($request->end_date);
         $created = [];
+        $skipped = 0;
 
-        while ($startDate->lte($endDate)) {
-            // Check if this day is in the selected days
-            if (in_array($startDate->dayOfWeek, $request->days)) {
-                // Check for conflicts
-                $schedule = new EmployeeSchedule();
-                if (!$schedule->hasConflict(
-                    $request->employee_id,
-                    $startDate->format('Y-m-d'),
-                    $request->shift_start,
-                    $request->shift_end
-                )) {
-                    $created[] = EmployeeSchedule::create([
-                        'employee_id' => $request->employee_id,
-                        'date' => $startDate->format('Y-m-d'),
-                        'shift_start' => $request->shift_start,
-                        'shift_end' => $request->shift_end,
-                        'shift_type' => $request->shift_type,
-                        'status' => 'scheduled',
-                        'location' => $request->location,
-                        'notes' => $request->notes
-                    ]);
+        foreach ($employeeIds as $employeeId) {
+            $current = $startDate->copy();
+
+            while ($current->lte($endDate)) {
+                if (in_array($current->dayOfWeek, $request->days)) {
+                    $schedule = new EmployeeSchedule();
+                    if (!$schedule->hasConflict(
+                        $employeeId,
+                        $current->format('Y-m-d'),
+                        $request->shift_start,
+                        $request->shift_end
+                    )) {
+                        $created[] = EmployeeSchedule::create([
+                            'employee_id' => $employeeId,
+                            'date' => $current->format('Y-m-d'),
+                            'shift_start' => $request->shift_start,
+                            'shift_end' => $request->shift_end,
+                            'shift_type' => $request->shift_type,
+                            'status' => 'scheduled',
+                            'location' => $request->location,
+                            'notes' => $request->notes
+                        ]);
+                    } else {
+                        $skipped++;
+                    }
                 }
-            }
 
-            $startDate->addDay();
+                $current->addDay();
+            }
+        }
+
+        $message = count($created) . ' jadwal berhasil dibuat';
+        if ($skipped > 0) {
+            $message .= ', ' . $skipped . ' jadwal dilewati karena bentrok';
         }
 
         return response()->json([
-            'message' => count($created) . ' jadwal berhasil dibuat',
+            'message' => $message,
             'data' => $created
         ], 201);
     }
+
 }

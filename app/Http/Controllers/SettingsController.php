@@ -437,22 +437,7 @@ class SettingsController extends Controller
                 return response()->json(['message' => 'Backup tidak ditemukan'], 404);
             }
 
-            $sql = file_get_contents($filepath);
-            
-            // Disable foreign key checks
-            DB::statement('SET FOREIGN_KEY_CHECKS=0');
-            
-            // Execute SQL
-            DB::unprepared($sql);
-            
-            // Enable foreign key checks
-            DB::statement('SET FOREIGN_KEY_CHECKS=1');
-
-            // Clear all caches
-            Cache::flush();
-            Artisan::call('config:clear');
-            Artisan::call('cache:clear');
-            Artisan::call('view:clear');
+            $this->executeRestore($filepath);
 
             return response()->json(['message' => 'Database berhasil direstore']);
 
@@ -461,6 +446,75 @@ class SettingsController extends Controller
                 'message' => 'Gagal restore database: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    /**
+     * Upload a backup file and restore from it
+     */
+    public function uploadRestoreBackup(Request $request)
+    {
+        $request->validate([
+            'backup_file' => 'required|file|max:51200', // max 50MB
+        ]);
+
+        try {
+            $file = $request->file('backup_file');
+            $originalName = $file->getClientOriginalName();
+            
+            // Validate file extension
+            $extension = strtolower($file->getClientOriginalExtension());
+            if (!in_array($extension, ['sql'])) {
+                return response()->json([
+                    'message' => 'Format file tidak valid. Hanya file .sql yang diizinkan.',
+                ], 422);
+            }
+
+            $backupPath = storage_path('app/backups');
+            if (!file_exists($backupPath)) {
+                mkdir($backupPath, 0755, true);
+            }
+
+            // Save uploaded file to backups directory
+            $filename = 'uploaded_' . date('Y-m-d_H-i-s') . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
+            $filepath = $backupPath . '/' . $filename;
+            $file->move($backupPath, $filename);
+
+            // Execute restore
+            $this->executeRestore($filepath);
+
+            return response()->json([
+                'message' => 'Database berhasil direstore dari file yang diupload!',
+                'filename' => $filename,
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Gagal restore database: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Execute database restore from a SQL file
+     */
+    private function executeRestore(string $filepath): void
+    {
+        $sql = file_get_contents($filepath);
+        
+        // Disable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=0');
+        
+        // Execute SQL
+        DB::unprepared($sql);
+        
+        // Enable foreign key checks
+        DB::statement('SET FOREIGN_KEY_CHECKS=1');
+
+        // Clear all caches
+        Cache::flush();
+        Artisan::call('config:clear');
+        Artisan::call('cache:clear');
+        Artisan::call('view:clear');
     }
 
     /**

@@ -19,7 +19,12 @@ interface Venue {
     id: number;
     name: string;
     city?: string;
+    address?: string;
     is_active?: boolean;
+    pricing?: Array<{
+        base_price: number;
+        is_active: boolean;
+    }>;
 }
 
 interface CheckoutForm {
@@ -92,6 +97,42 @@ const FEATURED_TIERS = [
     },
 ];
 
+const WEEKDAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+const pad2 = (value: number) => String(value).padStart(2, '0');
+
+const toDateKey = (date: Date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+
+const formatDisplayDate = (value: string) => {
+    if (!value) return '';
+    const parsed = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+};
+
+const buildCalendarDays = (baseDate: Date) => {
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const leadingBlanks = firstDay.getDay();
+    const days: Array<Date | null> = [];
+
+    for (let i = 0; i < leadingBlanks; i += 1) {
+        days.push(null);
+    }
+
+    for (let day = 1; day <= lastDay.getDate(); day += 1) {
+        days.push(new Date(year, month, day));
+    }
+
+    while (days.length % 7 !== 0) {
+        days.push(null);
+    }
+
+    return days;
+};
+
 const PackagesPage: React.FC = () => {
     const { auth } = usePage<{ auth?: { user?: AuthUser } }>().props;
     const user = auth?.user;
@@ -105,6 +146,13 @@ const PackagesPage: React.FC = () => {
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
     const [visiblePackages, setVisiblePackages] = useState(6);
+    const [unavailableDates, setUnavailableDates] = useState<Set<string>>(new Set());
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+    const [calendarMonth, setCalendarMonth] = useState(() => {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+    });
+    const [isDatesLoading, setIsDatesLoading] = useState(false);
 
     const [formData, setFormData] = useState<CheckoutForm>({
         package_id: '',
@@ -143,6 +191,48 @@ const PackagesPage: React.FC = () => {
 
         fetchData();
     }, []);
+
+    useEffect(() => {
+        if (!showCheckoutModal) {
+            setIsDatePickerOpen(false);
+            return;
+        }
+
+        const now = new Date();
+        setCalendarMonth(new Date(now.getFullYear(), now.getMonth(), 1));
+
+        const fetchUnavailableDates = async () => {
+            try {
+                setIsDatesLoading(true);
+                const from = toDateKey(now);
+                const toDate = new Date(now.getFullYear(), now.getMonth() + 12, now.getDate());
+                const response = await axios.get('/api/unavailable-dates', {
+                    params: {
+                        from,
+                        to: toDateKey(toDate),
+                    },
+                });
+
+                const dates = Array.isArray(response.data?.data) ? response.data.data : [];
+                setUnavailableDates(new Set(dates));
+            } catch (error) {
+                console.error('Failed to load unavailable dates', error);
+                setUnavailableDates(new Set());
+            } finally {
+                setIsDatesLoading(false);
+            }
+        };
+
+        fetchUnavailableDates();
+    }, [showCheckoutModal]);
+
+    useEffect(() => {
+        if (!formData.event_date) return;
+        if (unavailableDates.has(formData.event_date)) {
+            setFormData((prev) => ({ ...prev, event_date: '' }));
+            setErrorMessage('Tanggal tersebut sudah dibooking. Silakan pilih tanggal lain.');
+        }
+    }, [formData.event_date, unavailableDates]);
 
     useEffect(() => {
         if (!user) return;
@@ -188,6 +278,25 @@ const PackagesPage: React.FC = () => {
 
     const handleSubmitOrder = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!formData.event_date) {
+            setErrorMessage('Tanggal acara wajib dipilih.');
+            return;
+        }
+
+        if (unavailableDates.has(formData.event_date)) {
+            setErrorMessage('Tanggal tersebut sudah dibooking. Silakan pilih tanggal lain.');
+            return;
+        }
+
+        const minDate = new Date();
+        minDate.setHours(0, 0, 0, 0);
+        minDate.setDate(minDate.getDate() + 1);
+        const selectedDate = new Date(`${formData.event_date}T00:00:00`);
+        if (selectedDate < minDate) {
+            setErrorMessage('Tanggal acara minimal H+1 dari hari ini.');
+            return;
+        }
+
         setIsSubmitting(true);
         setErrorMessage('');
 
@@ -227,6 +336,20 @@ const PackagesPage: React.FC = () => {
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const minSelectableDate = (() => {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() + 1);
+        return date;
+    })();
+
+    const calendarDays = buildCalendarDays(calendarMonth);
+
+    const isDateBlocked = (date: Date) => {
+        if (date < minSelectableDate) return true;
+        return unavailableDates.has(toDateKey(date));
     };
 
     return (
@@ -384,23 +507,112 @@ const PackagesPage: React.FC = () => {
                                         placeholder="Nomor WhatsApp"
                                         className="rounded-xl border border-slate-300 px-4 py-3"
                                     />
-                                    <input
-                                        type="date"
-                                        name="event_date"
-                                        value={formData.event_date}
-                                        onChange={handleInputChange}
-                                        required
-                                        className="rounded-xl border border-slate-300 px-4 py-3"
-                                    />
+                                    <div className="relative">
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsDatePickerOpen((prev) => !prev)}
+                                            className="flex w-full items-center justify-between rounded-xl border border-slate-300 px-4 py-3 text-left text-sm text-slate-700"
+                                            aria-haspopup="dialog"
+                                            aria-expanded={isDatePickerOpen}
+                                        >
+                                            <span>
+                                                {formData.event_date
+                                                    ? formatDisplayDate(formData.event_date)
+                                                    : 'Pilih tanggal acara'}
+                                            </span>
+                                            <span className="text-xs text-slate-400">📅</span>
+                                        </button>
+                                        <input type="hidden" name="event_date" value={formData.event_date} />
+
+                                        {isDatePickerOpen && (
+                                            <div className="absolute z-50 mt-2 w-72 rounded-xl border border-slate-200 bg-white p-4 shadow-xl">
+                                                <div className="flex items-center justify-between">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setCalendarMonth(
+                                                                (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1),
+                                                            )
+                                                        }
+                                                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-600"
+                                                    >
+                                                        ‹
+                                                    </button>
+                                                    <p className="text-sm font-semibold text-slate-700">
+                                                        {calendarMonth.toLocaleDateString('id-ID', {
+                                                            month: 'long',
+                                                            year: 'numeric',
+                                                        })}
+                                                    </p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() =>
+                                                            setCalendarMonth(
+                                                                (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1),
+                                                            )
+                                                        }
+                                                        className="rounded-lg border border-slate-200 px-2 py-1 text-xs text-slate-600"
+                                                    >
+                                                        ›
+                                                    </button>
+                                                </div>
+
+                                                <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs text-slate-400">
+                                                    {WEEKDAY_LABELS.map((label) => (
+                                                        <span key={label}>{label}</span>
+                                                    ))}
+                                                </div>
+
+                                                <div className="mt-2 grid grid-cols-7 gap-1 text-center text-sm">
+                                                    {calendarDays.map((date, index) => {
+                                                        if (!date) {
+                                                            return <div key={`empty-${index}`} className="h-9" />;
+                                                        }
+
+                                                        const dateKey = toDateKey(date);
+                                                        const isSelected = formData.event_date === dateKey;
+                                                        const isBlocked = isDateBlocked(date);
+
+                                                        return (
+                                                            <button
+                                                                type="button"
+                                                                key={dateKey}
+                                                                disabled={isBlocked}
+                                                                onClick={() => {
+                                                                    setFormData((prev) => ({ ...prev, event_date: dateKey }));
+                                                                    setErrorMessage('');
+                                                                    setIsDatePickerOpen(false);
+                                                                }}
+                                                                className={`h-9 w-9 rounded-full text-sm transition ${
+                                                                    isSelected
+                                                                        ? 'bg-[#B08A56] text-white'
+                                                                        : isBlocked
+                                                                          ? 'cursor-not-allowed bg-slate-100 text-slate-300'
+                                                                          : 'text-slate-700 hover:bg-slate-100'
+                                                                }`}
+                                                            >
+                                                                {date.getDate()}
+                                                            </button>
+                                                        );
+                                                    })}
+                                                </div>
+
+                                                <div className="mt-3 text-xs text-slate-500">
+                                                    {isDatesLoading ? 'Memuat jadwal...' : 'Tanggal abu-abu sudah dibooking.'}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
                                 <input
                                     name="event_location"
                                     value={formData.event_location}
-                                    onChange={handleInputChange}
+                                    onChange={formData.is_venue_included ? undefined : handleInputChange}
+                                    readOnly={formData.is_venue_included}
                                     required
-                                    placeholder="Lokasi acara"
-                                    className="w-full rounded-xl border border-slate-300 px-4 py-3"
+                                    placeholder={formData.is_venue_included ? "Lokasi otomatis terisi dari venue" : "Lokasi acara"}
+                                    className={`w-full rounded-xl border px-4 py-3 ${formData.is_venue_included ? 'bg-slate-100 border-slate-200 cursor-not-allowed text-slate-500' : 'bg-white border-slate-300'}`}
                                 />
 
                                 <div className="space-y-3 rounded-xl border border-slate-200 p-4">
@@ -422,24 +634,34 @@ const PackagesPage: React.FC = () => {
                                     </label>
 
                                     {formData.is_venue_included ? (
-                                        <div className="grid gap-3 sm:grid-cols-2">
-                                            <select name="venue_id" value={formData.venue_id} onChange={handleInputChange} className="rounded-xl border border-slate-300 px-4 py-3">
+                                        <div className="grid gap-3 sm:grid-cols-1">
+                                            <select 
+                                                name="venue_id" 
+                                                value={formData.venue_id} 
+                                                onChange={(e) => {
+                                                    const venueId = e.target.value;
+                                                    const venue = venues.find(v => v.id.toString() === venueId);
+                                                    const pricing = venue?.pricing?.[0]; // Get first active pricing
+                                                    const price = pricing ? pricing.base_price : 0;
+                                                    const address = venue ? [venue.name, venue.address, venue.city].filter(Boolean).join(', ') : '';
+                                                    
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        venue_id: venueId,
+                                                        venue_price: price.toString(),
+                                                        event_location: address || prev.event_location
+                                                    }));
+                                                }} 
+                                                className="rounded-xl border border-slate-300 px-4 py-3"
+                                            >
                                                 <option value="">Pilih venue</option>
                                                 {venues.map((venue) => (
                                                     <option key={venue.id} value={venue.id.toString()}>
                                                         {venue.name} {venue.city ? `(${venue.city})` : ''}
+                                                        {venue.pricing?.[0] ? ` - ${formatCurrency(venue.pricing[0].base_price)}` : ''}
                                                     </option>
                                                 ))}
                                             </select>
-                                            <input
-                                                type="number"
-                                                name="venue_price"
-                                                min={0}
-                                                value={formData.venue_price}
-                                                onChange={handleInputChange}
-                                                placeholder="Harga venue"
-                                                className="rounded-xl border border-slate-300 px-4 py-3"
-                                            />
                                         </div>
                                     ) : (
                                         <p className="text-xs text-slate-500">Venue bisa Anda urus sendiri. Harga paket tidak ditambah biaya venue.</p>

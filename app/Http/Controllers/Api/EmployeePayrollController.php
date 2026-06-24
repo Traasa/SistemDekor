@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeePayroll;
+use App\Models\OperationalCost;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -63,6 +64,8 @@ class EmployeePayrollController extends Controller
         $deductions = (float) ($validated['deductions'] ?? 0);
         $adjustments = (float) ($validated['adjustments'] ?? 0);
         $baseAmount = (float) $validated['base_amount'];
+        $totalAmount = $baseAmount + $bonuses + $adjustments - $deductions;
+        $status = $validated['status'] ?? 'pending';
 
         $payroll = EmployeePayroll::create([
             'employee_id' => $validated['employee_id'],
@@ -74,12 +77,17 @@ class EmployeePayrollController extends Controller
             'bonuses' => $bonuses,
             'deductions' => $deductions,
             'adjustments' => $adjustments,
-            'total_amount' => $baseAmount + $bonuses + $adjustments - $deductions,
+            'total_amount' => $totalAmount,
             'payment_date' => $validated['payment_date'] ?? null,
-            'status' => $validated['status'] ?? 'pending',
+            'status' => $status,
             'notes' => $validated['notes'] ?? null,
             'created_by' => auth()->id(),
         ]);
+
+        // Auto-create operational cost when status is paid
+        if ($status === 'paid') {
+            $this->createOperationalCost($payroll, $employee);
+        }
 
         return response()->json(['data' => $payroll->load('employee')], 201);
     }
@@ -98,6 +106,7 @@ class EmployeePayrollController extends Controller
             'notes' => 'nullable|string',
         ]);
 
+        $oldStatus = $employeePayroll->status;
         $periodType = $this->resolvePeriodTypeByEmployment($employeePayroll->employee->employment_type);
         $this->validatePeriodByType($periodType, $validated['period_start'], $validated['period_end']);
 
@@ -105,6 +114,8 @@ class EmployeePayrollController extends Controller
         $deductions = (float) ($validated['deductions'] ?? 0);
         $adjustments = (float) ($validated['adjustments'] ?? 0);
         $baseAmount = (float) $validated['base_amount'];
+        $totalAmount = $baseAmount + $bonuses + $adjustments - $deductions;
+        $newStatus = $validated['status'] ?? $employeePayroll->status;
 
         $employeePayroll->update([
             'period_type' => $periodType,
@@ -114,17 +125,23 @@ class EmployeePayrollController extends Controller
             'bonuses' => $bonuses,
             'deductions' => $deductions,
             'adjustments' => $adjustments,
-            'total_amount' => $baseAmount + $bonuses + $adjustments - $deductions,
+            'total_amount' => $totalAmount,
             'payment_date' => $validated['payment_date'] ?? null,
-            'status' => $validated['status'] ?? $employeePayroll->status,
+            'status' => $newStatus,
             'notes' => $validated['notes'] ?? null,
         ]);
+
+        // Sync operational cost based on status change
+        $this->syncOperationalCost($employeePayroll, $oldStatus, $newStatus);
 
         return response()->json(['data' => $employeePayroll->fresh('employee')]);
     }
 
     public function destroy(EmployeePayroll $employeePayroll): JsonResponse
     {
+        // Remove related operational cost
+        $this->deleteOperationalCost($employeePayroll->id);
+
         $employeePayroll->delete();
 
         return response()->json(['message' => 'Payroll berhasil dihapus']);
@@ -160,5 +177,68 @@ class EmployeePayrollController extends Controller
                 abort(422, 'Payroll mingguan wajib 7 hari (period_end = period_start + 6 hari).');
             }
         }
+    }
+
+    /**
+     * Create an operational cost entry for a paid payroll.
+     */
+    private function createOperationalCost(EmployeePayroll $payroll, Employee $employee): void
+    {
+        $periodLabel = Carbon::parse($payroll->period_start)->format('d/m/Y') . ' - ' . Carbon::parse($payroll->period_end)->format('d/m/Y');
+
+        OperationalCost::create([
+            'cost_code' => OperationalCost::generateCode(),
+            'cost_type' => 'payroll',
+            'title' => 'Gaji ' . $employee->name . ' (' . $payroll->payroll_code . ')',
+            'description' => 'Payroll ' . $payroll->period_type . ' periode ' . $periodLabel,
+            'amount' => $payroll->total_amount,
+            'cost_date' => $payroll->payment_date ?? now()->toDateString(),
+            'reference_type' => 'employee_payroll',
+            'reference_id' => $payroll->id,
+            'notes' => $payroll->notes,
+            'created_by' => auth()->id(),
+        ]);
+    }
+
+    /**
+     * Sync operational cost based on payroll status change.
+     */
+    private function syncOperationalCost(EmployeePayroll $payroll, string $oldStatus, string $newStatus): void
+    {
+        $existingCost = OperationalCost::where('reference_type', 'employee_payroll')
+            ->where('reference_id', $payroll->id)
+            ->first();
+
+        if ($oldStatus !== 'paid' && $newStatus === 'paid') {
+            // Was not paid, now paid -> create operational cost
+            if (!$existingCost) {
+                $this->createOperationalCost($payroll, $payroll->employee);
+            }
+        } elseif ($oldStatus === 'paid' && $newStatus !== 'paid') {
+            // Was paid, now not paid -> delete operational cost
+            if ($existingCost) {
+                $existingCost->delete();
+            }
+        } elseif ($oldStatus === 'paid' && $newStatus === 'paid' && $existingCost) {
+            // Still paid but amount may have changed -> update
+            $periodLabel = Carbon::parse($payroll->period_start)->format('d/m/Y') . ' - ' . Carbon::parse($payroll->period_end)->format('d/m/Y');
+            $existingCost->update([
+                'title' => 'Gaji ' . $payroll->employee->name . ' (' . $payroll->payroll_code . ')',
+                'description' => 'Payroll ' . $payroll->period_type . ' periode ' . $periodLabel,
+                'amount' => $payroll->total_amount,
+                'cost_date' => $payroll->payment_date ?? now()->toDateString(),
+                'notes' => $payroll->notes,
+            ]);
+        }
+    }
+
+    /**
+     * Delete operational cost linked to a payroll.
+     */
+    private function deleteOperationalCost(int $payrollId): void
+    {
+        OperationalCost::where('reference_type', 'employee_payroll')
+            ->where('reference_id', $payrollId)
+            ->delete();
     }
 }

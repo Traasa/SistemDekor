@@ -3,6 +3,7 @@ import React, { useEffect, useState } from 'react';
 import { AdminLayout } from '../../../layouts/AdminLayout';
 import api from '../../../services/api';
 import { miniOrderService } from '../../../services/apiService';
+import { formatRupiah } from '@/utils/formatRupiah';
 
 interface VendorClient {
     id: number;
@@ -114,7 +115,7 @@ const CreateMiniOrderPage: React.FC = () => {
             notes: formData.notes === '' ? null : formData.notes,
             special_requests: formData.special_requests === '' ? null : formData.special_requests,
             event_location: formData.event_location === '' ? null : formData.event_location,
-            total_price: formData.total_price === '' ? null : Number(formData.total_price),
+            total_price: formData.total_price === '' ? null : Math.round(Number(formData.total_price)),
         };
 
         try {
@@ -325,14 +326,22 @@ const CreateMiniOrderPage: React.FC = () => {
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700">Estimasi Biaya</label>
                                 <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
                                     name="total_price"
                                     value={formData.total_price}
-                                    onChange={handleInputChange}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9]/g, '');
+                                        setFormData((prev) => ({ ...prev, total_price: val }));
+                                    }}
                                     placeholder="Contoh: 15000000"
-                                    min="0"
                                     className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                 />
+                                {formData.total_price && (
+                                    <p className="mt-1 text-xs text-gray-500">
+                                        = {formatRupiah(Number(formData.total_price))}
+                                    </p>
+                                )}
                                 <p className="mt-1 text-xs text-gray-500">Bisa dikosongkan jika akan dinegosiasikan saat finalisasi.</p>
                             </div>
                         </div>

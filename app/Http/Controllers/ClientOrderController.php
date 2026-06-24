@@ -32,7 +32,7 @@ class ClientOrderController extends Controller
                 'after:today',
                 function (string $attribute, mixed $value, \Closure $fail) {
                     if (EventScheduleService::isDateFullyBooked((string) $value)) {
-                        $fail('Tanggal acara sudah penuh (maksimal 3 event terkonfirmasi per hari). Silakan pilih tanggal lain.');
+                        $fail('Tanggal acara sudah penuh (maksimal 1 event terkonfirmasi per hari). Silakan pilih tanggal lain.');
                     }
                 },
             ],
@@ -267,6 +267,8 @@ class ClientOrderController extends Controller
             'event.taskAssignments'
         ])->findOrFail($id);
 
+        $testimonial = \App\Models\Testimonial::where('order_id', $order->id)->latest()->first();
+
         // Security check: only allow client to view their own orders
         if ($client && $order->client_id !== $client->id) {
             abort(403, 'Unauthorized access to order');
@@ -361,7 +363,62 @@ class ClientOrderController extends Controller
                         ];
                     }),
                 ] : null,
+                'testimonial' => $testimonial ? [
+                    'id' => $testimonial->id,
+                    'rating' => $testimonial->rating,
+                    'testimonial' => $testimonial->testimonial,
+                    'event_type' => $testimonial->event_type,
+                ] : null,
             ],
+        ]);
+    }
+
+    public function submitReview(Request $request, $id)
+    {
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        $client = Client::where('email', $user->email)->first();
+        if (!$client) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Client not found',
+            ], 404);
+        }
+
+        $order = Order::with('client')->findOrFail($id);
+        if ($order->client_id !== $client->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Unauthorized access to order',
+            ], 403);
+        }
+
+        $request->validate([
+            'rating' => 'required|integer|min:1|max:5',
+            'testimonial' => 'required|string|max:1000',
+        ]);
+
+        $testimonial = \App\Models\Testimonial::updateOrCreate(
+            ['order_id' => $order->id],
+            [
+                'client_id' => $client->id,
+                'client_name' => $client->name,
+                'event_type' => $order->event_type,
+                'testimonial' => $request->testimonial,
+                'rating' => $request->rating,
+                'is_featured' => true,
+            ]
+        );
+
+        return response()->json([
+            'success' => true,
+            'data' => $testimonial,
         ]);
     }
 

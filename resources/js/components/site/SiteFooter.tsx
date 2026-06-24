@@ -63,7 +63,7 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
             </div>
 
             <div className="mx-auto mt-10 w-full max-w-6xl border-t border-slate-800 px-4 pt-6 text-center text-xs text-slate-400 sm:px-8 2xl:px-16">
-                © {new Date().getFullYear()} SistemDekor. All rights reserved.
+                © {new Date().getFullYear()} Ade Decoration. All rights reserved.
             </div>
         </footer>
     );

@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { AdminLayout } from '../../../layouts/AdminLayout';
 import api from '../../../services/api';
+import { formatRupiah } from '../../../utils/formatRupiah';
 
 interface PaymentDetail {
     id: number;
@@ -180,7 +181,7 @@ const PaymentDetailPage: React.FC<{ id: string }> = ({ id }) => {
                             <div className="rounded-lg bg-gray-50 p-4">
                                 <div className="flex items-center justify-between">
                                     <div className="font-semibold text-gray-900">{payment.order.package.name}</div>
-                                    <div className="font-semibold text-gray-900">Rp {payment.order.package.base_price.toLocaleString('id-ID')}</div>
+                                    <div className="font-semibold text-gray-900">{formatRupiah(payment.order.package.base_price)}</div>
                                 </div>
                             </div>
                         </div>
@@ -199,20 +200,20 @@ const PaymentDetailPage: React.FC<{ id: string }> = ({ id }) => {
                                 <tr>
                                     <td className="py-4 text-gray-900">Total Package/Service Price</td>
                                     <td className="py-4 text-right font-semibold text-gray-900">
-                                        Rp {payment.order.total_price.toLocaleString('id-ID')}
+                                        {formatRupiah(payment.order.total_price)}
                                     </td>
                                 </tr>
                                 <tr>
                                     <td className="py-4 text-gray-900">Down Payment (DP) Required</td>
                                     <td className="py-4 text-right font-semibold text-gray-900">
-                                        Rp {payment.order.dp_amount.toLocaleString('id-ID')}
+                                        {formatRupiah(payment.order.dp_amount)}
                                     </td>
                                 </tr>
                                 <tr className="bg-[#D4AF37]/10">
                                     <td className="py-4 font-semibold text-gray-900">
                                         {payment.payment_type === 'dp' ? 'Payment (DP)' : 'Full Payment'}
                                     </td>
-                                    <td className="py-4 text-right text-xl font-bold text-[#D4AF37]">Rp {payment.amount.toLocaleString('id-ID')}</td>
+                                    <td className="py-4 text-right text-xl font-bold text-[#D4AF37]">{formatRupiah(payment.amount)}</td>
                                 </tr>
                             </tbody>
                         </table>

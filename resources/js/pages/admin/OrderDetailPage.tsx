@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import axios from 'axios';
 import React, { useState } from 'react';
 import { AdminLayout } from '../../layouts/AdminLayout';
+import { formatRupiah } from '@/utils/formatRupiah';
 
 interface OrderDetail {
     id: number;
@@ -84,11 +85,7 @@ const OrderDetailPage: React.FC<Props> = ({ order }) => {
     const [updatingStatus, setUpdatingStatus] = useState(false);
 
     const formatCurrency = (amount: number) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-        }).format(amount);
+        return formatRupiah(amount);
     };
 
     const getStatusBadgeColor = (status: string) => {
@@ -623,7 +620,7 @@ const OrderDetailPage: React.FC<Props> = ({ order }) => {
                                 <div className="flex-1">
                                     <h4 className="mb-1 font-semibold text-gray-900">Generate Payment Link - Cicilan/Pelunasan</h4>
                                         <p className="mb-3 text-sm text-gray-600">
-                                        Generate link cicilan atau pelunasan untuk sisa tagihan Rp {order.remaining_amount?.toLocaleString('id-ID')}.
+                                        Generate link cicilan atau pelunasan untuk sisa tagihan {formatRupiah(order.remaining_amount || 0)}.
                                     </p>
                                     <div className="flex flex-wrap gap-2">
                                             <div className="min-w-[220px]">
@@ -968,7 +965,7 @@ const OrderDetailPage: React.FC<Props> = ({ order }) => {
 
                 {/* Payment Proofs Section */}
                 <div className="rounded-xl bg-white p-6 shadow-sm">
-                    <h2 className="mb-4 text-xl font-bold text-gray-900">Riwayat Pembayaran</h2>
+                    <h2 className="mb-4 text-xl font-bold text-gray-900">Bukti Pembayaran</h2>
                     {order.payment_proofs && order.payment_proofs.length > 0 ? (
                         <div className="space-y-4">
                             {order.payment_proofs.map((proof) => (

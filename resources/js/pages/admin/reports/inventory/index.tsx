@@ -1,6 +1,7 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
 import { AdminLayout } from '@/layouts/AdminLayout';
+import { formatRupiah } from '@/utils/formatRupiah';
 import {
     Package,
     AlertTriangle,
@@ -181,7 +182,7 @@ export default function InventoryReportPage() {
                             <div>
                                 <p className="text-gray-600 text-sm">Total Value</p>
                                 <p className="text-2xl font-bold text-gray-900 mt-1">
-                                    Rp {(data?.summary.total_value || 0).toLocaleString('id-ID')}
+                                    {formatRupiah(data?.summary.total_value || 0)}
                                 </p>
                             </div>
                             <div className="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -269,7 +270,7 @@ export default function InventoryReportPage() {
                                         {cat.total_stock}
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-semibold text-gray-900">
-                                        Rp {cat.total_value.toLocaleString('id-ID')}
+                                        {formatRupiah(cat.total_value)}
                                     </td>
                                 </tr>
                             ))}

@@ -125,7 +125,7 @@ const HomePage: React.FC = () => {
     const portfolioOverrides = (profile?.portfolio_highlight_images || [])
         .map((value) => resolveImagePath(value))
         .filter(Boolean) as string[];
-    const brandName = profile?.company_name || 'SistemDekor';
+    const brandName = profile?.company_name || 'Ade Decoration';
 
     const featuredPortfolio = (portfolios.length > 0
         ? portfolios.slice(0, 4)
@@ -263,7 +263,7 @@ const HomePage: React.FC = () => {
                                     </h2>
                                     <p className="mt-5 text-base leading-relaxed text-[#775E4E]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                                         {profile?.about || profile?.description ||
-                                            'Sistem Dekor adalah perusahaan penyedia jasa dekorasi dan event organizer profesional yang siap mewujudkan acara impian Anda. Kami berdedikasi untuk memberikan pelayanan terbaik dengan dekorasi yang indah dan profesional.'}
+                                            'Ade Decoration adalah perusahaan penyedia jasa dekorasi dan event organizer profesional yang siap mewujudkan acara impian Anda. Kami berdedikasi untuk memberikan pelayanan terbaik dengan dekorasi yang indah dan profesional.'}
                                     </p>
                                 </div>
 
@@ -359,8 +359,15 @@ const HomePage: React.FC = () => {
                                 </h3>
                                 <p className="mt-4 text-base leading-relaxed text-[#705646]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                                     {activeItem?.testimonial ||
-                                        'SistemDekor benar-benar wedding organizer terbaik! Dari awal konsultasi sampai hari H semuanya profesional, rapi, dan responsif. Dekorasi melebihi ekspektasi kami dan semua tamu memuji hasilnya.'}
+                                        'Ade Decoration benar-benar wedding organizer terbaik! Dari awal konsultasi sampai hari H semuanya profesional, rapi, dan responsif. Dekorasi melebihi ekspektasi kami dan semua tamu memuji hasilnya.'}
                                 </p>
+                                {activeItem?.rating && (
+                                    <div className="mt-3 flex gap-1 text-[#B08A56]">
+                                        {Array.from({ length: 5 }).map((_, index) => (
+                                            <span key={index}>{index < activeItem.rating ? '★' : '☆'}</span>
+                                        ))}
+                                    </div>
+                                )}
                                 <p className="mt-4 text-sm font-semibold text-[#86634C]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                                     {activeItem?.client_name || 'Andi & Sari'} - {activeItem?.event_type || 'Wedding'}
                                 </p>

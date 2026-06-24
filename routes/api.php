@@ -34,6 +34,7 @@ Route::get('/services/{service}', [ServiceController::class, 'show']);
 Route::get('/gallery', [GalleryController::class, 'index']);
 Route::get('/gallery/{gallery}', [GalleryController::class, 'show']);
 Route::get('/testimonials', [TestimonialController::class, 'index']);
+Route::get('/unavailable-dates', [App\Http\Controllers\EventController::class, 'unavailableDates']);
 
 // New: Public packages and portfolios routes
 Route::get('/packages', [App\Http\Controllers\Api\PackageController::class, 'index']);
@@ -48,6 +49,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/client/orders', [App\Http\Controllers\ClientOrderController::class, 'store']);
     Route::get('/client/orders', [App\Http\Controllers\ClientOrderController::class, 'myOrders']);
     Route::get('/client/orders/{id}', [App\Http\Controllers\ClientOrderController::class, 'show']);
+    Route::post('/client/orders/{id}/review', [App\Http\Controllers\ClientOrderController::class, 'submitReview']);
 });
 
 // Protected routes
@@ -99,6 +101,8 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/clients/{id}', [App\Http\Controllers\ClientController::class, 'show']);
         Route::put('/clients/{id}', [App\Http\Controllers\ClientController::class, 'update']);
         Route::delete('/clients/{id}', [App\Http\Controllers\ClientController::class, 'destroy']);
+        Route::get('/clients/{id}/testimonial', [App\Http\Controllers\ClientController::class, 'getClientTestimonial']);
+        Route::put('/clients/{id}/testimonial', [App\Http\Controllers\ClientController::class, 'upsertClientTestimonial']);
         Route::get('/clients-stats', [App\Http\Controllers\ClientController::class, 'getStats']);
         
         // Client Verification Routes
@@ -299,6 +303,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('settings-backup-download/{filename}', [App\Http\Controllers\SettingsController::class, 'downloadBackup']);
     Route::delete('settings-backup-delete/{filename}', [App\Http\Controllers\SettingsController::class, 'deleteBackup']);
     Route::post('settings-backup-restore/{filename}', [App\Http\Controllers\SettingsController::class, 'restoreBackup']);
+    Route::post('settings-backup-upload-restore', [App\Http\Controllers\SettingsController::class, 'uploadRestoreBackup']);
     Route::get('settings-system-info', [App\Http\Controllers\SettingsController::class, 'getSystemInfo']);
     Route::post('settings-logs-cleanup', [App\Http\Controllers\SettingsController::class, 'cleanupLogs']);
     Route::post('settings-clear-cache', [App\Http\Controllers\SettingsController::class, 'clearCache']);

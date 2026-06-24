@@ -2,6 +2,7 @@ import { router } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import { AdminLayout } from '../../../layouts/AdminLayout';
 import api from '../../../services/api';
+import { formatRupiah } from '@/utils/formatRupiah';
 
 interface Client {
     id: number;
@@ -17,11 +18,39 @@ interface Package {
     description: string;
 }
 
+interface Venue {
+    id: number;
+    name: string;
+    address: string;
+    city: string;
+    province: string;
+    capacity: number;
+    venue_type: string;
+    is_active: boolean;
+    pricing: VenuePricing[];
+}
+
+interface VenuePricing {
+    id: number;
+    venue_id: number;
+    day_type: string;
+    session_type: string;
+    base_price: string | number;
+    is_active: boolean;
+}
+
+const formatCurrency = (amount: number) => formatRupiah(amount);
+
 const CreateOrderPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [clients, setClients] = useState<Client[]>([]);
     const [packages, setPackages] = useState<Package[]>([]);
+    const [venues, setVenues] = useState<Venue[]>([]);
     const [showNewClientForm, setShowNewClientForm] = useState(false);
+    const [useWoVenue, setUseWoVenue] = useState(false);
+    const [selectedVenueId, setSelectedVenueId] = useState('');
+    const [selectedVenuePricingId, setSelectedVenuePricingId] = useState('');
+    const [venuePrice, setVenuePrice] = useState(0);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -34,6 +63,7 @@ const CreateOrderPage: React.FC = () => {
         guest_count: '1',
         notes: '',
         special_requests: '',
+        venue_id: '',
     });
 
     // New client form state
@@ -47,6 +77,7 @@ const CreateOrderPage: React.FC = () => {
     useEffect(() => {
         fetchClients();
         fetchPackages();
+        fetchVenues();
     }, []);
 
     const fetchClients = async () => {
@@ -71,10 +102,90 @@ const CreateOrderPage: React.FC = () => {
         }
     };
 
+    const fetchVenues = async () => {
+        try {
+            const response = await api.get('/venues?is_active=1');
+            if (response.data.success) {
+                setVenues(response.data.data);
+            }
+        } catch (error) {
+            console.error('Failed to fetch venues:', error);
+        }
+    };
+
     const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
+
+    const handleVenueToggle = (checked: boolean) => {
+        setUseWoVenue(checked);
+        if (!checked) {
+            // User wants to type their own address
+            setSelectedVenueId('');
+            setSelectedVenuePricingId('');
+            setVenuePrice(0);
+            setFormData((prev) => ({ ...prev, event_address: '', venue_id: '' }));
+        }
+    };
+
+    const handleVenueSelect = async (venueId: string) => {
+        setSelectedVenueId(venueId);
+        setSelectedVenuePricingId('');
+        setVenuePrice(0);
+
+        if (!venueId) {
+            setFormData((prev) => ({ ...prev, event_address: '', venue_id: '' }));
+            return;
+        }
+
+        // Load venue detail with pricing
+        try {
+            const response = await api.get(`/venues/${venueId}`);
+            if (response.data.success) {
+                const venue: Venue = response.data.data;
+                const fullAddress = [venue.name, venue.address, venue.city, venue.province]
+                    .filter(Boolean)
+                    .join(', ');
+
+                setFormData((prev) => ({
+                    ...prev,
+                    event_address: fullAddress,
+                    venue_id: venueId,
+                }));
+
+                // Update venues with pricing data
+                setVenues((prev) =>
+                    prev.map((v) => (v.id === venue.id ? { ...v, pricing: venue.pricing || [] } : v))
+                );
+
+                // Auto-select first active pricing if available
+                const activePricing = (venue.pricing || []).filter((p: VenuePricing) => p.is_active);
+                if (activePricing.length === 1) {
+                    setSelectedVenuePricingId(String(activePricing[0].id));
+                    setVenuePrice(Math.round(Number(activePricing[0].base_price) || 0));
+                }
+            }
+        } catch (error) {
+            console.error('Failed to fetch venue detail:', error);
+        }
+    };
+
+    const handleVenuePricingSelect = (pricingId: string) => {
+        setSelectedVenuePricingId(pricingId);
+        const venue = venues.find((v) => String(v.id) === selectedVenueId);
+        if (venue && venue.pricing) {
+            const pricing = venue.pricing.find((p) => String(p.id) === pricingId);
+            setVenuePrice(pricing ? Math.round(Number(pricing.base_price) || 0) : 0);
+        } else {
+            setVenuePrice(0);
+        }
+    };
+
+    // Calculate total price
+    const selectedPackage = packages.find((p) => String(p.id) === formData.package_id);
+    const packagePrice = selectedPackage?.base_price || 0;
+    const totalPrice = packagePrice + venuePrice;
 
     const handleNewClientSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -102,6 +213,8 @@ const CreateOrderPage: React.FC = () => {
             package_id: formData.package_id === '' ? null : formData.package_id,
             notes: formData.notes === '' ? null : formData.notes,
             special_requests: formData.special_requests === '' ? null : formData.special_requests,
+            venue_id: formData.venue_id === '' ? null : formData.venue_id,
+            venue_price: venuePrice > 0 ? venuePrice : null,
         };
 
         // Debug: Log form data before submit
@@ -128,6 +241,10 @@ const CreateOrderPage: React.FC = () => {
             setLoading(false);
         }
     };
+
+    // Get currently selected venue and its pricing
+    const currentVenue = venues.find((v) => String(v.id) === selectedVenueId);
+    const currentVenuePricing = currentVenue?.pricing?.filter((p) => p.is_active) || [];
 
     return (
         <AdminLayout>
@@ -288,22 +405,96 @@ const CreateOrderPage: React.FC = () => {
                                     value={formData.guest_count}
                                     onChange={handleInputChange}
                                     min="1"
+                                    step="1"
                                     placeholder="200"
                                     className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
                                     required
                                 />
                             </div>
+
+                            {/* Venue Toggle */}
+                            <div className="md:col-span-2">
+                                <label className="flex items-center gap-3 cursor-pointer mb-3">
+                                    <input
+                                        type="checkbox"
+                                        checked={useWoVenue}
+                                        onChange={(e) => handleVenueToggle(e.target.checked)}
+                                        className="h-5 w-5 rounded border-gray-300 text-[#D4AF37] focus:ring-[#D4AF37]"
+                                    />
+                                    <span className="text-sm font-medium text-gray-700">
+                                        🏛️ Tambahkan Venue dari WO
+                                    </span>
+                                </label>
+
+                                {useWoVenue && (
+                                    <div className="space-y-3 rounded-lg border border-[#D4AF37]/30 bg-[#FDF8E8] p-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700">Pilih Venue *</label>
+                                            <select
+                                                value={selectedVenueId}
+                                                onChange={(e) => handleVenueSelect(e.target.value)}
+                                                className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                                required
+                                            >
+                                                <option value="">-- Pilih Venue --</option>
+                                                {venues.map((venue) => (
+                                                    <option key={venue.id} value={venue.id}>
+                                                        {venue.name} — {venue.city}, Kap. {venue.capacity} orang
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+
+                                        {/* Venue pricing selection */}
+                                        {currentVenuePricing.length > 0 && (
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700">Pilih Paket Harga Venue</label>
+                                                <select
+                                                    value={selectedVenuePricingId}
+                                                    onChange={(e) => handleVenuePricingSelect(e.target.value)}
+                                                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                                >
+                                                    <option value="">-- Pilih Paket Harga --</option>
+                                                    {currentVenuePricing.map((pricing) => (
+                                                        <option key={pricing.id} value={pricing.id}>
+                                                            {pricing.day_type} / {pricing.session_type} — {formatCurrency(Math.round(Number(pricing.base_price) || 0))}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        )}
+
+                                        {venuePrice > 0 && (
+                                            <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-2">
+                                                <span className="text-sm text-green-700">✓ Harga venue yang ditambahkan:</span>
+                                                <span className="text-sm font-bold text-green-800">{formatCurrency(venuePrice)}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+
                             <div className="md:col-span-2">
                                 <label className="block text-sm font-medium text-gray-700">Alamat Event *</label>
                                 <textarea
                                     name="event_address"
                                     value={formData.event_address}
-                                    onChange={handleInputChange}
+                                    onChange={useWoVenue ? undefined : handleInputChange}
+                                    readOnly={useWoVenue}
                                     rows={3}
-                                    placeholder="Alamat lengkap venue (Jalan, Kota, Provinsi)"
-                                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
+                                    placeholder={useWoVenue ? 'Alamat otomatis terisi dari venue yang dipilih' : 'Alamat lengkap venue (Jalan, Kota, Provinsi)'}
+                                    className={`mt-1 w-full rounded-lg border px-4 py-2.5 text-gray-900 placeholder-gray-400 focus:outline-none ${
+                                        useWoVenue
+                                            ? 'border-gray-200 bg-gray-100 cursor-not-allowed'
+                                            : 'border-gray-300 bg-white focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20'
+                                    }`}
                                     required
                                 />
+                                {useWoVenue && (
+                                    <p className="mt-1 text-xs text-[#B8941F]">
+                                        📍 Alamat terisi otomatis dari venue yang dipilih
+                                    </p>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -323,7 +514,7 @@ const CreateOrderPage: React.FC = () => {
                                     <option value="">-- Custom / Tanpa Package --</option>
                                     {packages.map((pkg) => (
                                         <option key={pkg.id} value={pkg.id}>
-                                            {pkg.name} - Rp {(pkg.base_price || 0).toLocaleString('id-ID')}
+                                            {pkg.name} - {formatRupiah(pkg.base_price || 0)}
                                         </option>
                                     ))}
                                 </select>
@@ -332,7 +523,35 @@ const CreateOrderPage: React.FC = () => {
                                 </p>
                             </div>
                         </div>
-                        <p className="text-xs text-gray-500">Harga dan pembayaran akan dinegosiasikan setelah order dibuat</p>
+
+                        {/* Price Summary */}
+                        {(packagePrice > 0 || venuePrice > 0) && (
+                            <div className="mt-4 rounded-lg bg-gray-50 border border-gray-200 p-4">
+                                <h3 className="text-sm font-semibold text-gray-700 mb-2">Estimasi Harga</h3>
+                                <div className="space-y-1 text-sm text-gray-600">
+                                    {packagePrice > 0 && (
+                                        <div className="flex justify-between">
+                                            <span>Package: {selectedPackage?.name}</span>
+                                            <span>{formatCurrency(packagePrice)}</span>
+                                        </div>
+                                    )}
+                                    {venuePrice > 0 && (
+                                        <div className="flex justify-between">
+                                            <span>Venue: {currentVenue?.name}</span>
+                                            <span>{formatCurrency(venuePrice)}</span>
+                                        </div>
+                                    )}
+                                    <div className="flex justify-between border-t border-gray-300 pt-2 font-bold text-gray-900">
+                                        <span>Total Estimasi</span>
+                                        <span className="text-[#D4AF37]">{formatCurrency(totalPrice)}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {totalPrice === 0 && (
+                            <p className="mt-2 text-xs text-gray-500">Harga dan pembayaran akan dinegosiasikan setelah order dibuat</p>
+                        )}
                     </div>
 
                     {/* Notes */}

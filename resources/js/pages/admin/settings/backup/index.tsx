@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Head } from '@inertiajs/react';
 import { AdminLayout } from '@/layouts/AdminLayout';
-import { Database, Download, Upload, Trash2, RefreshCw, AlertTriangle, HardDrive, Server } from 'lucide-react';
+import { Database, Download, Upload, Trash2, RefreshCw, AlertTriangle, HardDrive, Server, FileUp } from 'lucide-react';
 import axios from 'axios';
 
 interface Backup {
@@ -36,6 +36,8 @@ export default function BackupRestorePage() {
     const [systemInfo, setSystemInfo] = useState<SystemInfo | null>(null);
     const [creating, setCreating] = useState(false);
     const [restoring, setRestoring] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     useEffect(() => {
         fetchBackups();
@@ -123,6 +125,49 @@ export default function BackupRestorePage() {
         }
     };
 
+    const handleUploadRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // Validate extension
+        if (!file.name.endsWith('.sql')) {
+            alert('Format file tidak valid. Hanya file .sql yang diizinkan.');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        // Validate size (max 50MB)
+        if (file.size > 50 * 1024 * 1024) {
+            alert('Ukuran file terlalu besar. Maksimal 50MB.');
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        if (!confirm(`⚠️ PERINGATAN: Anda akan merestore database dari file "${file.name}". Semua data saat ini akan diganti! Proses ini tidak bisa dibatalkan!\n\nApakah Anda yakin?`)) {
+            if (fileInputRef.current) fileInputRef.current.value = '';
+            return;
+        }
+
+        setUploading(true);
+        try {
+            const formData = new FormData();
+            formData.append('backup_file', file);
+
+            await axios.post('/api/settings-backup-upload-restore', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            });
+
+            alert('Database berhasil direstore dari file yang diupload! Halaman akan dimuat ulang.');
+            window.location.reload();
+        } catch (error: any) {
+            const msg = error.response?.data?.message || 'Gagal restore database dari file yang diupload';
+            alert(msg);
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
     const clearCache = async () => {
         if (!confirm('Bersihkan semua cache aplikasi?')) return;
 
@@ -178,6 +223,49 @@ export default function BackupRestorePage() {
                             </button>
                             <p className="text-xs text-gray-600 mt-2">
                                 Backup akan menyimpan semua tabel database saat ini
+                            </p>
+                        </div>
+
+                        {/* Upload & Restore */}
+                        <div className="bg-white rounded-lg shadow p-6">
+                            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                <FileUp className="w-5 h-5 text-amber-600" />
+                                Upload & Restore
+                            </h2>
+                            <p className="text-sm text-gray-600 mb-3">
+                                Upload file backup (.sql) yang sudah didownload sebelumnya untuk merestore database.
+                            </p>
+                            <input
+                                ref={fileInputRef}
+                                type="file"
+                                accept=".sql"
+                                onChange={handleUploadRestore}
+                                disabled={uploading || restoring}
+                                className="hidden"
+                                id="upload-backup-file"
+                            />
+                            <label
+                                htmlFor="upload-backup-file"
+                                className={`w-full flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition cursor-pointer ${
+                                    uploading || restoring
+                                        ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                                        : 'bg-amber-600 text-white hover:bg-amber-700'
+                                }`}
+                            >
+                                {uploading ? (
+                                    <>
+                                        <RefreshCw className="w-5 h-5 animate-spin" />
+                                        Mengupload & Merestore...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FileUp className="w-5 h-5" />
+                                        Pilih File Backup (.sql)
+                                    </>
+                                )}
+                            </label>
+                            <p className="text-xs text-gray-500 mt-2">
+                                Maksimal 50MB. File akan disimpan ke daftar backup dan langsung direstore.
                             </p>
                         </div>
 
@@ -250,7 +338,7 @@ export default function BackupRestorePage() {
                                 <div className="p-12 text-center text-gray-500">
                                     <Database className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                                     <p>Belum ada backup</p>
-                                    <p className="text-sm mt-1">Buat backup pertama Anda</p>
+                                    <p className="text-sm mt-1">Buat backup pertama Anda atau upload file backup yang sudah ada</p>
                                 </div>
                             ) : (
                                 <div className="divide-y divide-gray-200">
@@ -306,6 +394,7 @@ export default function BackupRestorePage() {
                                         <li>Pastikan membuat backup terbaru sebelum melakukan restore</li>
                                         <li>Proses restore tidak dapat dibatalkan</li>
                                         <li>Simpan file backup di lokasi aman sebagai cadangan</li>
+                                        <li>Anda bisa upload file backup .sql yang sudah didownload sebelumnya</li>
                                     </ul>
                                 </div>
                             </div>

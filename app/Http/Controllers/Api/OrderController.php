@@ -79,7 +79,7 @@ class OrderController extends Controller
                 'after:today',
                 function (string $attribute, mixed $value, \Closure $fail) {
                     if (EventScheduleService::isDateFullyBooked((string) $value)) {
-                        $fail('Tanggal acara sudah penuh (maksimal 3 event terkonfirmasi per hari).');
+                        $fail('Tanggal acara sudah penuh (maksimal 1 event terkonfirmasi per hari).');
                     }
                 },
             ],
@@ -206,7 +206,7 @@ class OrderController extends Controller
         if ($request->filled('event_date') && EventScheduleService::isDateFullyBooked($request->event_date, $order->id)) {
             return response()->json([
                 'success' => false,
-                'message' => 'Tanggal acara sudah penuh (maksimal 3 event terkonfirmasi per hari).',
+                'message' => 'Tanggal acara sudah penuh (maksimal 1 event terkonfirmasi per hari).',
             ], 422);
         }
 

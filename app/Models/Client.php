@@ -21,4 +21,9 @@ class Client extends Model
     {
         return $this->hasMany(Order::class);
     }
+
+    public function testimonials(): HasMany
+    {
+        return $this->hasMany(Testimonial::class);
+    }
 }

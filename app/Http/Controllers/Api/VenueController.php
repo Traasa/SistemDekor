@@ -17,7 +17,9 @@ class VenueController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = Venue::withCount('bookings');
+            $query = Venue::withCount('bookings')->with(['pricing' => function($q) {
+                $q->where('is_active', true);
+            }]);
 
             // Filter by city
             if ($request->has('city')) {

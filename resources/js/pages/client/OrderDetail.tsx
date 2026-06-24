@@ -1,5 +1,6 @@
 import { Link, usePage } from '@inertiajs/react';
-import React from 'react';
+import axios from 'axios';
+import React, { useState } from 'react';
 import { PublicLayout } from '../../layouts/PublicLayout';
 
 interface OrderDetail {
@@ -35,6 +36,12 @@ interface OrderDetail {
     payment_transactions: PaymentTransaction[];
     event: EventDetail | null;
     order_details: OrderItem[];
+    testimonial?: {
+        id: number;
+        rating: number;
+        testimonial: string;
+        event_type?: string | null;
+    } | null;
 }
 
 interface PaymentTransaction {
@@ -96,6 +103,10 @@ interface Props {
 const OrderDetail: React.FC<Props> = ({ order }) => {
     const { auth } = usePage<{ auth: { user: { id: number; name: string; email: string; role: string } } }>().props;
     const user = auth?.user;
+    const [reviewRating, setReviewRating] = useState(order.testimonial?.rating || 0);
+    const [reviewText, setReviewText] = useState(order.testimonial?.testimonial || '');
+    const [reviewLoading, setReviewLoading] = useState(false);
+    const [reviewMessage, setReviewMessage] = useState('');
 
     const getStatusColor = (status: string) => {
         const colors: Record<string, string> = {
@@ -175,6 +186,7 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
 
     const paymentProgress = order.final_price > 0 ? (totalPaid / order.final_price) * 100 : 0;
     const showQuickActions = ['confirmed', 'processing', 'completed'].includes(order.status);
+    const canReview = order.status === 'completed';
 
     // Timeline data
     const timeline = [
@@ -200,6 +212,34 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
             icon: '🎉',
         },
     ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    const handleSubmitReview = async () => {
+        if (!reviewRating || reviewRating < 1) {
+            setReviewMessage('Rating wajib dipilih.');
+            return;
+        }
+        if (!reviewText.trim()) {
+            setReviewMessage('Review tidak boleh kosong.');
+            return;
+        }
+
+        try {
+            setReviewLoading(true);
+            setReviewMessage('');
+            const response = await axios.post(`/api/client/orders/${order.id}/review`, {
+                rating: reviewRating,
+                testimonial: reviewText,
+            });
+
+            if (response.data?.success) {
+                setReviewMessage('Terima kasih! Review Anda berhasil dikirim.');
+            }
+        } catch (error: any) {
+            setReviewMessage(error.response?.data?.message || 'Gagal mengirim review.');
+        } finally {
+            setReviewLoading(false);
+        }
+    };
 
     return (
         <PublicLayout active="orders" wrapperClassName="min-h-screen bg-[#F6F1EA] text-[#2A2420]">
@@ -263,6 +303,52 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                 <div className="grid gap-8 lg:grid-cols-3">
                     {/* Left Column - Main Info */}
                     <div className="space-y-8 lg:col-span-2">
+                        {canReview && (
+                            <div className="overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-6 shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
+                                <h2 className="mb-4 flex items-center gap-2 font-serif text-2xl font-bold text-[#2A2420]">
+                                    <span className="text-3xl">⭐</span>
+                                    Rating & Review
+                                </h2>
+                                <p className="mb-4 text-sm text-[#5B4A3C]">
+                                    Bagikan pengalaman Anda bersama tim kami.
+                                </p>
+
+                                <div className="mb-4 flex gap-2">
+                                    {[1, 2, 3, 4, 5].map((value) => (
+                                        <button
+                                            key={value}
+                                            type="button"
+                                            onClick={() => setReviewRating(value)}
+                                            className={`text-2xl transition ${reviewRating >= value ? 'text-[#B08A56]' : 'text-[#D9C8B8]'}`}
+                                            aria-label={`rating ${value}`}
+                                        >
+                                            ★
+                                        </button>
+                                    ))}
+                                </div>
+
+                                <textarea
+                                    value={reviewText}
+                                    onChange={(event) => setReviewText(event.target.value)}
+                                    rows={4}
+                                    placeholder="Tulis review Anda di sini..."
+                                    className="w-full rounded-xl border border-[#E7DCCB] bg-white px-4 py-3 text-sm text-[#2A2420]"
+                                />
+
+                                {reviewMessage && (
+                                    <p className="mt-3 text-sm text-[#8A4E3A]">{reviewMessage}</p>
+                                )}
+
+                                <button
+                                    type="button"
+                                    onClick={handleSubmitReview}
+                                    disabled={reviewLoading}
+                                    className="mt-4 rounded-xl bg-gradient-to-r from-[#B08A56] to-[#7A5C44] px-5 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-95 disabled:cursor-not-allowed disabled:opacity-70"
+                                >
+                                    {reviewLoading ? 'Mengirim...' : 'Kirim Review'}
+                                </button>
+                            </div>
+                        )}
                         {/* Event Details */}
                         <div className="overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-6 shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
                             <h2 className="mb-6 flex items-center gap-2 font-serif text-2xl font-bold text-[#2A2420]">

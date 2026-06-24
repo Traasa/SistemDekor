@@ -119,11 +119,11 @@ class MiniOrderNegotiationController extends Controller
             'event_location' => $validated['event_location'],
             'additional_costs' => $validated['additional_costs'] ?? 0,
             'discount' => $discount,
-            'total_price' => round($totalPrice, 2),
-            'final_price' => round($finalPrice, 2),
-            'dp_amount' => round($dpAmount, 2),
-            'remaining_amount' => round($remainingAmount, 2),
-            'booking_amount' => round($bookingAmount, 2),
+            'total_price' => round($totalPrice),
+            'final_price' => round($finalPrice),
+            'dp_amount' => round($dpAmount),
+            'remaining_amount' => round($remainingAmount),
+            'booking_amount' => round($bookingAmount),
             'custom_items' => $validated['custom_items'] ?? [],
             'negotiation_notes' => $validated['negotiation_notes'],
             'is_negotiable' => false,
@@ -174,11 +174,11 @@ class MiniOrderNegotiationController extends Controller
         $remainingAmount = $finalPrice - $dpAmount;
 
         return response()->json([
-            'total_price' => round($totalPrice, 2),
-            'discount' => round($discount, 2),
-            'final_price' => round($finalPrice, 2),
-            'dp_amount' => round($dpAmount, 2),
-            'remaining_amount' => round($remainingAmount, 2),
+            'total_price' => round($totalPrice),
+            'discount' => round($discount),
+            'final_price' => round($finalPrice),
+            'dp_amount' => round($dpAmount),
+            'remaining_amount' => round($remainingAmount),
         ]);
     }
 }

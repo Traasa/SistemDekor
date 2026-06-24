@@ -15,6 +15,7 @@ import {
     DollarSign
 } from 'lucide-react';
 import axios from 'axios';
+import { formatRupiah } from '@/utils/formatRupiah';
 
 interface PaymentTransaction {
     id: number;
@@ -334,7 +335,7 @@ export default function ClientVerificationPage() {
                                             <div>
                                                 <p className="text-sm text-gray-600">Total</p>
                                                 <p className="text-xl font-bold text-gray-900">
-                                                    Rp {order.final_price.toLocaleString('id-ID')}
+                                                    {formatRupiah(order.final_price)}
                                                 </p>
                                             </div>
 
@@ -409,7 +410,7 @@ export default function ClientVerificationPage() {
                                         </div>
                                         <div>
                                             <p className="text-sm text-gray-600">Total</p>
-                                            <p className="font-semibold">Rp {selectedOrder.final_price.toLocaleString('id-ID')}</p>
+                                            <p className="font-semibold">{formatRupiah(selectedOrder.final_price)}</p>
                                         </div>
                                     </div>
                                 </div>
@@ -471,7 +472,7 @@ export default function ClientVerificationPage() {
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-600">Jumlah</p>
-                                        <p className="font-semibold text-xl">Rp {selectedPayment.amount.toLocaleString('id-ID')}</p>
+                                        <p className="font-semibold text-xl">{formatRupiah(selectedPayment.amount)}</p>
                                     </div>
                                     <div>
                                         <p className="text-sm text-gray-600">Tanggal Transfer</p>

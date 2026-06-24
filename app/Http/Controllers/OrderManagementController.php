@@ -28,7 +28,7 @@ class OrderManagementController extends Controller
                 'after_or_equal:today',
                 function (string $attribute, mixed $value, \Closure $fail) {
                     if (EventScheduleService::isDateFullyBooked((string) $value)) {
-                        $fail('Tanggal acara sudah penuh (maksimal 3 event terkonfirmasi per hari).');
+                        $fail('Tanggal acara sudah penuh (maksimal 1 event terkonfirmasi per hari).');
                     }
                 },
             ],

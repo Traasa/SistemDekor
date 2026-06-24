@@ -28,6 +28,8 @@ class TestimonialController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
+            'client_id' => 'nullable|exists:clients,id',
+            'order_id' => 'nullable|exists:orders,id',
             'client_name' => 'required|string|max:255',
             'event_type' => 'nullable|string|max:255',
             'testimonial' => 'required|string',
@@ -56,6 +58,8 @@ class TestimonialController extends Controller
     public function update(Request $request, Testimonial $testimonial): JsonResponse
     {
         $request->validate([
+            'client_id' => 'nullable|exists:clients,id',
+            'order_id' => 'nullable|exists:orders,id',
             'client_name' => 'sometimes|required|string|max:255',
             'event_type' => 'nullable|string|max:255',
             'testimonial' => 'sometimes|required|string',

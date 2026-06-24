@@ -3,6 +3,7 @@ import { router, useForm } from '@inertiajs/react';
 import axios from 'axios';
 import React, { useEffect, useState } from 'react';
 import { miniOrderService } from '../../../services/apiService';
+import { formatRupiah } from '../../../utils/formatRupiah';
 
 interface CustomItem {
     name: string;
@@ -101,8 +102,8 @@ export default function EditMiniOrderPage({ order }: Props) {
         try {
             const response = await axios.post(`/admin/mini-orders/${order.id}/recalculate`, {
                 custom_items: customItems,
-                additional_costs: parseFloat(data.additional_costs) || 0,
-                discount: parseFloat(data.discount) || 0,
+                additional_costs: Math.round(parseFloat(data.additional_costs) || 0),
+                discount: Math.round(parseFloat(data.discount) || 0),
                 dp_type: data.dp_type,
                 dp_value: parseFloat(data.dp_value) || 0,
                 initial_payment_type: data.initial_payment_type,
@@ -135,8 +136,8 @@ export default function EditMiniOrderPage({ order }: Props) {
         const updatedItems = [...customItems];
         updatedItems[index] = { ...updatedItems[index], [field]: value };
 
-        const price = parseFloat(updatedItems[index].price) || 0;
-        const quantity = parseFloat(updatedItems[index].quantity) || 0;
+        const price = Math.round(parseFloat(updatedItems[index].price) || 0);
+        const quantity = Math.round(parseFloat(updatedItems[index].quantity) || 0);
         updatedItems[index].subtotal = price * quantity;
 
         setCustomItems(updatedItems);
@@ -309,9 +310,13 @@ export default function EditMiniOrderPage({ order }: Props) {
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-600">Harga</label>
                                         <input
-                                            type="number"
+                                            type="text"
+                                            inputMode="numeric"
                                             value={item.price}
-                                            onChange={(e) => updateCustomItem(index, 'price', e.target.value)}
+                                            onChange={(e) => {
+                                                const val = e.target.value.replace(/[^0-9]/g, '');
+                                                updateCustomItem(index, 'price', val);
+                                            }}
                                             className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                         />
                                     </div>
@@ -325,7 +330,7 @@ export default function EditMiniOrderPage({ order }: Props) {
                                         />
                                     </div>
                                     <div className="md:col-span-4 flex items-center justify-between">
-                                        <div className="text-sm text-gray-600">Subtotal: {item.subtotal.toLocaleString('id-ID')}</div>
+                                        <div className="text-sm text-gray-600">Subtotal: {formatRupiah(item.subtotal)}</div>
                                         <button
                                             type="button"
                                             onClick={() => removeCustomItem(index)}
@@ -345,26 +350,34 @@ export default function EditMiniOrderPage({ order }: Props) {
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Biaya Tambahan</label>
                                 <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
                                     value={data.additional_costs}
-                                    onChange={(e) => setData('additional_costs', e.target.value)}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9]/g, '');
+                                        setData('additional_costs', val);
+                                    }}
                                     className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                 />
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Diskon</label>
                                 <input
-                                    type="number"
+                                    type="text"
+                                    inputMode="numeric"
                                     value={data.discount}
-                                    onChange={(e) => setData('discount', e.target.value)}
+                                    onChange={(e) => {
+                                        const val = e.target.value.replace(/[^0-9]/g, '');
+                                        setData('discount', val);
+                                    }}
                                     className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
                                 />
                             </div>
                         </div>
                         <div className="mt-4 rounded-lg bg-gray-50 p-4 text-sm text-gray-700">
-                            <div>Total Harga: {calculation.total_price.toLocaleString('id-ID')}</div>
-                            <div>Diskon: {calculation.discount.toLocaleString('id-ID')}</div>
-                            <div className="font-semibold">Harga Final: {calculation.final_price.toLocaleString('id-ID')}</div>
+                            <div>Total Harga: {formatRupiah(calculation.total_price)}</div>
+                            <div>Diskon: {formatRupiah(calculation.discount)}</div>
+                            <div className="font-semibold">Harga Final: {formatRupiah(calculation.final_price)}</div>
                         </div>
                     </div>
 
@@ -402,8 +415,8 @@ export default function EditMiniOrderPage({ order }: Props) {
                             </div>
                         </div>
                         <div className="mt-4 rounded-lg bg-gray-50 p-4 text-sm text-gray-700">
-                            <div>DP: {calculation.dp_amount.toLocaleString('id-ID')}</div>
-                            <div>Sisa Tagihan: {calculation.remaining_amount.toLocaleString('id-ID')}</div>
+                            <div>DP: {formatRupiah(calculation.dp_amount)}</div>
+                            <div>Sisa Tagihan: {formatRupiah(calculation.remaining_amount)}</div>
                             {isCalculating && <div className="text-xs text-gray-500">Menghitung ulang...</div>}
                         </div>
                     </div>

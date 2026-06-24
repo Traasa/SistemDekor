@@ -14,6 +14,14 @@ interface Client {
     created_at: string;
 }
 
+interface ClientTestimonial {
+    id: number;
+    rating: number;
+    testimonial: string;
+    event_type?: string | null;
+    is_featured?: boolean;
+}
+
 interface Stats {
     total_clients: number;
     total_orders: number;
@@ -33,6 +41,13 @@ export default function ClientsPage() {
     const [showModal, setShowModal] = useState(false);
     const [selectedClient, setSelectedClient] = useState<Client | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [testimonial, setTestimonial] = useState<ClientTestimonial | null>(null);
+    const [testimonialForm, setTestimonialForm] = useState({
+        rating: 5,
+        testimonial: '',
+        event_type: '',
+        is_featured: true,
+    });
 
     const [formData, setFormData] = useState({
         name: '',
@@ -76,12 +91,19 @@ export default function ClientsPage() {
         setFormErrors({});
 
         try {
+            let clientId = selectedClient?.id || null;
             if (selectedClient) {
                 await axios.put(`/api/admin/clients/${selectedClient.id}`, formData);
+                clientId = selectedClient.id;
                 alert('Client berhasil diupdate!');
             } else {
-                await axios.post('/api/admin/clients', formData);
+                const response = await axios.post('/api/admin/clients', formData);
+                clientId = response.data?.client?.id || null;
                 alert('Client berhasil ditambahkan!');
+            }
+
+            if (clientId && testimonialForm.testimonial.trim()) {
+                await axios.put(`/api/admin/clients/${clientId}/testimonial`, testimonialForm);
             }
             setShowModal(false);
             resetForm();
@@ -117,7 +139,31 @@ export default function ClientsPage() {
             phone: client.phone,
             address: client.address || '',
         });
+        loadTestimonial(client.id);
         setShowModal(true);
+    };
+
+    const loadTestimonial = async (clientId: number) => {
+        try {
+            const response = await axios.get(`/api/admin/clients/${clientId}/testimonial`);
+            const data = response.data?.data || null;
+            setTestimonial(data);
+            setTestimonialForm({
+                rating: data?.rating || 5,
+                testimonial: data?.testimonial || '',
+                event_type: data?.event_type || '',
+                is_featured: data?.is_featured ?? true,
+            });
+        } catch (error) {
+            console.error('Failed to load testimonial', error);
+            setTestimonial(null);
+            setTestimonialForm({
+                rating: 5,
+                testimonial: '',
+                event_type: '',
+                is_featured: true,
+            });
+        }
     };
 
     const resetForm = () => {
@@ -129,6 +175,13 @@ export default function ClientsPage() {
         });
         setSelectedClient(null);
         setFormErrors({});
+        setTestimonial(null);
+        setTestimonialForm({
+            rating: 5,
+            testimonial: '',
+            event_type: '',
+            is_featured: true,
+        });
     };
 
     const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -422,6 +475,63 @@ export default function ClientsPage() {
                                             rows={3}
                                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                                         />
+                                    </div>
+
+                                    <div className="border-t border-gray-200 pt-4">
+                                        <h3 className="text-sm font-semibold text-gray-800 mb-3">Review Client</h3>
+                                        <div className="grid gap-3">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+                                                <select
+                                                    value={testimonialForm.rating}
+                                                    onChange={(e) =>
+                                                        setTestimonialForm((prev) => ({ ...prev, rating: Number(e.target.value) }))
+                                                    }
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                >
+                                                    {[5, 4, 3, 2, 1].map((value) => (
+                                                        <option key={value} value={value}>
+                                                            {value} Bintang
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Event</label>
+                                                <input
+                                                    type="text"
+                                                    value={testimonialForm.event_type}
+                                                    onChange={(e) =>
+                                                        setTestimonialForm((prev) => ({ ...prev, event_type: e.target.value }))
+                                                    }
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Review</label>
+                                                <textarea
+                                                    value={testimonialForm.testimonial}
+                                                    onChange={(e) =>
+                                                        setTestimonialForm((prev) => ({ ...prev, testimonial: e.target.value }))
+                                                    }
+                                                    rows={3}
+                                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg"
+                                                />
+                                            </div>
+                                            <label className="flex items-center gap-2 text-sm text-gray-700">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={testimonialForm.is_featured}
+                                                    onChange={(e) =>
+                                                        setTestimonialForm((prev) => ({ ...prev, is_featured: e.target.checked }))
+                                                    }
+                                                />
+                                                Tampilkan di landing page
+                                            </label>
+                                            {testimonial && (
+                                                <p className="text-xs text-gray-500">Review terakhir diperbarui sebelumnya.</p>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <div className="flex gap-3 pt-4">

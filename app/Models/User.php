@@ -74,15 +74,35 @@ class User extends Authenticatable
     }
 
     /**
-     * Check if user is admin
+     * Check if user is admin (admin or super_admin/owner)
      */
     public function isAdmin(): bool
     {
-        if (in_array($this->role, ['admin', 'super_admin'], true)) {
-            return true;
-        }
+        return in_array($this->role, ['admin', 'super_admin'], true);
+    }
 
-        return $this->hasRole('admin') || $this->hasRole('super_admin');
+    /**
+     * Check if user is owner (super_admin)
+     */
+    public function isOwner(): bool
+    {
+        return $this->role === 'super_admin';
+    }
+
+    /**
+     * Check if user is marketing
+     */
+    public function isMarketing(): bool
+    {
+        return $this->role === 'marketing';
+    }
+
+    /**
+     * Check if user can access the admin panel
+     */
+    public function canAccessAdmin(): bool
+    {
+        return in_array($this->role, ['super_admin', 'admin', 'marketing'], true);
     }
 
     /**

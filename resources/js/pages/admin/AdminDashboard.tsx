@@ -1,7 +1,8 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, router, usePage } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
 import { CompanyProfile, companyProfileService } from '../../services/companyProfileService';
 import { Transaction, transactionService } from '../../services/transactionService';
+import { formatRupiah } from '@/utils/formatRupiah';
 
 const AdminDashboard: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'transactions' | 'profile'>('transactions');
@@ -60,12 +61,8 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const handleLogout = async () => {
-        try {
-            await logout();
-        } catch (error) {
-            console.error('Logout failed:', error);
-        }
+    const handleLogout = () => {
+        router.post('/logout');
     };
 
     if (isLoading) {
@@ -176,7 +173,7 @@ const AdminDashboard: React.FC = () => {
                                                             </p>
                                                         </div>
                                                         <div className="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                                                            <p>Rp {transaction.total_price.toLocaleString('id-ID')}</p>
+                                                            <p>{formatRupiah(transaction.total_price)}</p>
                                                         </div>
                                                     </div>
                                                 </div>
