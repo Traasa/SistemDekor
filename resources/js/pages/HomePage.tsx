@@ -1,6 +1,8 @@
-﻿import { Head, Link } from '@inertiajs/react';
+import { Head, Link } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
 import { PublicLayout } from '../layouts/PublicLayout';
+import { formatRupiah } from '../utils/formatRupiah';
 import { CompanyProfile, companyProfileService } from '../services/companyProfileService';
 import {
     LandingGalleryItem,
@@ -55,6 +57,7 @@ const HomePage: React.FC = () => {
     const [galleries, setGalleries] = useState<LandingGalleryItem[]>([]);
     const [portfolios, setPortfolios] = useState<LandingPortfolioItem[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isFadingTestimonial, setIsFadingTestimonial] = useState(false);
     const [activeTestimonial, setActiveTestimonial] = useState(0);
 
     useEffect(() => {
@@ -86,7 +89,11 @@ const HomePage: React.FC = () => {
     useEffect(() => {
         if (testimonials.length <= 1) return;
         const timer = setInterval(() => {
-            setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
+            setIsFadingTestimonial(true);
+            setTimeout(() => {
+                setActiveTestimonial((prev) => (prev + 1) % testimonials.length);
+                setIsFadingTestimonial(false);
+            }, 300);
         }, 5000);
 
         return () => clearInterval(timer);
@@ -194,7 +201,13 @@ const HomePage: React.FC = () => {
 
             <PublicLayout active="home" wrapperClassName="min-h-screen bg-[#F7EFE6]">
                 <main>
-                    <section id="home" className="px-4 pb-14 pt-8 sm:px-8 lg:px-12 2xl:px-16">
+                    <motion.section 
+                        id="home" 
+                        className="px-4 pb-14 pt-8 sm:px-8 lg:px-12 2xl:px-16"
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.8 }}
+                    >
                             <div className="grid gap-5 lg:grid-cols-[1.2fr_0.8fr]">
                                 <div className="relative overflow-hidden rounded-[28px] border border-[#E4D1C1]">
                                     <img src={heroImage} alt="Luxury wedding hero" className="h-[520px] w-full object-cover" />
@@ -251,9 +264,16 @@ const HomePage: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
-                        </section>
+                        </motion.section>
 
-                        <section id="about" className="px-4 pb-14 sm:px-8 lg:px-12 2xl:px-16">
+                        <motion.section 
+                            id="about" 
+                            className="px-4 pb-14 sm:px-8 lg:px-12 2xl:px-16"
+                            initial={{ opacity: 0, y: 40 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-100px" }}
+                            transition={{ duration: 0.8 }}
+                        >
                             <div className="grid items-center gap-10 lg:grid-cols-2">
                                 <div>
                                     <h2 className="mt-3 text-4xl leading-tight text-[#664B3A] sm:text-5xl" style={{ fontFamily: 'Playfair Display, serif' }}>
@@ -286,9 +306,16 @@ const HomePage: React.FC = () => {
                                     />
                                 </div>
                             </div>
-                        </section>
+                        </motion.section>
 
-                        <section id="service" className="px-4 pb-14 sm:px-8 lg:px-12 2xl:px-16">
+                        <motion.section 
+                            id="service" 
+                            className="px-4 pb-14 sm:px-8 lg:px-12 2xl:px-16"
+                            initial={{ opacity: 0, y: 40 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-100px" }}
+                            transition={{ duration: 0.8 }}
+                        >
                             <p className="text-xs font-semibold tracking-[0.18em] text-[#A48673] uppercase" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                                 Our Services
                             </p>
@@ -305,14 +332,21 @@ const HomePage: React.FC = () => {
                                         <h4 className="mt-1 text-2xl text-[#5F4636]" style={{ fontFamily: 'Playfair Display, serif' }}>{service.name}</h4>
                                         <p className="mt-2 text-sm leading-relaxed text-[#7C6353]" style={{ fontFamily: 'DM Sans, sans-serif' }}>{service.description}</p>
                                         <p className="mt-3 text-sm font-semibold text-[#926D55]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
-                                            Start from Rp {Number(service.price || 0).toLocaleString('id-ID')}
+                                            Start from {formatRupiah(service.price)}
                                         </p>
                                     </article>
                                 ))}
                             </div>
-                        </section>
+                        </motion.section>
 
-                        <section id="portfolio" className="px-4 pb-14 sm:px-8 lg:px-12 2xl:px-16">
+                        <motion.section 
+                            id="portfolio" 
+                            className="px-4 pb-14 sm:px-8 lg:px-12 2xl:px-16"
+                            initial={{ opacity: 0, y: 40 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-100px" }}
+                            transition={{ duration: 0.8 }}
+                        >
                             <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
                                 <div>
                                     <p className="text-xs font-semibold tracking-[0.18em] text-[#A48673] uppercase" style={{ fontFamily: 'DM Sans, sans-serif' }}>
@@ -347,9 +381,15 @@ const HomePage: React.FC = () => {
                                     </article>
                                 ))}
                             </div>
-                        </section>
+                        </motion.section>
 
-                        <section className="px-4 pb-14 sm:px-8 lg:px-12 2xl:px-16">
+                        <motion.section 
+                            className="px-4 pb-14 sm:px-8 lg:px-12 2xl:px-16"
+                            initial={{ opacity: 0, y: 40 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-100px" }}
+                            transition={{ duration: 0.8 }}
+                        >
                             <div className="rounded-2xl border border-[#E4D2C3] bg-[#FBF5EF] p-6 sm:p-8">
                                 <p className="text-xs font-semibold tracking-[0.18em] text-[#A48673] uppercase" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                                     Testimonials
@@ -357,35 +397,52 @@ const HomePage: React.FC = () => {
                                 <h3 className="mt-2 text-4xl text-[#624837]" style={{ fontFamily: 'Playfair Display, serif' }}>
                                     What Our Couples Say
                                 </h3>
-                                <p className="mt-4 text-base leading-relaxed text-[#705646]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
-                                    {activeItem?.testimonial ||
-                                        'Ade Decoration benar-benar wedding organizer terbaik! Dari awal konsultasi sampai hari H semuanya profesional, rapi, dan responsif. Dekorasi melebihi ekspektasi kami dan semua tamu memuji hasilnya.'}
-                                </p>
-                                {activeItem?.rating && (
-                                    <div className="mt-3 flex gap-1 text-[#B08A56]">
-                                        {Array.from({ length: 5 }).map((_, index) => (
-                                            <span key={index}>{index < activeItem.rating ? '★' : '☆'}</span>
-                                        ))}
-                                    </div>
-                                )}
-                                <p className="mt-4 text-sm font-semibold text-[#86634C]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
-                                    {activeItem?.client_name || 'Andi & Sari'} - {activeItem?.event_type || 'Wedding'}
-                                </p>
+                                <div className={`transition-opacity duration-300 ${isFadingTestimonial ? 'opacity-0' : 'opacity-100'}`}>
+                                    <p className="mt-4 text-base leading-relaxed text-[#705646]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                        {activeItem?.testimonial ||
+                                            'Ade Decoration benar-benar wedding organizer terbaik! Dari awal konsultasi sampai hari H semuanya profesional, rapi, dan responsif. Dekorasi melebihi ekspektasi kami dan semua tamu memuji hasilnya.'}
+                                    </p>
+                                    {activeItem?.rating && (
+                                        <div className="mt-3 flex gap-1 text-[#B08A56]">
+                                            {Array.from({ length: 5 }).map((_, index) => (
+                                                <span key={index}>{index < activeItem.rating ? '★' : '☆'}</span>
+                                            ))}
+                                        </div>
+                                    )}
+                                    <p className="mt-4 text-sm font-semibold text-[#86634C]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                        {activeItem?.client_name || 'Andi & Sari'} - {activeItem?.event_type || 'Wedding'}
+                                    </p>
+                                </div>
 
                                 <div className="mt-5 flex gap-2">
                                     {(testimonials.length > 0 ? testimonials.slice(0, 5) : [1, 2, 3]).map((_, idx) => (
                                         <button
                                             key={idx}
-                                            onClick={() => setActiveTestimonial(idx)}
+                                            onClick={() => {
+                                                if (idx !== activeTestimonial && !isFadingTestimonial) {
+                                                    setIsFadingTestimonial(true);
+                                                    setTimeout(() => {
+                                                        setActiveTestimonial(idx);
+                                                        setIsFadingTestimonial(false);
+                                                    }, 300);
+                                                }
+                                            }}
                                             className={`h-2.5 rounded-full transition ${idx === activeTestimonial ? 'w-10 bg-[#A47B62]' : 'w-2.5 bg-[#D5BFAA]'}`}
                                             aria-label={`show testimonial ${idx + 1}`}
                                         />
                                     ))}
                                 </div>
                             </div>
-                        </section>
+                        </motion.section>
 
-                        <section id="contact" className="px-4 pb-14 sm:px-8 lg:px-12 2xl:px-16">
+                        <motion.section 
+                            id="contact" 
+                            className="px-4 pb-14 sm:px-8 lg:px-12 2xl:px-16"
+                            initial={{ opacity: 0, y: 40 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-100px" }}
+                            transition={{ duration: 0.8 }}
+                        >
                             <div className="rounded-2xl bg-[#6C4D3B] p-8 text-[#F6EDE3] sm:p-10">
                                 <h3 className="text-4xl" style={{ fontFamily: 'Playfair Display, serif' }}>
                                     Let&apos;s Plan Your Next Event Together
@@ -408,7 +465,7 @@ const HomePage: React.FC = () => {
                                     </Link>
                                 </div>
                             </div>
-                        </section>
+                        </motion.section>
                 </main>
 
             </PublicLayout>

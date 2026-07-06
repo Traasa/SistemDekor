@@ -434,17 +434,18 @@ export default function EditOrderPage({ order, packages, venues }: Props) {
                                                     value={item.name}
                                                     onChange={(e) => updateCustomItem(index, 'name', e.target.value)}
                                                     placeholder="Item name"
-                                                    className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                                                    className="w-full rounded border border-gray-300 px-2 py-1 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                                 />
                                             </div>
                                             <div>
-                                                <label className="mb-1 block text-xs font-medium">Price</label>
+                                                <label className="mb-1 block text-xs font-medium">Price (Rp)</label>
                                                 <input
-                                                    type="number"
-                                                    value={item.price}
-                                                    onChange={(e) => updateCustomItem(index, 'price', e.target.value)}
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={item.price ? Number(item.price).toLocaleString('id-ID') : ''}
+                                                    onChange={(e) => updateCustomItem(index, 'price', e.target.value.replace(/\D/g, ''))}
                                                     placeholder="0"
-                                                    className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                                                    className="w-full rounded border border-gray-300 px-2 py-1 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                                 />
                                             </div>
                                             <div>
@@ -454,7 +455,7 @@ export default function EditOrderPage({ order, packages, venues }: Props) {
                                                     value={item.quantity}
                                                     onChange={(e) => updateCustomItem(index, 'quantity', e.target.value)}
                                                     placeholder="1"
-                                                    className="w-full rounded border border-gray-300 px-2 py-1 text-sm"
+                                                    className="w-full rounded border border-gray-300 px-2 py-1 text-sm dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                                                 />
                                             </div>
                                             <div>
@@ -463,7 +464,7 @@ export default function EditOrderPage({ order, packages, venues }: Props) {
                                                     type="text"
                                                     value={formatCurrency(item.subtotal)}
                                                     disabled
-                                                    className="w-full rounded border border-gray-300 bg-white px-2 py-1 text-sm"
+                                                    className="w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-sm dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300"
                                                 />
                                             </div>
                                         </div>
@@ -487,9 +488,10 @@ export default function EditOrderPage({ order, packages, venues }: Props) {
                             <div>
                                 <label className="mb-1 block text-sm font-medium">Additional Costs</label>
                                 <input
-                                    type="number"
-                                    value={data.additional_costs}
-                                    onChange={(e) => setData('additional_costs', e.target.value)}
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={data.additional_costs ? Number(data.additional_costs).toLocaleString('id-ID') : ''}
+                                    onChange={(e) => setData('additional_costs', e.target.value.replace(/\D/g, ''))}
                                     placeholder="0"
                                     className="w-full rounded-lg border border-gray-300 px-4 py-2"
                                 />
@@ -499,9 +501,10 @@ export default function EditOrderPage({ order, packages, venues }: Props) {
                             <div>
                                 <label className="mb-1 block text-sm font-medium">Discount</label>
                                 <input
-                                    type="number"
-                                    value={data.discount}
-                                    onChange={(e) => setData('discount', e.target.value)}
+                                    type="text"
+                                    inputMode="numeric"
+                                    value={data.discount ? Number(data.discount).toLocaleString('id-ID') : ''}
+                                    onChange={(e) => setData('discount', e.target.value.replace(/\D/g, ''))}
                                     placeholder="0"
                                     className="w-full rounded-lg border border-gray-300 px-4 py-2"
                                 />
@@ -524,11 +527,14 @@ export default function EditOrderPage({ order, packages, venues }: Props) {
                                     DP Value {data.dp_type === 'percent' ? '(%)' : '(Rp)'}
                                 </label>
                                 <input
-                                    type="number"
+                                    type={data.dp_type === 'percent' ? "number" : "text"}
+                                    inputMode="numeric"
                                     min="0"
-                                    value={data.dp_value}
-                                    onChange={(e) => setData('dp_value', e.target.value)}
-                                    placeholder={data.dp_type === 'percent' ? '30' : '5000000'}
+                                    value={data.dp_type === 'percent' 
+                                        ? data.dp_value 
+                                        : (data.dp_value ? Number(data.dp_value).toLocaleString('id-ID') : '')}
+                                    onChange={(e) => setData('dp_value', data.dp_type === 'percent' ? e.target.value : e.target.value.replace(/\D/g, ''))}
+                                    placeholder={data.dp_type === 'percent' ? '30' : '5.000.000'}
                                     className="w-full rounded-lg border border-gray-300 px-4 py-2"
                                 />
                                 <p className="mt-1 text-xs text-gray-500">
@@ -541,7 +547,7 @@ export default function EditOrderPage({ order, packages, venues }: Props) {
                                 <label className="mb-1 block text-sm font-medium">Initial Payment Type</label>
                                 <select
                                     value={data.initial_payment_type}
-                                    onChange={(e) => setData('initial_payment_type', e.target.value)}
+                                    onChange={(e) => setData('initial_payment_type', e.target.value as 'booking' | 'dp')}
                                     className="w-full rounded-lg border border-gray-300 px-4 py-2"
                                 >
                                     <option value="booking">Booking</option>
@@ -553,11 +559,11 @@ export default function EditOrderPage({ order, packages, venues }: Props) {
                                 <div>
                                     <label className="mb-1 block text-sm font-medium">Booking Amount (Rp)</label>
                                     <input
-                                        type="number"
-                                        min="0"
-                                        value={data.booking_amount}
-                                        onChange={(e) => setData('booking_amount', e.target.value)}
-                                        placeholder="2000000"
+                                        type="text"
+                                        inputMode="numeric"
+                                        value={data.booking_amount ? Number(data.booking_amount).toLocaleString('id-ID') : ''}
+                                        onChange={(e) => setData('booking_amount', e.target.value.replace(/\D/g, ''))}
+                                        placeholder="2.000.000"
                                         className="w-full rounded-lg border border-gray-300 px-4 py-2"
                                     />
                                     <p className="mt-1 text-xs text-gray-500">Nominal booking yang harus dibayar client.</p>
@@ -566,27 +572,27 @@ export default function EditOrderPage({ order, packages, venues }: Props) {
                         </div>
 
                         {/* Price Summary */}
-                        <div className="space-y-2 rounded-lg bg-blue-50 p-4">
-                            <h4 className="mb-3 font-semibold text-blue-900">Price Summary {isCalculating && '(Calculating...)'}</h4>
-                            <div className="flex justify-between text-sm">
+                        <div className="space-y-2 rounded-lg bg-blue-50 p-4 dark:bg-slate-800/50 dark:border dark:border-slate-700">
+                            <h4 className="mb-3 font-semibold text-blue-900 dark:text-blue-400">Price Summary {isCalculating && '(Calculating...)'}</h4>
+                            <div className="flex justify-between text-sm dark:text-gray-300">
                                 <span>Total Price:</span>
                                 <span className="font-medium">{formatCurrency(calculation.total_price)}</span>
                             </div>
-                            <div className="flex justify-between text-sm text-red-600">
+                            <div className="flex justify-between text-sm text-red-600 dark:text-red-400">
                                 <span>Discount:</span>
                                 <span className="font-medium">- {formatCurrency(calculation.discount)}</span>
                             </div>
-                            <div className="flex justify-between border-t border-blue-200 pt-2 text-lg font-bold text-blue-900">
+                            <div className="flex justify-between border-t border-blue-200 pt-2 text-lg font-bold text-blue-900 dark:border-slate-600 dark:text-white">
                                 <span>Final Price:</span>
                                 <span>{formatCurrency(calculation.final_price)}</span>
                             </div>
-                            <div className="flex justify-between pt-2 text-sm text-gray-700">
+                            <div className="flex justify-between pt-2 text-sm text-gray-700 dark:text-gray-300">
                                 <span>
                                     Down Payment ({data.dp_type === 'percent' ? `${data.dp_value || 0}%` : 'Nominal'}):
                                 </span>
                                 <span className="font-medium">{formatCurrency(calculation.dp_amount)}</span>
                             </div>
-                            <div className="flex justify-between text-sm text-gray-700">
+                            <div className="flex justify-between text-sm text-gray-700 dark:text-gray-300">
                                 <span>Remaining Amount:</span>
                                 <span className="font-medium">{formatCurrency(calculation.remaining_amount)}</span>
                             </div>

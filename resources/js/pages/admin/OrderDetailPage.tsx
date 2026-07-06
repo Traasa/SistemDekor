@@ -52,6 +52,8 @@ interface OrderDetail {
     payment_proofs: PaymentProof[];
     payment_link_active: boolean;
     payment_link_expires_at: string | null;
+    payment_link_type?: 'booking' | 'dp' | 'installment' | 'full' | null;
+    payment_link_amount?: number | null;
     created_at: string;
     updated_at: string;
     booking_amount?: number;
@@ -164,27 +166,61 @@ const OrderDetailPage: React.FC<Props> = ({ order }) => {
         alert('Payment link copied to clipboard!');
     };
 
-    const downloadDocument = async (type: 'invoice' | 'contract') => {
-        try {
-            const response = await axios.get(`/admin/orders/${order.id}/${type}`, {
-                responseType: 'blob',
-            });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `${type}-${order.order_code}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        } catch (error) {
-            alert('Gagal download dokumen.');
-        }
+    const downloadDocument = (type: 'invoice' | 'contract') => {
+        window.open(`/admin/orders/${order.id}/${type}`, '_blank');
     };
 
     const sendPaymentLinkViaWhatsApp = () => {
         const cleanPhone = order.client.phone.replace(/\D/g, '');
         const formattedPhone = cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone;
-        const message = `Halo ${order.client.name}, berikut adalah link untuk upload bukti pembayaran order *${order.order_code}*:\n\n${paymentLink}\n\nLink ini berlaku selama 48 jam. Silakan upload bukti pembayaran DP atau lunas melalui link tersebut. Terima kasih!`;
+
+        let paymentPurpose = 'Pembayaran';
+        let amountToPay = 0;
+
+        if (order.payment_link_active && order.payment_link_type) {
+            if (order.payment_link_type === 'booking') paymentPurpose = 'Booking Fee';
+            else if (order.payment_link_type === 'dp') paymentPurpose = 'DP (Down Payment)';
+            else if (order.payment_link_type === 'installment') paymentPurpose = 'Cicilan';
+            else if (order.payment_link_type === 'full') paymentPurpose = 'Pelunasan';
+
+            amountToPay = order.payment_link_amount || order.final_price;
+        } else {
+            const hasVerifiedBooking = order.payment_proofs?.some((p: PaymentProof) => p.payment_type === 'booking' && p.status === 'verified');
+            const hasVerifiedDP = order.payment_proofs?.some((p: PaymentProof) => p.payment_type === 'dp' && p.status === 'verified');
+
+            if (order.initial_payment_type === 'booking' && !hasVerifiedBooking) {
+                paymentPurpose = 'Booking Fee';
+                amountToPay = (order.booking_amount ?? 0) > 0 ? Number(order.booking_amount) : order.final_price;
+            } else if (!hasVerifiedDP) {
+                paymentPurpose = 'DP (Down Payment)';
+                amountToPay = (order.dp_amount ?? 0) > 0 ? Number(order.dp_amount) : order.final_price;
+            } else {
+                paymentPurpose = 'Pelunasan / Cicilan';
+                amountToPay = (order.remaining_amount ?? 0) > 0 ? Number(order.remaining_amount) : order.final_price;
+            }
+        }
+
+        const message = `Halo ${order.client.name},
+
+Berikut adalah rincian untuk pembayaran order ${order.order_code} (${order.event_name}):
+
+Total Biaya : ${formatRupiah(order.final_price)}
+Tujuan Pembayaran : ${paymentPurpose}
+Jumlah yang harus dibayar saat ini : ${formatRupiah(amountToPay)}
+
+TATA CARA PEMBAYARAN (TRANSFER BANK):
+Bank: BCA
+No. Rekening: 7180 1918 90
+Atas Nama: SUSILOWATI
+
+Langkah-langkah:
+1. Lakukan transfer sesuai nominal "Jumlah yang harus dibayar saat ini" ke rekening BCA yang tertera.
+2. Simpan struk/bukti transfer Anda.
+3. Buka link berikut untuk mengunggah (upload) bukti transfer:
+${paymentLink}
+
+Link upload berlaku selama 48 jam. Terima kasih!`;
+
         window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
     };
 
@@ -213,10 +249,29 @@ const OrderDetailPage: React.FC<Props> = ({ order }) => {
         setVerifyingProof(proofId);
 
         try {
-            await axios.post(`/admin/payment-proofs/${proofId}/reject`, {
+            const response = await axios.post(`/admin/payment-proofs/${proofId}/reject`, {
                 admin_notes: reason,
             });
-            alert('Payment rejected. Payment link has been reactivated.');
+            
+            const newLink = response.data.new_link;
+            const cleanPhone = order.client.phone.replace(/\D/g, '');
+            const formattedPhone = cleanPhone.startsWith('0') ? '62' + cleanPhone.slice(1) : cleanPhone;
+            
+            const message = `Halo ${order.client.name},
+
+Mohon maaf, bukti pembayaran Anda untuk order ${order.order_code} (${order.event_name}) telah *DITOLAK* oleh Admin.
+
+*Alasan Penolakan*: 
+${reason}
+
+Silakan lakukan pembayaran ulang dan unggah (upload) kembali bukti transfer yang benar melalui link pembayaran baru berikut ini:
+${newLink}
+
+Link berlaku selama 48 jam. Terima kasih!`;
+
+            window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
+
+            alert('Payment rejected. New payment link has been generated and sent via WhatsApp.');
             router.reload();
         } catch (error: any) {
             alert(error.response?.data?.message || 'Failed to reject payment');
@@ -351,17 +406,18 @@ const OrderDetailPage: React.FC<Props> = ({ order }) => {
         return {
             totalPaid,
             percentage,
+            hasBooking: verifiedProofs.some((p: PaymentProof) => p.payment_type === 'booking'),
             hasDP: verifiedProofs.some((p: PaymentProof) => p.payment_type === 'dp'),
             hasFull: verifiedProofs.some((p: PaymentProof) => p.payment_type === 'full'),
         };
     };
 
     const paymentProgress = getPaymentProgress();
-        const initialPaymentType = order.initial_payment_type
-                ? order.initial_payment_type
-                : Number(order.booking_amount || 0) > 0
-                    ? 'booking'
-                    : 'dp';
+    const initialPaymentType = order.initial_payment_type
+        ? order.initial_payment_type
+        : Number(order.booking_amount || 0) > 0
+            ? 'booking'
+            : 'dp';
     const initialPaymentLabel = initialPaymentType === 'dp' ? 'DP' : 'Booking';
     const initialPaymentAmount = initialPaymentType === 'dp' ? order.dp_amount : Number(order.booking_amount || 0);
 
@@ -425,7 +481,7 @@ const OrderDetailPage: React.FC<Props> = ({ order }) => {
                         >
                             <span>🔗</span>
                             <span>
-                                                                {generatingLink ? 'Generating...' : 'Generate Payment Link'}
+                                {generatingLink ? 'Generating...' : 'Generate Payment Link'}
                             </span>
                         </button>
                         {!order.is_negotiable && order.remaining_amount > 0 && (
@@ -530,99 +586,124 @@ const OrderDetailPage: React.FC<Props> = ({ order }) => {
                 </div>
 
                 {/* Action Buttons - Conditional based on Order Status */}
-                <div className="rounded-xl border border-blue-200 bg-gradient-to-r from-blue-50 to-purple-50 p-6">
-                    <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
-                        <span>🎯</span>
-                        <span>Langkah Selanjutnya</span>
-                    </h3>
+                {order.status !== 'cancelled' && (
+                    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                        <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-gray-900">
+                            <span>🎯</span>
+                            <span>Langkah Selanjutnya</span>
+                        </h3>
 
-                    <div className="space-y-3">
-                        {/* Step 1: Negosiasi */}
-                        {order.is_negotiable && (
-                            <div className="flex items-start gap-4 rounded-lg border-l-4 border-blue-500 bg-white p-4">
-                                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-600">
-                                    1
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="mb-1 font-semibold text-gray-900">Finalisasi Order</h4>
-                                    <p className="mb-3 text-sm text-gray-600">
-                                        Order masih dalam tahap negosiasi. Edit dan finalisasi order sebelum generate payment link.
-                                    </p>
-                                    <button
-                                        onClick={() => router.visit(`/admin/orders/${order.id}/edit`)}
-                                        className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600"
-                                    >
-                                        ✏️ Edit & Finalisasi Order
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Step 2: Generate Payment Link for DP */}
-                        {!order.is_negotiable &&
-                            (order.payment_status === 'unpaid' || order.payment_status === 'booking_pending') &&
-                            !order.payment_link_active && (
-                                <div className="flex items-start gap-4 rounded-lg border-l-4 border-purple-500 bg-white p-4">
-                                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-600">
-                                        2
+                        <div className="space-y-3">
+                            {/* Step 1: Negosiasi */}
+                            {order.is_negotiable && (
+                                <div className="flex items-start gap-4 rounded-lg border-l-4 border-blue-500 bg-gray-50 p-4">
+                                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-600">
+                                        1
                                     </div>
                                     <div className="flex-1">
-                                        <h4 className="mb-1 font-semibold text-gray-900">Generate Payment Link - {initialPaymentLabel}</h4>
-                                        <p className="mb-2 text-sm text-gray-600">
-                                            Order sudah difinalisasi. Generate link pembayaran {initialPaymentLabel.toLowerCase()} untuk tahap awal.
-                                        </p>
-                                        <p className="mb-3 text-xs text-gray-500">
-                                            Nominal {initialPaymentLabel}: {formatCurrency(initialPaymentAmount)}
+                                        <h4 className="mb-1 font-semibold text-gray-900">Finalisasi Order</h4>
+                                        <p className="mb-3 text-sm text-gray-600">
+                                            Order masih dalam tahap negosiasi. Edit dan finalisasi order sebelum generate payment link.
                                         </p>
                                         <button
-                                            onClick={() => generatePaymentLink(initialPaymentType)}
-                                            disabled={
-                                                generatingLink ||
-                                                (initialPaymentType === 'booking' && initialPaymentAmount <= 0) ||
-                                                (initialPaymentType === 'dp' && initialPaymentAmount <= 0)
-                                            }
-                                            className="rounded-lg bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-600 disabled:bg-gray-400"
+                                            onClick={() => router.visit(`/admin/orders/${order.id}/edit`)}
+                                            className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600"
                                         >
-                                            {generatingLink ? 'Generating...' : `🔗 Generate ${initialPaymentLabel} Link`}
+                                            ✏️ Edit & Finalisasi Order
                                         </button>
                                     </div>
                                 </div>
                             )}
 
-                        {/* Step 2b: Generate Payment Link for DP */}
-                        {!order.is_negotiable && order.payment_status === 'booked' && order.remaining_amount > 0 && !order.payment_link_active && (
-                            <div className="flex items-start gap-4 rounded-lg border-l-4 border-purple-500 bg-white p-4">
-                                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-600">
-                                    2b
+                            {/* Step: Active Payment Link */}
+                            {!order.is_negotiable && order.payment_link_active && !order.payment_proofs.some((p: PaymentProof) => p.status === 'pending') && (
+                                <div className="flex items-start gap-4 rounded-lg border-l-4 border-blue-500 bg-gray-50 p-4">
+                                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 font-bold text-blue-600">
+                                        ⏳
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="mb-1 font-semibold text-gray-900">Menunggu Pembayaran</h4>
+                                        <p className="mb-3 text-sm text-gray-600">
+                                            Link pembayaran {order.payment_link_type?.toUpperCase()} telah dibuat dan sedang menunggu client.
+                                        </p>
+                                        <div className="flex gap-2">
+                                            <button
+                                                onClick={sendPaymentLinkViaWhatsApp}
+                                                className="rounded-lg bg-green-500 px-4 py-2 text-sm font-semibold text-white hover:bg-green-600"
+                                            >
+                                                📱 Kirim via WhatsApp
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex-1">
+                            )}
+
+                            {/* Step 2: Generate Payment Link for Initial Payment */}
+                            {!order.is_negotiable &&
+                                paymentProgress.totalPaid === 0 &&
+                                !order.payment_link_active &&
+                                !order.payment_proofs.some((p: PaymentProof) => p.status === 'pending') && (
+                                    <div className="flex items-start gap-4 rounded-lg border-l-4 border-purple-500 bg-gray-50 p-4">
+                                        <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-600">
+                                            2
+                                        </div>
+                                        <div className="flex-1">
+                                            <h4 className="mb-1 font-semibold text-gray-900">Generate Payment Link - {initialPaymentLabel}</h4>
+                                            <p className="mb-2 text-sm text-gray-600">
+                                                Order sudah difinalisasi. Generate link pembayaran {initialPaymentLabel.toLowerCase()} untuk tahap awal.
+                                            </p>
+                                            <p className="mb-3 text-xs text-gray-500">
+                                                Nominal {initialPaymentLabel}: {formatCurrency(initialPaymentAmount)}
+                                            </p>
+                                            <button
+                                                onClick={() => generatePaymentLink(initialPaymentType)}
+                                                disabled={
+                                                    generatingLink ||
+                                                    (initialPaymentType === 'booking' && initialPaymentAmount <= 0) ||
+                                                    (initialPaymentType === 'dp' && initialPaymentAmount <= 0)
+                                                }
+                                                className="rounded-lg bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-600 disabled:bg-gray-400"
+                                            >
+                                                {generatingLink ? 'Generating...' : `🔗 Generate ${initialPaymentLabel} Link`}
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+
+                            {/* Step 2b: Generate Payment Link for DP */}
+                            {!order.is_negotiable && paymentProgress.hasBooking && !paymentProgress.hasDP && order.remaining_amount > 0 && !order.payment_link_active && !order.payment_proofs.some((p: PaymentProof) => p.status === 'pending') && (
+                                <div className="flex items-start gap-4 rounded-lg border-l-4 border-purple-500 bg-gray-50 p-4">
+                                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-600">
+                                        2b
+                                    </div>
+                                    <div className="flex-1">
                                         <h4 className="mb-1 font-semibold text-gray-900">Generate Payment Link - DP</h4>
-                                    <p className="mb-3 text-sm text-gray-600">
+                                        <p className="mb-3 text-sm text-gray-600">
                                             Booking sudah dibayar. Generate link DP sebagai fase pembayaran berikutnya.
-                                    </p>
-                                    <button
+                                        </p>
+                                        <button
                                             onClick={() => generatePaymentLink('dp')}
-                                        disabled={generatingLink}
-                                        className="rounded-lg bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-600 disabled:bg-gray-400"
-                                    >
+                                            disabled={generatingLink}
+                                            className="rounded-lg bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-600 disabled:bg-gray-400"
+                                        >
                                             {generatingLink ? 'Generating...' : '🔗 Generate DP Link'}
                                         </button>
                                     </div>
                                 </div>
                             )}
 
-                        {/* Step 2c: Generate Payment Link for Installment / Pelunasan */}
-                        {!order.is_negotiable && (order.payment_status === 'dp_paid' || order.payment_status === 'partial') && order.remaining_amount > 0 && !order.payment_link_active && (
-                            <div className="flex items-start gap-4 rounded-lg border-l-4 border-purple-500 bg-white p-4">
-                                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-600">
-                                    2c
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="mb-1 font-semibold text-gray-900">Generate Payment Link - Cicilan/Pelunasan</h4>
+                            {/* Step 2c: Generate Payment Link for Cicilan/Pelunasan */}
+                            {!order.is_negotiable && paymentProgress.hasDP && !paymentProgress.hasFull && order.remaining_amount > 0 && !order.payment_link_active && !order.payment_proofs.some((p: PaymentProof) => p.status === 'pending') && (
+                                <div className="flex items-start gap-4 rounded-lg border-l-4 border-purple-500 bg-gray-50 p-4">
+                                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-600">
+                                        2c
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="mb-1 font-semibold text-gray-900">Generate Payment Link - Cicilan/Pelunasan</h4>
                                         <p className="mb-3 text-sm text-gray-600">
-                                        Generate link cicilan atau pelunasan untuk sisa tagihan {formatRupiah(order.remaining_amount || 0)}.
-                                    </p>
-                                    <div className="flex flex-wrap gap-2">
+                                            Generate link cicilan atau pelunasan untuk sisa tagihan {formatRupiah(order.remaining_amount || 0)}.
+                                        </p>
+                                        <div className="flex flex-wrap gap-2">
                                             <div className="min-w-[220px]">
                                                 <input
                                                     type="number"
@@ -633,138 +714,139 @@ const OrderDetailPage: React.FC<Props> = ({ order }) => {
                                                     className="w-full rounded-lg border border-purple-200 px-3 py-2 text-sm"
                                                 />
                                             </div>
+                                            <button
+                                                onClick={() => generatePaymentLink('installment', Number(installmentAmount || 0))}
+                                                disabled={generatingLink || Number(installmentAmount || 0) <= 0}
+                                                className="rounded-lg bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-600 disabled:bg-gray-400"
+                                            >
+                                                {generatingLink ? 'Generating...' : '🔗 Generate Cicilan Link'}
+                                            </button>
+                                            <button
+                                                onClick={() => generatePaymentLink('full')}
+                                                disabled={generatingLink}
+                                                className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-600 disabled:bg-gray-400"
+                                            >
+                                                {generatingLink ? 'Generating...' : '🔗 Generate Pelunasan Link'}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 3: Verify Payment */}
+                            {order.payment_proofs.some((p: PaymentProof) => p.status === 'pending') && (
+                                <div className="flex items-start gap-4 rounded-lg border-l-4 border-orange-500 bg-gray-50 p-4">
+                                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-orange-100 font-bold text-orange-600">
+                                        3
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="mb-1 font-semibold text-gray-900">Verifikasi Pembayaran</h4>
+                                        <p className="mb-3 text-sm text-gray-600">
+                                            Ada bukti pembayaran yang menunggu verifikasi. Lihat dan verifikasi di bagian "Bukti Pembayaran" di bawah.
+                                        </p>
+                                        <span className="inline-flex items-center gap-2 text-sm font-semibold text-orange-600">
+                                            <span className="animate-pulse">●</span>
+                                            {order.payment_proofs.filter((p: PaymentProof) => p.status === 'pending').length} Pembayaran Menunggu
+                                            Verifikasi
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Step 4: Confirm Order */}
+                            {(paymentProgress.hasDP || paymentProgress.hasFull) && !['confirmed', 'processing', 'completed'].includes(order.status) && (
+                                <div className="flex items-start gap-4 rounded-lg border-l-4 border-green-500 bg-gray-50 p-4">
+                                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-100 font-bold text-green-600">
+                                        4
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="mb-1 font-semibold text-gray-900">Konfirmasi Order</h4>
+                                        <p className="mb-3 text-sm text-gray-600">
+                                            {paymentProgress.hasFull
+                                                ? 'Pembayaran LUNAS terverifikasi. Konfirmasi order untuk mulai proses.'
+                                                : 'Pembayaran DP terverifikasi. Konfirmasi order untuk mulai proses (pelunasan bisa dilakukan kemudian).'}
+                                        </p>
                                         <button
-                                            onClick={() => generatePaymentLink('installment', Number(installmentAmount || 0))}
-                                            disabled={generatingLink || Number(installmentAmount || 0) <= 0}
-                                            className="rounded-lg bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-600 disabled:bg-gray-400"
+                                            onClick={confirmOrder}
+                                            disabled={confirmingOrder}
+                                            className="rounded-lg bg-green-500 px-4 py-2 text-sm font-semibold text-white hover:bg-green-600 disabled:bg-gray-400"
                                         >
-                                            {generatingLink ? 'Generating...' : '🔗 Generate Cicilan Link'}
-                                        </button>
-                                        <button
-                                            onClick={() => generatePaymentLink('full')}
-                                            disabled={generatingLink}
-                                            className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-600 disabled:bg-gray-400"
-                                        >
-                                            {generatingLink ? 'Generating...' : '🔗 Generate Pelunasan Link'}
+                                            {confirmingOrder ? 'Konfirmasi...' : '✅ Konfirmasi Order'}
                                         </button>
                                     </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* Step 3: Verify Payment */}
-                        {order.payment_proofs.some((p: PaymentProof) => p.status === 'pending') && (
-                            <div className="flex items-start gap-4 rounded-lg border-l-4 border-orange-500 bg-white p-4">
-                                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-orange-100 font-bold text-orange-600">
-                                    3
+                            {/* Step 5: Process Order */}
+                            {order.status === 'confirmed' && (
+                                <div className="flex items-start gap-4 rounded-lg border-l-4 border-indigo-500 bg-gray-50 p-4">
+                                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-600">
+                                        5
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="mb-1 font-semibold text-gray-900">Mulai Proses Order</h4>
+                                        <p className="mb-3 text-sm text-gray-600">
+                                            Order sudah dikonfirmasi. Ubah status ke "Sedang Diproses" untuk mulai pengerjaan.
+                                        </p>
+                                        <button
+                                            onClick={() => updateOrderStatus('processing')}
+                                            disabled={updatingStatus}
+                                            className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-600 disabled:bg-gray-400"
+                                        >
+                                            {updatingStatus ? 'Updating...' : '⚙️ Mulai Proses'}
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex-1">
-                                    <h4 className="mb-1 font-semibold text-gray-900">Verifikasi Pembayaran</h4>
-                                    <p className="mb-3 text-sm text-gray-600">
-                                        Ada bukti pembayaran yang menunggu verifikasi. Lihat dan verifikasi di bagian "Bukti Pembayaran" di bawah.
-                                    </p>
-                                    <span className="inline-flex items-center gap-2 text-sm font-semibold text-orange-600">
-                                        <span className="animate-pulse">●</span>
-                                        {order.payment_proofs.filter((p: PaymentProof) => p.status === 'pending').length} Pembayaran Menunggu
-                                        Verifikasi
-                                    </span>
-                                </div>
-                            </div>
-                        )}
+                            )}
 
-                        {/* Step 4: Confirm Order */}
-                        {(paymentProgress.hasDP || paymentProgress.hasFull) && !['confirmed', 'processing', 'completed'].includes(order.status) && (
-                            <div className="flex items-start gap-4 rounded-lg border-l-4 border-green-500 bg-white p-4">
-                                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-100 font-bold text-green-600">
-                                    4
+                            {/* Step 6: Complete Order */}
+                            {order.status === 'processing' && (
+                                <div className="flex items-start gap-4 rounded-lg border-l-4 border-emerald-500 bg-gray-50 p-4">
+                                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-600">
+                                        6
+                                    </div>
+                                    <div className="flex-1">
+                                        <h4 className="mb-1 font-semibold text-gray-900">Selesaikan Order</h4>
+                                        <p className="mb-3 text-sm text-gray-600">
+                                            Order sedang diproses. Tandai sebagai selesai setelah acara berlangsung.
+                                        </p>
+                                        <button
+                                            onClick={() => updateOrderStatus('completed')}
+                                            disabled={updatingStatus}
+                                            className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:bg-gray-400"
+                                        >
+                                            {updatingStatus ? 'Updating...' : '✅ Tandai Selesai'}
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="flex-1">
-                                    <h4 className="mb-1 font-semibold text-gray-900">Konfirmasi Order</h4>
-                                    <p className="mb-3 text-sm text-gray-600">
-                                        {paymentProgress.hasFull
-                                            ? 'Pembayaran LUNAS terverifikasi. Konfirmasi order untuk mulai proses.'
-                                            : 'Pembayaran DP terverifikasi. Konfirmasi order untuk mulai proses (pelunasan bisa dilakukan kemudian).'}
-                                    </p>
+                            )}
+
+                            {/* Completed Status */}
+                            {order.status === 'completed' && (
+                                <div className="flex items-center justify-center gap-3 rounded-lg border-2 border-green-500 bg-gray-50 p-6">
+                                    <span className="text-4xl">🎉</span>
+                                    <div>
+                                        <h4 className="text-lg font-bold text-green-600">Order Selesai!</h4>
+                                        <p className="text-sm text-gray-600">Terima kasih telah menyelesaikan order ini.</p>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Cancel Option */}
+                            {!['completed', 'cancelled'].includes(order.status) && (
+                                <div className="border-t pt-3">
                                     <button
-                                        onClick={confirmOrder}
-                                        disabled={confirmingOrder}
-                                        className="rounded-lg bg-green-500 px-4 py-2 text-sm font-semibold text-white hover:bg-green-600 disabled:bg-gray-400"
-                                    >
-                                        {confirmingOrder ? 'Konfirmasi...' : '✅ Konfirmasi Order'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Step 5: Process Order */}
-                        {order.status === 'confirmed' && (
-                            <div className="flex items-start gap-4 rounded-lg border-l-4 border-indigo-500 bg-white p-4">
-                                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-indigo-100 font-bold text-indigo-600">
-                                    5
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="mb-1 font-semibold text-gray-900">Mulai Proses Order</h4>
-                                    <p className="mb-3 text-sm text-gray-600">
-                                        Order sudah dikonfirmasi. Ubah status ke "Sedang Diproses" untuk mulai pengerjaan.
-                                    </p>
-                                    <button
-                                        onClick={() => updateOrderStatus('processing')}
+                                        onClick={() => updateOrderStatus('cancelled')}
                                         disabled={updatingStatus}
-                                        className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-600 disabled:bg-gray-400"
+                                        className="text-sm font-medium text-red-600 hover:text-red-700"
                                     >
-                                        {updatingStatus ? 'Updating...' : '⚙️ Mulai Proses'}
+                                        ✕ Batalkan Order
                                     </button>
                                 </div>
-                            </div>
-                        )}
-
-                        {/* Step 6: Complete Order */}
-                        {order.status === 'processing' && (
-                            <div className="flex items-start gap-4 rounded-lg border-l-4 border-emerald-500 bg-white p-4">
-                                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-600">
-                                    6
-                                </div>
-                                <div className="flex-1">
-                                    <h4 className="mb-1 font-semibold text-gray-900">Selesaikan Order</h4>
-                                    <p className="mb-3 text-sm text-gray-600">
-                                        Order sedang diproses. Tandai sebagai selesai setelah acara berlangsung.
-                                    </p>
-                                    <button
-                                        onClick={() => updateOrderStatus('completed')}
-                                        disabled={updatingStatus}
-                                        className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:bg-gray-400"
-                                    >
-                                        {updatingStatus ? 'Updating...' : '✅ Tandai Selesai'}
-                                    </button>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Completed Status */}
-                        {order.status === 'completed' && (
-                            <div className="flex items-center justify-center gap-3 rounded-lg border-2 border-green-500 bg-white p-6">
-                                <span className="text-4xl">🎉</span>
-                                <div>
-                                    <h4 className="text-lg font-bold text-green-600">Order Selesai!</h4>
-                                    <p className="text-sm text-gray-600">Terima kasih telah menyelesaikan order ini.</p>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Cancel Option */}
-                        {!['completed', 'cancelled'].includes(order.status) && (
-                            <div className="border-t pt-3">
-                                <button
-                                    onClick={() => updateOrderStatus('cancelled')}
-                                    disabled={updatingStatus}
-                                    className="text-sm font-medium text-red-600 hover:text-red-700"
-                                >
-                                    ✕ Batalkan Order
-                                </button>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
-                </div>
+                )}
 
                 {/* Status Cards - OLD VERSION REMOVED */}
                 <div className="hidden grid-cols-1 gap-4 md:grid-cols-2">
@@ -995,13 +1077,13 @@ const OrderDetailPage: React.FC<Props> = ({ order }) => {
                                             <div>
                                                 <div className="text-sm text-gray-600">Tipe Pembayaran</div>
                                                 <div className="font-semibold text-gray-900">
-                                                                                                        {proof.payment_type === 'booking'
-                                                                                                                ? 'Booking (Reservasi Tanggal)'
-                                                                                                                : proof.payment_type === 'dp'
-                                                                                                                    ? 'Down Payment (DP)'
-                                                                                                                    : proof.payment_type === 'installment'
-                                                                                                                        ? 'Cicilan'
-                                                                                                                        : 'Pelunasan'}
+                                                    {proof.payment_type === 'booking'
+                                                        ? 'Booking (Reservasi Tanggal)'
+                                                        : proof.payment_type === 'dp'
+                                                            ? 'Down Payment (DP)'
+                                                            : proof.payment_type === 'installment'
+                                                                ? 'Cicilan'
+                                                                : 'Pelunasan'}
                                                 </div>
                                             </div>
                                             <div>

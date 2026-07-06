@@ -1,5 +1,6 @@
-import { Link, usePage } from '@inertiajs/react';
+import { Link, usePage, router } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
+import { formatRupiah } from '../../utils/formatRupiah';
 import { Transaction, transactionService } from '../../services/transactionService';
 
 const MyTransactionsPage: React.FC = () => {
@@ -211,7 +212,7 @@ const MyTransactionsPage: React.FC = () => {
                                                     <strong>Client:</strong> {transaction.client_name}
                                                 </p>
                                                 <p>
-                                                    <strong>Total Price:</strong> Rp {transaction.total_price.toLocaleString('id-ID')}
+                                                    <strong>Total Price:</strong> {formatRupiah(transaction.total_price)}
                                                 </p>
                                                 <p>
                                                     <strong>Status:</strong> {transaction.status}

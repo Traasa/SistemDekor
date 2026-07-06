@@ -1,4 +1,5 @@
 import React from 'react';
+import { formatRupiah } from '../../utils/formatRupiah';
 import { images } from '../../config/theme';
 import { LandingServiceItem } from '../../services/websiteContentService';
 
@@ -73,7 +74,7 @@ export const ServicesSection: React.FC<ServicesSectionProps> = ({ services }) =>
                                 <p className="leading-relaxed text-gray-700">{service.description}</p>
                                 <div className="mt-5 flex items-center justify-between">
                                     <p className="text-sm text-gray-500">Harga mulai</p>
-                                    <p className="font-semibold text-[#B88321]">Rp {Number(service.price || 0).toLocaleString('id-ID')}</p>
+                                    <p className="font-semibold text-[#B88321]">{formatRupiah(service.price)}</p>
                                 </div>
                             </div>
                         </div>

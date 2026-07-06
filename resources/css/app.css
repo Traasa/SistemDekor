@@ -3,6 +3,10 @@
 @tailwind utilities;
 
 @layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+
     :root {
         /* Wedding Theme Colors */
         --color-cream: #f5f1e8;

@@ -71,20 +71,9 @@ const PaymentDetailPage: React.FC<{ id: string }> = ({ id }) => {
         window.print();
     };
 
-    const handleDownloadInvoice = async () => {
-        try {
-            const response = await api.get(`/payment-transactions/${id}/invoice`, {
-                responseType: 'blob',
-            });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `Invoice-${payment?.order.order_number}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        } catch (error) {
-            alert('Gagal download invoice');
+    const handleDownloadInvoice = () => {
+        if (payment?.order?.id) {
+            window.open(`/admin/orders/${payment.order.id}/invoice`, '_blank');
         }
     };
 

@@ -1,6 +1,7 @@
 import { Head, Link, usePage } from '@inertiajs/react';
 import React, { useMemo, useState } from 'react';
 import { PublicLayout } from '../../layouts/PublicLayout';
+import { formatRupiah } from '../../utils/formatRupiah';
 
 interface Order {
     id: number;
@@ -126,9 +127,9 @@ const MyOrders: React.FC<Props> = ({ orders = [] }) => {
 
                                         <div className="min-w-[220px] rounded-2xl border border-[#E7DCCB] bg-[#F8F1E8] p-4">
                                             <p className="text-xs font-semibold tracking-widest text-[#7A5C44] uppercase">Nilai Order</p>
-                                            <p className="mt-2 text-2xl font-bold text-[#B08A56]">
-                                                Rp {Number(order.final_price || 0).toLocaleString('id-ID')}
-                                            </p>
+                                            <div className="mt-2 text-2xl font-bold text-[#B08A56]">
+                                                {formatRupiah(order.final_price)}
+                                            </div>
                                             <Link
                                                 href={`/my-orders/${order.id}`}
                                                 className="mt-4 inline-block w-full rounded-xl bg-gradient-to-r from-[#B08A56] to-[#7A5C44] px-4 py-2 text-center text-sm font-semibold text-white"

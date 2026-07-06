@@ -37,14 +37,14 @@ class OrderDocumentController extends Controller
     {
         $order = $this->loadOrder($id);
         $pdf = Pdf::loadView('pdf.order-invoice', compact('order'));
-        return $pdf->download('Invoice-' . ($order->order_number ?? ('ORD-' . $order->id)) . '.pdf');
+        return $pdf->stream('Invoice-' . ($order->order_number ?? ('ORD-' . $order->id)) . '.pdf');
     }
 
     public function downloadContractAdmin(int $id)
     {
         $order = $this->loadOrder($id);
         $pdf = Pdf::loadView('pdf.order-contract', compact('order'));
-        return $pdf->download('Kontrak-' . ($order->order_number ?? ('ORD-' . $order->id)) . '.pdf');
+        return $pdf->stream('Kontrak-' . ($order->order_number ?? ('ORD-' . $order->id)) . '.pdf');
     }
 
     public function downloadInvoiceClient(Request $request, int $id)
@@ -52,7 +52,7 @@ class OrderDocumentController extends Controller
         $order = $this->loadOrder($id);
         $this->authorizeClient($request, $order);
         $pdf = Pdf::loadView('pdf.order-invoice', compact('order'));
-        return $pdf->download('Invoice-' . ($order->order_number ?? ('ORD-' . $order->id)) . '.pdf');
+        return $pdf->stream('Invoice-' . ($order->order_number ?? ('ORD-' . $order->id)) . '.pdf');
     }
 
     public function downloadContractClient(Request $request, int $id)
@@ -60,6 +60,6 @@ class OrderDocumentController extends Controller
         $order = $this->loadOrder($id);
         $this->authorizeClient($request, $order);
         $pdf = Pdf::loadView('pdf.order-contract', compact('order'));
-        return $pdf->download('Kontrak-' . ($order->order_number ?? ('ORD-' . $order->id)) . '.pdf');
+        return $pdf->stream('Kontrak-' . ($order->order_number ?? ('ORD-' . $order->id)) . '.pdf');
     }
 }

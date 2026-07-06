@@ -1,6 +1,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import React, { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import { PublicLayout } from '../layouts/PublicLayout';
 import { images } from '../config/theme';
 
@@ -357,17 +358,37 @@ const PackagesPage: React.FC = () => {
             <Head title="Paket Wedding" />
             <PublicLayout active="packages" wrapperClassName="min-h-screen bg-[#F6F1EA] text-[#2A2420]">
                 <main className="w-full px-4 py-14 font-sans sm:px-8 2xl:px-16">
-                    <section className="mb-10 rounded-[28px] border border-[#E7DCCB] bg-[#FFF9F1] p-8 shadow-[0_18px_45px_-35px_rgba(27,36,48,0.65)] sm:p-10">
+                    <motion.section 
+                        className="mb-10 rounded-[28px] border border-[#E7DCCB] bg-[#FFF9F1] p-8 shadow-[0_18px_45px_-35px_rgba(27,36,48,0.65)] sm:p-10"
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                    >
                         <p className="text-xs font-semibold uppercase tracking-[0.28em] text-[#B08A56]">Paket Wedding</p>
                         <h1 className="mt-3 font-serif text-4xl font-bold text-[#2A2420] sm:text-5xl">Pilih Paket Sesuai Skala Acara Anda</h1>
                         <p className="mt-3 max-w-2xl text-[#5B4A3C]">
                             Seluruh paket dapat dikustomisasi. Venue bisa dipilih opsional: Anda bisa serahkan ke WO, atau gunakan venue sendiri.
                         </p>
-                    </section>
+                    </motion.section>
 
-                    <section className="mb-12 grid gap-6 lg:grid-cols-3">
+                    <motion.section 
+                        className="mb-12 grid gap-6 lg:grid-cols-3"
+                        initial="hidden"
+                        animate="visible"
+                        variants={{
+                            hidden: { opacity: 0 },
+                            visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+                        }}
+                    >
                         {FEATURED_TIERS.map((tier) => (
-                            <article key={tier.key} className="group overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] shadow-[0_16px_40px_-28px_rgba(27,36,48,0.6)]">
+                            <motion.article 
+                                key={tier.key} 
+                                className="group overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] shadow-[0_16px_40px_-28px_rgba(27,36,48,0.6)]"
+                                variants={{
+                                    hidden: { opacity: 0, y: 20 },
+                                    visible: { opacity: 1, y: 0 }
+                                }}
+                            >
                                 <div className="relative h-56 overflow-hidden">
                                     <img src={tier.image} alt={`${tier.name} package`} className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                     <div className="absolute inset-0 bg-gradient-to-t from-[#1B2430]/75 via-[#1B2430]/20 to-transparent" />
@@ -388,16 +409,23 @@ const PackagesPage: React.FC = () => {
                                         <span aria-hidden="true">→</span>
                                     </Link>
                                 </div>
-                            </article>
+                            </motion.article>
                         ))}
-                    </section>
+                    </motion.section>
 
                     {loading ? (
                         <section className="rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-10 text-center shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
                             <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-[#B08A56] border-r-transparent" />
                         </section>
                     ) : (
-                        <section id="packages-list" className="grid gap-6 md:grid-cols-2">
+                        <motion.section 
+                            id="packages-list" 
+                            className="grid gap-6 md:grid-cols-2"
+                            initial={{ opacity: 0, y: 40 }}
+                            whileInView={{ opacity: 1, y: 0 }}
+                            viewport={{ once: true, margin: "-100px" }}
+                            transition={{ duration: 0.6 }}
+                        >
                             {packageList.slice(0, visiblePackages).map((pkg) => {
                                 const features = parseFeatureList(pkg.description || '');
                                 return (
@@ -430,7 +458,7 @@ const PackagesPage: React.FC = () => {
                                     </article>
                                 );
                             })}
-                        </section>
+                        </motion.section>
                     )}
 
                     {!loading && packageList.length > visiblePackages && (
@@ -445,7 +473,13 @@ const PackagesPage: React.FC = () => {
                         </div>
                     )}
 
-                    <section className="mt-10 rounded-3xl bg-[#1B2430] p-8 text-[#F6F1EA] sm:p-10">
+                    <motion.section 
+                        className="mt-10 rounded-3xl bg-[#1B2430] p-8 text-[#F6F1EA] sm:p-10"
+                        initial={{ opacity: 0, y: 40 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, margin: "-100px" }}
+                        transition={{ duration: 0.8 }}
+                    >
                         <h3 className="font-serif text-3xl font-bold">Butuh Paket Custom?</h3>
                         <p className="mt-2 text-[#C8B8A3]">Tim kami akan bantu hitung kebutuhan dekorasi, vendor, rundown acara, hingga venue.</p>
                         <div className="mt-6 flex flex-wrap gap-3">
@@ -461,12 +495,22 @@ const PackagesPage: React.FC = () => {
                                 Lihat Status Order
                             </Link>
                         </div>
-                    </section>
+                    </motion.section>
                 </main>
 
                 {showCheckoutModal && selectedPackage && (
-                    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4">
-                        <div className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl sm:p-8">
+                    <motion.div 
+                        className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/70 p-4"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div 
+                            className="w-full max-w-2xl rounded-3xl bg-white p-6 shadow-2xl sm:p-8"
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                        >
                             <div className="mb-5 flex items-start justify-between gap-4">
                                 <div>
                                     <h2 className="font-serif text-3xl font-bold text-slate-900">Pesan {selectedPackage.name}</h2>
@@ -711,8 +755,8 @@ const PackagesPage: React.FC = () => {
                                     {isSubmitting ? 'Memproses...' : 'Kirim Pesanan'}
                                 </button>
                             </form>
-                        </div>
-                    </div>
+                        </motion.div>
+                    </motion.div>
                 )}
             </PublicLayout>
         </>

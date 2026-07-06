@@ -39,7 +39,7 @@ class MiniOrderDocumentController extends Controller
         ];
 
         $pdf = Pdf::loadView('pdf.order-invoice', ['order' => $order]);
-        return $pdf->download('Invoice-' . ($miniOrder->order_number ?? ('MINI-' . $miniOrder->id)) . '.pdf');
+        return $pdf->stream('Invoice-' . ($miniOrder->order_number ?? ('MINI-' . $miniOrder->id)) . '.pdf');
     }
 
     private function mapOrderDetails(MiniOrder $miniOrder): Collection

@@ -1,5 +1,6 @@
 import { Link } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
+import { formatRupiah } from '../utils/formatRupiah';
 import { Transaction, transactionService } from '../services/transactionService';
 
 const TransactionDetailPage: React.FC<{ transactionId: number }> = ({ transactionId }) => {
@@ -163,7 +164,7 @@ const TransactionDetailPage: React.FC<{ transactionId: number }> = ({ transactio
 
                             <div>
                                 <dt className="text-sm font-medium text-gray-500">Total Price</dt>
-                                <dd className="mt-1 text-lg font-semibold text-gray-900">Rp {transaction.total_price.toLocaleString('id-ID')}</dd>
+                                <dd className="mt-1 text-lg font-semibold text-gray-900">{formatRupiah(transaction.total_price)}</dd>
                             </div>
 
                             <div>

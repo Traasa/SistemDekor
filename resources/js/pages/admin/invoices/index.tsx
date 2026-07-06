@@ -79,21 +79,8 @@ const InvoicesPage: React.FC = () => {
         return { label: 'Partially Paid', color: 'bg-yellow-100 text-yellow-800' };
     };
 
-    const handleDownloadInvoice = async (orderId: number, orderNumber: string) => {
-        try {
-            const response = await api.get(`/orders/${orderId}/invoice`, {
-                responseType: 'blob',
-            });
-            const url = window.URL.createObjectURL(new Blob([response.data]));
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', `Invoice-${orderNumber}.pdf`);
-            document.body.appendChild(link);
-            link.click();
-            link.remove();
-        } catch (error) {
-            alert('Gagal download invoice');
-        }
+    const handleDownloadInvoice = (orderId: number) => {
+        window.open(`/admin/orders/${orderId}/invoice`, '_blank');
     };
 
     return (
@@ -215,7 +202,7 @@ const InvoicesPage: React.FC = () => {
                                                             View
                                                         </button>
                                                         <button
-                                                            onClick={() => handleDownloadInvoice(invoice.id, invoice.order_number)}
+                                                            onClick={() => handleDownloadInvoice(invoice.id)}
                                                             className="text-blue-600 hover:text-blue-900"
                                                         >
                                                             Download

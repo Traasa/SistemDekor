@@ -90,6 +90,11 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
 
     useEffect(() => {
         localStorage.setItem('admin-theme-mode', themeMode);
+        if (themeMode === 'dark') {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+        }
     }, [themeMode]);
 
     const toggleTheme = () => {

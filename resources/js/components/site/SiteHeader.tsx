@@ -43,6 +43,30 @@ export const SiteHeader: React.FC<HeaderProps> = ({ active = 'home', companyName
         router.post('/logout');
     };
 
+    const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, href: string) => {
+        const isHomePage = typeof window !== 'undefined' && window.location.pathname === '/';
+        
+        if (isHomePage && (href.startsWith('/#') || href.startsWith('#'))) {
+            e.preventDefault();
+            
+            // Extract the ID ('about' or 'contact')
+            const targetId = href.replace('/#', '').replace('#', '');
+            const targetElement = document.getElementById(targetId);
+            
+            if (targetElement) {
+                const headerOffset = 80;
+                const elementPosition = targetElement.getBoundingClientRect().top;
+                const offsetPosition = elementPosition + window.pageYOffset - headerOffset;
+
+                window.scrollTo({
+                    top: offsetPosition,
+                    behavior: 'smooth'
+                });
+            }
+            setMobileOpen(false);
+        }
+    };
+
     return (
         <header className="sticky top-0 z-50 border-b border-[#D4AF37]/20 bg-[#FCF8F1]/95 backdrop-blur-xl">
             <div className="w-full px-4 sm:px-8 2xl:px-16">
@@ -68,6 +92,7 @@ export const SiteHeader: React.FC<HeaderProps> = ({ active = 'home', companyName
                             <a
                                 key={item.key}
                                 href={item.href}
+                                onClick={(e) => handleNavClick(e, item.href)}
                                 className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
                                     active === item.key
                                         ? 'bg-gradient-to-r from-[#D4AF37] to-[#8A6A4F] text-white shadow-md'
@@ -136,10 +161,10 @@ export const SiteHeader: React.FC<HeaderProps> = ({ active = 'home', companyName
                             <a
                                 key={item.key}
                                 href={item.href}
+                                onClick={(e) => handleNavClick(e, item.href)}
                                 className={`block rounded-xl px-4 py-2 text-sm font-semibold ${
                                     active === item.key ? 'bg-[#F9F2E7] text-[#B88321]' : 'text-slate-700 hover:bg-slate-50'
                                 }`}
-                                onClick={() => setMobileOpen(false)}
                             >
                                 {item.label}
                             </a>

@@ -1,5 +1,6 @@
 import { Head, Link } from '@inertiajs/react';
 import React, { useEffect, useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { PublicLayout } from '../layouts/PublicLayout';
 import { LandingGalleryItem, LandingPortfolioItem, websiteContentService } from '../services/websiteContentService';
 
@@ -86,13 +87,18 @@ const GalleryPage: React.FC = () => {
             <Head title="Gallery" />
             <PublicLayout active="gallery" wrapperClassName="min-h-screen bg-[#F6F1EA] text-[#2A2420]">
                 <main className="w-full px-4 py-14 font-sans sm:px-8 2xl:px-16">
-                    <section className="mb-8 rounded-[28px] border border-[#E7DCCB] bg-[#FFF9F1] p-8 shadow-[0_18px_45px_-35px_rgba(27,36,48,0.65)] sm:p-10">
+                    <motion.section 
+                        className="mb-8 rounded-[28px] border border-[#E7DCCB] bg-[#FFF9F1] p-8 shadow-[0_18px_45px_-35px_rgba(27,36,48,0.65)] sm:p-10"
+                        initial={{ opacity: 0, y: 30 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.6 }}
+                    >
                         <p className="text-xs font-semibold tracking-[0.28em] text-[#B08A56] uppercase">Gallery</p>
                         <h1 className="mt-3 font-serif text-4xl font-bold text-[#2A2420] sm:text-5xl">Portofolio Event Kami</h1>
                         <p className="mt-3 max-w-3xl text-[#5B4A3C]">
                             Koleksi visual ini menunjukkan kualitas styling, tata ruang, dan pengalaman event yang kami kerjakan untuk klien.
                         </p>
-                    </section>
+                    </motion.section>
 
                     <section className="mb-8 flex flex-wrap gap-2">
                         {categories.map((category) => (
@@ -115,9 +121,18 @@ const GalleryPage: React.FC = () => {
                             Memuat gallery...
                         </section>
                     ) : (
-                        <section className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                            {visibleGalleryItems.map((item) => (
-                                <article
+                        <motion.section 
+                            className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3"
+                            initial="hidden"
+                            animate="visible"
+                            variants={{
+                                hidden: { opacity: 0 },
+                                visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+                            }}
+                        >
+                            <AnimatePresence>
+                                {visibleGalleryItems.map((item) => (
+                                    <motion.article
                                     key={item.id}
                                     className="group cursor-pointer overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] shadow-[0_14px_30px_-26px_rgba(27,36,48,0.6)] transition hover:-translate-y-1 hover:shadow-[0_20px_45px_-30px_rgba(27,36,48,0.7)]"
                                     onClick={() => setSelectedImage(item)}
@@ -136,14 +151,15 @@ const GalleryPage: React.FC = () => {
                                         <h2 className="mt-2 text-xl font-bold text-[#2A2420]">{item.title}</h2>
                                         <p className="mt-2 text-sm text-[#5B4A3C]">{item.description}</p>
                                     </div>
-                                </article>
-                            ))}
+                                    </motion.article>
+                                ))}
+                            </AnimatePresence>
                             {filteredItems.length === 0 && (
                                 <div className="col-span-full rounded-3xl border border-dashed border-[#E7DCCB] bg-[#FFFBF6] p-8 text-center text-[#5B4A3C]">
                                     Belum ada item pada kategori ini.
                                 </div>
                             )}
-                        </section>
+                        </motion.section>
                     )}
 
                     {!loading && filteredItems.length > visibleItems && (
@@ -158,7 +174,13 @@ const GalleryPage: React.FC = () => {
                         </div>
                     )}
 
-                    <section className="mt-10 rounded-3xl bg-[#1B2430] p-8 text-[#F6F1EA] sm:p-10">
+                    <motion.section 
+                        className="mt-10 rounded-3xl bg-[#1B2430] p-8 text-[#F6F1EA] sm:p-10"
+                        initial={{ opacity: 0, y: 40 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true, margin: "-100px" }}
+                        transition={{ duration: 0.8 }}
+                    >
                         <h3 className="font-serif text-3xl font-bold">Ingin Acara Dengan Vibe Serupa?</h3>
                         <p className="mt-2 text-[#C8B8A3]">Lanjutkan ke halaman paket atau langsung konsultasi agar tim kami siapkan proposal visual Anda.</p>
                         <div className="mt-6 flex flex-wrap gap-3">
@@ -169,17 +191,29 @@ const GalleryPage: React.FC = () => {
                                 Cek Status Order
                             </Link>
                         </div>
-                    </section>
+                    </motion.section>
                 </main>
 
                 {selectedImage && (
-                    <div className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1B2430]/80 p-4" onClick={() => setSelectedImage(null)}>
-                        <div className="w-full max-w-4xl rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-4 shadow-2xl sm:p-6" onClick={(e) => e.stopPropagation()}>
+                    <motion.div 
+                        className="fixed inset-0 z-[80] flex items-center justify-center bg-[#1B2430]/80 p-4" 
+                        onClick={() => setSelectedImage(null)}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                    >
+                        <motion.div 
+                            className="w-full max-w-4xl rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-4 shadow-2xl sm:p-6" 
+                            onClick={(e) => e.stopPropagation()}
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.9, opacity: 0 }}
+                        >
                             <img src={selectedImage.image} alt={selectedImage.title} className="max-h-[70vh] w-full rounded-2xl object-cover" />
                             <h3 className="mt-4 font-serif text-2xl font-bold text-[#2A2420]">{selectedImage.title}</h3>
                             <p className="mt-2 text-[#5B4A3C]">{selectedImage.description}</p>
-                        </div>
-                    </div>
+                        </motion.div>
+                    </motion.div>
                 )}
             </PublicLayout>
         </>

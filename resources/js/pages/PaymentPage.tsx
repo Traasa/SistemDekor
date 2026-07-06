@@ -1,7 +1,9 @@
 import { Head } from '@inertiajs/react';
 import axios from 'axios';
-import { AlertCircle, CheckCircle, DollarSign, FileImage, Upload } from 'lucide-react';
+import { Building2, Upload, FileImage, Receipt, DollarSign, CheckCircle, AlertCircle, Copy, Check, Info } from 'lucide-react';
+import { formatRupiah } from '../utils/formatRupiah';
 import React, { useEffect, useMemo, useState } from 'react';
+import { PublicLayout } from '../layouts/PublicLayout';
 
 interface Order {
     id: number;
@@ -33,6 +35,13 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
     const [errorMessage, setErrorMessage] = useState('');
+    const [isCopied, setIsCopied] = useState(false);
+
+    const handleCopyRekening = () => {
+        navigator.clipboard.writeText('7180191890');
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2000);
+    };
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -94,7 +103,7 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
         if (paymentType === 'full') {
             setAmount(remaining.toString());
         }
-    }, [paymentType, order.booking_amount, order.dp_amount, order.payment_link_amount, remaining]);
+    }, [paymentType, order.dp_amount, order.payment_link_amount, remaining]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -119,12 +128,12 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
 
         // Validate amount based on payment type
         if (paymentType === 'full' && Math.abs(parseFloat(amount) - remaining) > 0.01) {
-            setErrorMessage(`Full payment must be exactly Rp ${remaining.toLocaleString('id-ID')}`);
+            setErrorMessage(`Full payment must be exactly ${formatRupiah(remaining)}`);
             return;
         }
 
         if (paymentType === 'dp' && expectedAmount > 0 && Math.abs(parseFloat(amount) - expectedAmount) > 0.01) {
-            setErrorMessage(`DP harus sesuai nominal Rp ${expectedAmount.toLocaleString('id-ID')}`);
+            setErrorMessage(`DP harus sesuai nominal ${formatRupiah(expectedAmount)}`);
             return;
         }
 
@@ -161,14 +170,14 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
     };
 
     return (
-        <>
+        <PublicLayout wrapperClassName="min-h-screen bg-[#F6F1EA] text-[#2A2420]">
             <Head title="Upload Payment Proof" />
 
-            <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 px-4 py-12 sm:px-6 lg:px-8">
+            <main className="w-full px-4 py-12 font-sans sm:px-8 2xl:px-16">
                 <div className="mx-auto max-w-3xl">
                     {/* Header */}
                     <div className="mb-8 text-center">
-                        <h1 className="mb-2 bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-4xl font-bold text-transparent">
+                        <h1 className="mb-2 text-4xl font-bold text-[#8A4E3A]">
                             Upload Payment Proof
                         </h1>
                         <p className="text-gray-600">Complete your order payment</p>
@@ -200,7 +209,7 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
                     {!successMessage && (
                         <>
                             {/* Order Details Card */}
-                            <div className="mb-6 rounded-2xl border border-purple-100 bg-white p-6 shadow-lg">
+                            <div className="mb-6 rounded-2xl border border-[#E8EEF5] bg-white p-6 shadow-sm">
                                 <h2 className="mb-4 text-xl font-bold text-gray-900">Order Details</h2>
 
                                 <div className="space-y-3">
@@ -224,9 +233,9 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
                                         <span className="text-gray-600">Package</span>
                                         <span className="font-semibold text-gray-900">{order.package_name}</span>
                                     </div>
-                                    <div className="-mx-6 mt-4 flex justify-between rounded-lg bg-purple-50 px-6 py-3">
-                                        <span className="font-semibold text-gray-700">Total Amount</span>
-                                        <span className="text-xl font-bold text-purple-600">Rp {order.final_price.toLocaleString('id-ID')}</span>
+                                    <div className="-mx-6 mt-4 flex justify-between rounded-lg px-6 py-3">
+                                        <span className="font-semibold text-[#2A2420]">Total Amount</span>
+                                        <span className="text-xl font-bold text-[#8A4E3A]">{formatRupiah(order.final_price)}</span>
                                     </div>
                                     <div className="flex justify-between py-2">
                                         <span className="text-gray-600">Payment Type</span>
@@ -238,25 +247,86 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
                                                 {paymentType === 'dp'
                                                     ? 'DP Disepakati'
                                                     : paymentType === 'full'
-                                                      ? 'Nominal Pelunasan'
-                                                      : 'Sisa Tagihan'}
+                                                        ? 'Nominal Pelunasan'
+                                                        : 'Sisa Tagihan'}
                                             </span>
-                                            <span className="text-gray-900">
-                                                {expectedAmount > 0 ? `Rp ${expectedAmount.toLocaleString('id-ID')}` : 'Menunggu admin'}
+                                            <span className="text-xl font-bold text-[#8A4E3A]">
+                                                {expectedAmount > 0 ? formatRupiah(expectedAmount) : 'Menunggu admin'}
                                             </span>
                                         </div>
                                     )}
                                 </div>
                             </div>
 
+                            {/* Payment Instructions & Bank Details */}
+                            <div className="mb-6 rounded-2xl border border-blue-100 bg-white p-6 shadow-lg">
+                                <div className="flex items-center space-x-2 mb-4">
+                                    <Receipt className="h-6 w-6 text-blue-600" />
+                                    <h2 className="text-xl font-bold text-gray-900">Tata Cara Pembayaran</h2>
+                                </div>
+
+                                <div className="rounded-xl bg-blue-50 p-5 mb-5 border border-blue-100">
+                                    <h3 className="font-semibold text-blue-900 mb-2 flex items-center">
+                                        <Building2 className="w-4 h-4 mr-2" /> Transfer Bank
+                                    </h3>
+                                    <div className="space-y-2 text-gray-700 ml-6">
+                                        <div className="grid grid-cols-[100px_10px_1fr]">
+                                            <span className="font-medium">Bank</span>
+                                            <span>:</span>
+                                            <span className="font-bold text-gray-900">BCA</span>
+                                        </div>
+                                        <div className="grid grid-cols-[100px_10px_1fr] items-center">
+                                            <span className="font-medium">No. Rekening</span>
+                                            <span>:</span>
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-bold text-gray-900 text-lg">7180 1918 90</span>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCopyRekening}
+                                                    className="inline-flex items-center rounded-md p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#8A4E3A] transition-colors"
+                                                    title="Salin No. Rekening"
+                                                >
+                                                    {isCopied ? (
+                                                        <Check className="h-4 w-4 text-green-600" />
+                                                    ) : (
+                                                        <Copy className="h-4 w-4" />
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-[100px_10px_1fr]">
+                                            <span className="font-medium">Atas Nama</span>
+                                            <span>:</span>
+                                            <span className="font-bold text-gray-900">SUSILOWATI</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h3 className="font-semibold text-gray-800">Langkah-langkah:</h3>
+                                    <ol className="list-decimal list-inside text-gray-600 space-y-2 ml-2">
+                                        <li>Lakukan transfer sesuai dengan nominal yang tertera pada <span className="font-semibold text-gray-800">Payment Amount</span> ke rekening di atas.</li>
+                                        <li>Pastikan nominal transfer sesuai atau pas.</li>
+                                        <li>Simpan bukti transfer / struk pembayaran.</li>
+                                        <li>Unggah (upload) bukti pembayaran pada form di bawah ini.</li>
+                                        <li>Tunggu konfirmasi dari admin (proses verifikasi maksimal 1x24 jam).</li>
+                                    </ol>
+                                </div>
+
+                                <div className="mt-4 flex items-start space-x-2 rounded-lg bg-amber-50 p-3 border border-amber-100 text-amber-800 text-sm">
+                                    <Info className="h-5 w-5 mt-0.5 flex-shrink-0 text-amber-600" />
+                                    <p>Mohon untuk tidak melakukan transfer selain ke nomor rekening di atas. Kami tidak bertanggung jawab atas kesalahan transfer.</p>
+                                </div>
+                            </div>
+
                             {/* Payment Form */}
-                            <form onSubmit={handleSubmit} className="rounded-2xl border border-purple-100 bg-white p-6 shadow-lg">
+                            <form onSubmit={handleSubmit} className="rounded-2xl border border-[#E8EEF5] bg-white p-6 shadow-sm">
                                 <h2 className="mb-6 text-xl font-bold text-gray-900">Payment Information</h2>
 
                                 {/* Payment Type */}
                                 <div className="mb-6">
                                     <label className="mb-3 block font-semibold text-gray-700">Payment Type</label>
-                                    <div className="rounded-xl border-2 border-purple-600 bg-purple-50 p-4">
+                                    <div className="rounded-xl border border-[#8A4E3A] bg-[#F6F1EA] p-4">
                                         <div className="flex items-center justify-center space-x-2 text-gray-900">
                                             <DollarSign className="h-5 w-5" />
                                             <span className="font-semibold">{paymentTypeLabel}</span>
@@ -270,35 +340,37 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
                                         Payment Amount (Rp)
                                     </label>
                                     <input
-                                        type="number"
+                                        type="text"
+                                        inputMode="numeric"
                                         id="amount"
-                                        value={amount}
-                                        onChange={(e) => setAmount(e.target.value)}
+                                        value={amount ? Number(amount).toLocaleString('id-ID') : ''}
+                                        onChange={(e) => {
+                                            const rawValue = e.target.value.replace(/\D/g, '');
+                                            setAmount(rawValue);
+                                        }}
                                         readOnly={isFixedAmount}
                                         disabled={isFixedAmount}
-                                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-purple-500"
+                                        className="w-full rounded-xl border border-gray-300 px-4 py-3 text-gray-900 focus:border-transparent focus:ring-2 focus:ring-[#8A4E3A]"
                                         placeholder="Enter payment amount"
-                                        min="0"
-                                        step="1000"
                                         required
                                     />
                                     {paymentType === 'dp' && order.dp_amount > 0 && (
-                                        <p className="mt-2 text-sm text-gray-500">Nominal DP: Rp {order.dp_amount.toLocaleString('id-ID')}</p>
+                                        <p className="mt-2 text-sm text-gray-500">Nominal DP: {formatRupiah(order.dp_amount)}</p>
                                     )}
                                     {paymentType === 'installment' && (
                                         <p className="mt-2 text-sm text-gray-500">
-                                            Nominal cicilan: Rp {expectedAmount.toLocaleString('id-ID')}
+                                            Nominal cicilan: {formatRupiah(expectedAmount)}
                                         </p>
                                     )}
                                     {paymentType === 'full' && (
-                                        <p className="mt-2 text-sm text-gray-500">Wajib sama dengan: Rp {remaining.toLocaleString('id-ID')}</p>
+                                        <p className="mt-2 text-sm text-gray-500">Wajib sama dengan: {formatRupiah(remaining)}</p>
                                     )}
                                 </div>
 
                                 {/* File Upload */}
                                 <div className="mb-6">
                                     <label className="mb-2 block font-semibold text-gray-700">Upload Payment Proof</label>
-                                    <div className="rounded-xl border-2 border-dashed border-gray-300 p-6 text-center transition-colors hover:border-purple-400">
+                                    <div className="rounded-xl border-2 border-dashed border-gray-300 p-6 text-center transition-colors hover:border-[#8A4E3A]">
                                         <input
                                             type="file"
                                             id="proof_image"
@@ -334,11 +406,10 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
                                 <button
                                     type="submit"
                                     disabled={isSubmitting || isAmountMissing}
-                                    className={`w-full rounded-xl py-4 font-semibold transition-all ${
-                                        isSubmitting || isAmountMissing
-                                            ? 'cursor-not-allowed bg-gray-400 text-gray-700'
-                                            : 'bg-gradient-to-r from-purple-600 to-pink-600 text-white hover:scale-[1.02] hover:shadow-lg'
-                                    }`}
+                                    className={`w-full rounded-xl py-4 font-semibold transition-all ${isSubmitting || isAmountMissing
+                                        ? 'cursor-not-allowed bg-gray-400 text-gray-700'
+                                        : 'bg-[#8A4E3A] text-white hover:bg-[#6C3C2B] hover:shadow-lg'
+                                        }`}
                                 >
                                     {isSubmitting ? 'Uploading...' : 'Upload Payment Proof'}
                                 </button>
@@ -362,7 +433,7 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
                         </>
                     )}
                 </div>
-            </div>
-        </>
+            </main>
+        </PublicLayout>
     );
 }

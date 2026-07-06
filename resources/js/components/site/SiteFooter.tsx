@@ -19,12 +19,24 @@ export const SiteFooter: React.FC<SiteFooterProps> = ({
 }) => {
     const whatsappLink = whatsapp ? `https://wa.me/${whatsapp.replace(/\D/g, '')}` : 'https://wa.me/6281234567890';
 
+    const truncateDescription = (text: string, maxLength: number = 200) => {
+        if (!text || text.length <= maxLength) return text;
+        const truncated = text.slice(0, maxLength);
+        const lastPeriod = truncated.lastIndexOf('.');
+        if (lastPeriod > maxLength * 0.5) return truncated.slice(0, lastPeriod + 1);
+        const lastSpace = truncated.lastIndexOf(' ');
+        if (lastSpace > 0) return truncated.slice(0, lastSpace) + '...';
+        return truncated + '...';
+    };
+
+    const finalDescription = truncateDescription(description);
+
     return (
         <footer className="border-t border-[#D4AF37]/20 bg-slate-950 py-12 text-white">
             <div className="mx-auto grid w-full max-w-6xl gap-8 px-4 sm:grid-cols-2 sm:px-8 lg:grid-cols-[1.2fr_1fr_1fr_1fr] lg:gap-10 2xl:max-w-6xl 2xl:px-16">
                 <div>
                     <p className="font-serif text-2xl font-bold">{companyName}</p>
-                    <p className="mt-3 text-sm text-slate-300">{description}</p>
+                    <p className="mt-3 text-sm text-slate-300 line-clamp-4 break-words break-all">{finalDescription}</p>
                 </div>
 
                 <div>

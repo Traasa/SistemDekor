@@ -542,14 +542,14 @@ class PaymentController extends Controller
 
         SystemNotificationService::paymentRejected($paymentProof->fresh(['order.client']));
 
-        // Reactivate payment link so client can upload again
+        // Generate a new payment link so client can upload again
         $order = $paymentProof->order;
-        $order->payment_link_active = true;
-        $order->save();
+        $newLink = $order->generatePaymentLink(48, $paymentProof->payment_type);
 
         return response()->json([
             'success' => true,
-            'message' => 'Payment rejected. Payment link has been reactivated.',
+            'message' => 'Payment rejected. New payment link has been generated.',
+            'new_link' => $newLink,
         ]);
     }
     

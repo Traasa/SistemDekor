@@ -23,9 +23,9 @@ export const AuthShell: React.FC<AuthShellProps> = ({ title, subtitle, children 
                             Welcome Back
                         </p>
                         <h1 className="mt-5 font-serif text-3xl font-bold leading-tight text-[#2A2420] sm:text-4xl">
-                            Platform wedding organizer untuk pemesanan, komunikasi, dan tracking order.
+                            Kelola Rencana Pernikahan Anda dalam Satu Tempat.
                         </h1>
-                        <p className="mt-4 text-base text-[#5B4A3C]">Satu tampilan yang konsisten untuk pelanggan dan tim internal.</p>
+                        <p className="mt-4 text-base text-[#5B4A3C]">Akses mudah untuk melihat rincian pesanan, status termin pembayaran, dan detail acara.</p>
                     </div>
 
                     <div className="rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-10 shadow-[0_22px_50px_-34px_rgba(27,36,48,0.65)]">

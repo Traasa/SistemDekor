@@ -236,24 +236,38 @@
                     </tr>
                 <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             <?php else: ?>
-                <tr>
-                    <td>1. Down Payment (DP) 30%</td>
-                    <td class="text-right">Rp <?php echo e(number_format($defaultDp, 0, ',', '.')); ?></td>
-                    <td class="text-center">-</td>
-                    <td class="text-center"><span class="badge">BELUM</span></td>
-                </tr>
-                <tr>
-                    <td>2. Cicilan 1 (Sesi 2) 40%</td>
-                    <td class="text-right">Rp <?php echo e(number_format($defaultInstallment, 0, ',', '.')); ?></td>
-                    <td class="text-center">-</td>
-                    <td class="text-center"><span class="badge">BELUM</span></td>
-                </tr>
-                <tr>
-                    <td>3. Pelunasan (Sesi 3) 30%</td>
-                    <td class="text-right">Rp <?php echo e(number_format($defaultFull, 0, ',', '.')); ?></td>
-                    <td class="text-center">-</td>
-                    <td class="text-center"><span class="badge">BELUM</span></td>
-                </tr>
+                <?php
+                    $finalPrice = $order->final_price ?? 0;
+                    $initialPaymentType = $order->initial_payment_type ?? 'dp';
+                    $bookingAmount = (float) ($order->booking_amount ?? 0);
+                    $dpAmount = (float) ($order->dp_amount ?? 0);
+                    $remainingAmount = (float) ($order->remaining_amount ?? $finalPrice);
+                    
+                    $terminList = [];
+                    if ($initialPaymentType === 'booking' && $bookingAmount > 0) {
+                        $terminList[] = ['label' => 'Booking Fee', 'amount' => $bookingAmount];
+                        if ($dpAmount > 0) {
+                            $terminList[] = ['label' => 'Down Payment (DP)', 'amount' => $dpAmount];
+                        }
+                    } else {
+                        if ($dpAmount > 0) {
+                            $terminList[] = ['label' => 'Down Payment (DP)', 'amount' => $dpAmount];
+                        }
+                    }
+
+                    if (empty($terminList)) {
+                        $terminList[] = ['label' => 'Down Payment (DP) 30%', 'amount' => (int) round($finalPrice * 0.3)];
+                    }
+                ?>
+                
+                <?php $__currentLoopData = $terminList; $__env->addLoop($__currentLoopData); foreach($__currentLoopData as $index => $termin): $__env->incrementLoopIndices(); $loop = $__env->getLastLoop(); ?>
+                    <tr>
+                        <td><?php echo e($index + 1); ?>. <?php echo e($termin['label']); ?></td>
+                        <td class="text-right">Rp <?php echo e(number_format($termin['amount'], 0, ',', '.')); ?></td>
+                        <td class="text-center">-</td>
+                        <td class="text-center"><span class="badge">BELUM</span></td>
+                    </tr>
+                <?php endforeach; $__env->popLoop(); $loop = $__env->getLastLoop(); ?>
             <?php endif; ?>
         </tbody>
     </table>

@@ -188,6 +188,23 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
     const showQuickActions = ['confirmed', 'processing', 'completed'].includes(order.status);
     const canReview = order.status === 'completed';
 
+    // Group payments by type to avoid duplicate steps in timeline
+    const relevantPayments = Object.values((order.payment_transactions || []).reduce((acc: any, payment: any) => {
+        const type = payment.payment_type;
+        if (!acc[type]) {
+            acc[type] = payment;
+        } else {
+            if (payment.status === 'verified') {
+                acc[type] = payment;
+            } else if (payment.status === 'pending' && acc[type].status === 'rejected') {
+                acc[type] = payment;
+            } else if (payment.status === acc[type].status && new Date(payment.created_at) > new Date(acc[type].created_at)) {
+                acc[type] = payment;
+            }
+        }
+        return acc;
+    }, {}));
+
     // Timeline data
     const timeline = [
         {
@@ -197,13 +214,28 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
             status: 'completed',
             icon: '📝',
         },
-        ...(order.payment_transactions || []).map((payment) => ({
-            date: payment.created_at,
-            title: `Pembayaran ${getPaymentTypeLabel(payment.payment_type)}`,
-            description: `${getPaymentMethodLabel(payment.payment_method)} - Rp ${(payment.amount / 1000000).toFixed(2)}jt - ${payment.status === 'verified' ? 'Terverifikasi' : 'Menunggu Verifikasi'}`,
-            status: payment.status === 'verified' ? 'completed' : 'pending',
-            icon: payment.status === 'verified' ? '✅' : '⏳',
-        })),
+        ...relevantPayments.map((payment: any) => {
+            let descStatus = 'Menunggu Verifikasi';
+            let timelineStatus = 'pending';
+            let icon = '⏳';
+            if (payment.status === 'verified') {
+                descStatus = 'Terverifikasi';
+                timelineStatus = 'completed';
+                icon = '✅';
+            } else if (payment.status === 'rejected') {
+                descStatus = 'Ditolak';
+                timelineStatus = 'pending';
+                icon = '❌';
+            }
+
+            return {
+                date: payment.created_at,
+                title: `Pembayaran ${getPaymentTypeLabel(payment.payment_type)}`,
+                description: `${getPaymentMethodLabel(payment.payment_method)} - Rp ${(payment.amount / 1000000).toFixed(2)}jt - ${descStatus}`,
+                status: timelineStatus,
+                icon: icon,
+            };
+        }),
         {
             date: order.event_date,
             title: 'Hari Event',
@@ -552,7 +584,7 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                                 Riwayat Pembayaran
                             </h2>
                             {order.payment_transactions && order.payment_transactions.length > 0 ? (
-                                <div className="space-y-4">
+                                <div className="max-h-[500px] space-y-4 overflow-y-auto pr-2 custom-scrollbar">
                                     {order.payment_transactions
                                         .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
                                         .map((payment) => (
