@@ -71,27 +71,27 @@ export default function ContractsPage() {
       resetForm();
       fetchContracts();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error saving contract');
+      await window.showAlert(error.response?.data?.message || 'Error saving contract');
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this contract?')) return;
+    if (!await window.showConfirm('Delete this contract?')) return;
     try {
       await api.delete(`/vendor-contracts/${id}`);
       fetchContracts();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error deleting contract');
+      await window.showAlert(error.response?.data?.message || 'Error deleting contract');
     }
   };
 
   const handleRenew = async (id: number) => {
-    if (!confirm('Renew this contract?')) return;
+    if (!await window.showConfirm('Renew this contract?')) return;
     try {
       await api.post(`/vendor-contracts/${id}/renew`);
       fetchContracts();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error renewing contract');
+      await window.showAlert(error.response?.data?.message || 'Error renewing contract');
     }
   };
 
@@ -133,7 +133,7 @@ export default function ContractsPage() {
             <p className="text-gray-600">Kelola kontrak dengan vendor</p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={async () => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-4 h-4" />
@@ -174,14 +174,14 @@ export default function ContractsPage() {
                   </div>
                   <div className="flex gap-2">
                     {contract.status === 'active' && (
-                      <button onClick={() => handleRenew(contract.id)} className="p-2 text-green-600 hover:bg-green-50 rounded">
+                      <button onClick={async () => handleRenew(contract.id)} className="p-2 text-green-600 hover:bg-green-50 rounded">
                         <RefreshCw className="w-4 h-4" />
                       </button>
                     )}
-                    <button onClick={() => { setSelectedContract(contract); setShowModal(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded">
+                    <button onClick={async () => { setSelectedContract(contract); setShowModal(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded">
                       <Edit className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDelete(contract.id)} className="p-2 text-red-600 hover:bg-red-50 rounded">
+                    <button onClick={async () => handleDelete(contract.id)} className="p-2 text-red-600 hover:bg-red-50 rounded">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -231,7 +231,7 @@ export default function ContractsPage() {
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-6">
-                  <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Batal</button>
+                  <button type="button" onClick={async () => { setShowModal(false); resetForm(); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Batal</button>
                   <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan</button>
                 </div>
               </form>

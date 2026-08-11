@@ -106,7 +106,7 @@ export default function RundownsPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedEvent) {
-            alert('Pilih event terlebih dahulu');
+            await window.showAlert('Pilih event terlebih dahulu');
             return;
         }
 
@@ -132,14 +132,14 @@ export default function RundownsPage() {
             setShowModal(false);
             resetForm();
             fetchRundowns(selectedEvent);
-            alert('Rundown berhasil disimpan');
+            await window.showAlert('Rundown berhasil disimpan');
         } catch (error) {
             console.error('Failed to save rundown:', error);
-            alert('Gagal menyimpan rundown');
+            await window.showAlert('Gagal menyimpan rundown');
         }
     };
 
-    const handleEdit = (rundown: RundownItem) => {
+    const handleEdit = async (rundown: RundownItem) => {
         setEditingId(rundown.id);
         setFormData({
             order: String(rundown.order),
@@ -157,16 +157,16 @@ export default function RundownsPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Yakin ingin menghapus item rundown ini?')) return;
+        if (!await window.showConfirm('Yakin ingin menghapus item rundown ini?')) return;
         if (!selectedEvent) return;
 
         try {
             await axios.delete(`/api/events/${selectedEvent}/rundown/${id}`);
             fetchRundowns(selectedEvent);
-            alert('Rundown berhasil dihapus');
+            await window.showAlert('Rundown berhasil dihapus');
         } catch (error) {
             console.error('Failed to delete rundown:', error);
-            alert('Gagal menghapus rundown');
+            await window.showAlert('Gagal menghapus rundown');
         }
     };
 
@@ -223,7 +223,7 @@ export default function RundownsPage() {
                             Buka Rundown Acara
                         </button>
                         <button
-                            onClick={() => setShowModal(true)}
+                            onClick={async () => setShowModal(true)}
                             disabled={!selectedEvent}
                             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700 disabled:bg-gray-400"
                         >
@@ -301,10 +301,10 @@ export default function RundownsPage() {
                                                 </span>
                                             </td>
                                             <td className="px-4 py-3 text-sm">
-                                                <button onClick={() => handleEdit(rundown)} className="mr-2 text-blue-600 hover:text-blue-800">
+                                                <button onClick={async () => handleEdit(rundown)} className="mr-2 text-blue-600 hover:text-blue-800">
                                                     <Edit className="h-4 w-4" />
                                                 </button>
-                                                <button onClick={() => handleDelete(rundown.id)} className="text-red-600 hover:text-red-800">
+                                                <button onClick={async () => handleDelete(rundown.id)} className="text-red-600 hover:text-red-800">
                                                     <Trash2 className="h-4 w-4" />
                                                 </button>
                                             </td>
@@ -326,7 +326,7 @@ export default function RundownsPage() {
                         <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-lg bg-white p-6">
                             <div className="mb-4 flex items-center justify-between">
                                 <h3 className="text-lg font-bold">{editingId ? 'Edit Item Rundown' : 'Tambah Item Rundown'}</h3>
-                                <button onClick={() => { setShowModal(false); resetForm(); }}>
+                                <button onClick={async () => { setShowModal(false); resetForm(); }}>
                                     <X className="h-6 w-6" />
                                 </button>
                             </div>
@@ -389,7 +389,7 @@ export default function RundownsPage() {
                                 </label>
 
                                 <div className="mt-5 flex justify-end gap-3 border-t pt-4">
-                                    <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="rounded-lg border px-4 py-2">
+                                    <button type="button" onClick={async () => { setShowModal(false); resetForm(); }} className="rounded-lg border px-4 py-2">
                                         Batal
                                     </button>
                                     <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700">

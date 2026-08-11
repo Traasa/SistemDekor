@@ -76,16 +76,16 @@ const PaymentsPage: React.FC = () => {
     };
 
     const handleVerify = async (id: number) => {
-        if (!confirm('Verifikasi pembayaran ini?')) return;
+        if (!await window.showConfirm('Verifikasi pembayaran ini?')) return;
 
         try {
             const response = await api.post(`/payment-proofs/${id}/verify`);
             if (response.data.success) {
-                alert('Pembayaran berhasil diverifikasi!');
+                await window.showAlert('Pembayaran berhasil diverifikasi!');
                 fetchPayments();
             }
         } catch (error: any) {
-            alert('Gagal verifikasi: ' + (error.response?.data?.message || error.message));
+            await window.showAlert('Gagal verifikasi: ' + (error.response?.data?.message || error.message));
         }
     };
 
@@ -98,11 +98,11 @@ const PaymentsPage: React.FC = () => {
                 admin_notes: reason,
             });
             if (response.data.success) {
-                alert('Pembayaran ditolak!');
+                await window.showAlert('Pembayaran ditolak!');
                 fetchPayments();
             }
         } catch (error: any) {
-            alert('Gagal menolak: ' + (error.response?.data?.message || error.message));
+            await window.showAlert('Gagal menolak: ' + (error.response?.data?.message || error.message));
         }
     };
 
@@ -255,7 +255,7 @@ const PaymentsPage: React.FC = () => {
                                                         </a>
                                                     )}
                                                     <button
-                                                        onClick={() => router.visit(`/admin/payments/${payment.id}`)}
+                                                        onClick={async () => router.visit(`/admin/payments/${payment.id}`)}
                                                         className="text-[#D4AF37] hover:text-[#B4941F]"
                                                     >
                                                         Detail
@@ -263,13 +263,13 @@ const PaymentsPage: React.FC = () => {
                                                     {payment.status === 'pending' && (
                                                         <>
                                                             <button
-                                                                onClick={() => handleVerify(payment.id)}
+                                                                onClick={async () => handleVerify(payment.id)}
                                                                 className="text-green-600 hover:text-green-900"
                                                             >
                                                                 Verifikasi
                                                             </button>
                                                             <button
-                                                                onClick={() => handleReject(payment.id)}
+                                                                onClick={async () => handleReject(payment.id)}
                                                                 className="text-red-600 hover:text-red-900"
                                                             >
                                                                 Tolak

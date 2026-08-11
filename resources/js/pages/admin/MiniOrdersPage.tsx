@@ -80,7 +80,7 @@ const MiniOrdersPage: React.FC = () => {
             setTotalPages(Math.ceil(response.data.total / response.data.per_page));
         } catch (error) {
             console.error('Failed to fetch mini orders:', error);
-            alert('Gagal memuat data mini order');
+            await window.showAlert('Gagal memuat data mini order');
         } finally {
             setIsLoading(false);
         }
@@ -89,38 +89,38 @@ const MiniOrdersPage: React.FC = () => {
 
 
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
         setCurrentPage(1);
         fetchOrders();
     };
 
     const handleStatusChange = async (orderId: number, newStatus: string) => {
-        if (!confirm(`Ubah status mini order menjadi "${newStatus}"?`)) return;
+        if (!await window.showConfirm(`Ubah status mini order menjadi "${newStatus}"?`)) return;
 
         try {
             await miniOrderService.updateStatus(orderId, newStatus);
-            alert('Status mini order berhasil diupdate');
+            await window.showAlert('Status mini order berhasil diupdate');
             fetchOrders();
         } catch (error) {
             console.error('Failed to update mini order status:', error);
-            alert('Gagal mengupdate status mini order');
+            await window.showAlert('Gagal mengupdate status mini order');
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Apakah Anda yakin ingin menghapus mini order ini?')) return;
+        if (!await window.showConfirm('Apakah Anda yakin ingin menghapus mini order ini?')) return;
 
         try {
             await miniOrderService.delete(id);
-            alert('Mini order berhasil dihapus');
+            await window.showAlert('Mini order berhasil dihapus');
             fetchOrders();
         } catch (error) {
             console.error('Failed to delete mini order:', error);
-            alert('Gagal menghapus mini order');
+            await window.showAlert('Gagal menghapus mini order');
         }
     };
 
-    const handleViewDetail = (orderId: number) => {
+    const handleViewDetail = async (orderId: number) => {
         router.visit(`/admin/mini-orders/${orderId}`);
     };
 
@@ -181,7 +181,7 @@ const MiniOrdersPage: React.FC = () => {
                         <p className="mt-1 text-sm text-gray-600">Kelola mini order vendor, pembayaran, dan invoice dalam satu tempat</p>
                     </div>
                     <button
-                        onClick={() => router.visit('/admin/mini-orders/create')}
+                        onClick={async () => router.visit('/admin/mini-orders/create')}
                         className="flex items-center space-x-2 rounded-lg bg-pink-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-pink-600"
                     >
                         <span>➕</span>
@@ -212,7 +212,7 @@ const MiniOrdersPage: React.FC = () => {
                 {totalPages > 1 && (
                     <div className="flex items-center justify-between rounded-xl bg-white px-6 py-4 shadow-sm">
                         <button
-                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            onClick={async () => setCurrentPage((p) => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
                             className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
                         >
@@ -222,7 +222,7 @@ const MiniOrdersPage: React.FC = () => {
                             Halaman {currentPage} dari {totalPages}
                         </div>
                         <button
-                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            onClick={async () => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
                             className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-50"
                         >

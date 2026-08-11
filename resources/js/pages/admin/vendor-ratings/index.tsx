@@ -79,7 +79,7 @@ export default function VendorRatingsPage() {
       resetForm();
       fetchRatings();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error saving rating');
+      await window.showAlert(error.response?.data?.message || 'Error saving rating');
     }
   };
 
@@ -92,7 +92,7 @@ export default function VendorRatingsPage() {
       setSelectedRating(null);
       fetchRatings();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error adding response');
+      await window.showAlert(error.response?.data?.message || 'Error adding response');
     }
   };
 
@@ -128,7 +128,7 @@ export default function VendorRatingsPage() {
             <p className="text-gray-600">Kelola rating dan review vendor</p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={async () => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-4 h-4" />
@@ -207,7 +207,7 @@ export default function VendorRatingsPage() {
                   </div>
                 ) : (
                   <button
-                    onClick={() => { setSelectedRating(rating); setShowResponseModal(true); }}
+                    onClick={async () => { setSelectedRating(rating); setShowResponseModal(true); }}
                     className="mt-4 flex items-center gap-2 px-4 py-2 text-sm bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
                   >
                     <MessageSquare className="w-4 h-4" />
@@ -280,7 +280,7 @@ export default function VendorRatingsPage() {
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-6">
-                  <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Batal</button>
+                  <button type="button" onClick={async () => { setShowModal(false); resetForm(); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Batal</button>
                   <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan</button>
                 </div>
               </form>
@@ -305,7 +305,7 @@ export default function VendorRatingsPage() {
                 </div>
               </div>
               <div className="flex justify-end gap-2 mt-6">
-                <button type="button" onClick={() => { setShowResponseModal(false); setResponseText(''); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Batal</button>
+                <button type="button" onClick={async () => { setShowResponseModal(false); setResponseText(''); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Batal</button>
                 <button onClick={handleAddResponse} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan</button>
               </div>
             </div>

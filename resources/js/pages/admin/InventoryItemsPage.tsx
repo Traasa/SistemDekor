@@ -125,7 +125,7 @@ const InventoryItemsPage: React.FC = () => {
             setStats({ totalItems, totalStock, lowStock, totalValue });
         } catch (error) {
             console.error('Error loading data:', error);
-            alert('Gagal memuat data');
+            await window.showAlert('Gagal memuat data');
         } finally {
             setLoading(false);
         }
@@ -188,23 +188,23 @@ const InventoryItemsPage: React.FC = () => {
 
             setShowItemModal(false);
             loadData();
-            alert(editingItem ? 'Item berhasil diupdate' : 'Item berhasil ditambahkan');
+            await window.showAlert(editingItem ? 'Item berhasil diupdate' : 'Item berhasil ditambahkan');
         } catch (error: any) {
             console.error('Error saving item:', error);
-            alert(error.response?.data?.message || 'Gagal menyimpan item');
+            await window.showAlert(error.response?.data?.message || 'Gagal menyimpan item');
         }
     };
 
     const handleDeleteItem = async (id: number) => {
-        if (!confirm('Yakin ingin menghapus item ini?')) return;
+        if (!await window.showConfirm('Yakin ingin menghapus item ini?')) return;
 
         try {
             await api.delete(`/inventory-items/${id}`);
             loadData();
-            alert('Item berhasil dihapus');
+            await window.showAlert('Item berhasil dihapus');
         } catch (error) {
             console.error('Error deleting item:', error);
-            alert('Gagal menghapus item');
+            await window.showAlert('Gagal menghapus item');
         }
     };
 
@@ -232,10 +232,10 @@ const InventoryItemsPage: React.FC = () => {
 
             setShowStockModal(false);
             loadData();
-            alert(`Stock ${stockOperation === 'in' ? 'masuk' : 'keluar'} berhasil`);
+            await window.showAlert(`Stock ${stockOperation === 'in' ? 'masuk' : 'keluar'} berhasil`);
         } catch (error: any) {
             console.error('Error updating stock:', error);
-            alert(error.response?.data?.message || 'Gagal update stock');
+            await window.showAlert(error.response?.data?.message || 'Gagal update stock');
         }
     };
 
@@ -376,13 +376,13 @@ const InventoryItemsPage: React.FC = () => {
                         </div>
                         <div className="flex gap-2">
                             <button
-                                onClick={() => setViewMode('grid')}
+                                onClick={async () => setViewMode('grid')}
                                 className={`rounded-lg px-4 py-2.5 font-medium transition-colors ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                             >
                                 Grid
                             </button>
                             <button
-                                onClick={() => setViewMode('list')}
+                                onClick={async () => setViewMode('list')}
                                 className={`rounded-lg px-4 py-2.5 font-medium transition-colors ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
                             >
                                 List
@@ -450,28 +450,28 @@ const InventoryItemsPage: React.FC = () => {
                                             </div>
                                             <div className="flex gap-2">
                                                 <button 
-                                                    onClick={() => openEditModal(item)}
+                                                    onClick={async () => openEditModal(item)}
                                                     className="flex-1 flex items-center justify-center gap-1 rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
                                                 >
                                                     <Edit size={16} />
                                                     Edit
                                                 </button>
                                                 <button 
-                                                    onClick={() => openStockModal(item, 'in')}
+                                                    onClick={async () => openStockModal(item, 'in')}
                                                     className="rounded-lg bg-green-600 px-3 py-2 text-white hover:bg-green-700 transition-colors"
                                                     title="Stock In"
                                                 >
                                                     <TrendingUp size={18} />
                                                 </button>
                                                 <button 
-                                                    onClick={() => openStockModal(item, 'out')}
+                                                    onClick={async () => openStockModal(item, 'out')}
                                                     className="rounded-lg bg-orange-600 px-3 py-2 text-white hover:bg-orange-700 transition-colors"
                                                     title="Stock Out"
                                                 >
                                                     <TrendingDown size={18} />
                                                 </button>
                                                 <button 
-                                                    onClick={() => handleDeleteItem(item.id)}
+                                                    onClick={async () => handleDeleteItem(item.id)}
                                                     className="rounded-lg bg-red-600 px-3 py-2 text-white hover:bg-red-700 transition-colors"
                                                     title="Delete"
                                                 >
@@ -539,28 +539,28 @@ const InventoryItemsPage: React.FC = () => {
                                                     <td className="px-6 py-4 text-right whitespace-nowrap">
                                                         <div className="flex items-center justify-end gap-2">
                                                             <button 
-                                                                onClick={() => openEditModal(item)}
+                                                                onClick={async () => openEditModal(item)}
                                                                 className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-900"
                                                                 title="Edit"
                                                             >
                                                                 <Edit size={16} />
                                                             </button>
                                                             <button 
-                                                                onClick={() => openStockModal(item, 'in')}
+                                                                onClick={async () => openStockModal(item, 'in')}
                                                                 className="inline-flex items-center gap-1 text-green-600 hover:text-green-900"
                                                                 title="Stock In"
                                                             >
                                                                 <TrendingUp size={16} />
                                                             </button>
                                                             <button 
-                                                                onClick={() => openStockModal(item, 'out')}
+                                                                onClick={async () => openStockModal(item, 'out')}
                                                                 className="inline-flex items-center gap-1 text-orange-600 hover:text-orange-900"
                                                                 title="Stock Out"
                                                             >
                                                                 <TrendingDown size={16} />
                                                             </button>
                                                             <button 
-                                                                onClick={() => handleDeleteItem(item.id)}
+                                                                onClick={async () => handleDeleteItem(item.id)}
                                                                 className="inline-flex items-center gap-1 text-red-600 hover:text-red-900"
                                                                 title="Delete"
                                                             >
@@ -735,7 +735,7 @@ const InventoryItemsPage: React.FC = () => {
 
                         <div className="mt-6 flex gap-3 justify-end">
                             <button
-                                onClick={() => setShowItemModal(false)}
+                                onClick={async () => setShowItemModal(false)}
                                 className="rounded-lg border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-50"
                             >
                                 Batal
@@ -791,7 +791,7 @@ const InventoryItemsPage: React.FC = () => {
 
                         <div className="mt-6 flex gap-3 justify-end">
                             <button
-                                onClick={() => setShowStockModal(false)}
+                                onClick={async () => setShowStockModal(false)}
                                 className="rounded-lg border border-gray-300 px-6 py-2 font-semibold text-gray-700 hover:bg-gray-50"
                             >
                                 Batal

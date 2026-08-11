@@ -48,7 +48,7 @@ export default function PerformanceReportPage() {
             link.click();
             link.remove();
         } catch (error) {
-            alert('Gagal export data');
+            await window.showAlert('Gagal export data');
         }
     };
 

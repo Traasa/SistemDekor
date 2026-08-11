@@ -36,6 +36,8 @@ class OrderManagementController extends Controller
             'guest_count' => 'required|integer|min:1',
             'notes' => 'nullable|string',
             'special_requests' => 'nullable|string',
+            'venue_id' => 'nullable|exists:venues,id',
+            'venue_price' => 'nullable|numeric|min:0',
         ]);
 
         try {
@@ -72,6 +74,9 @@ class OrderManagementController extends Controller
                 'is_negotiable' => true,
                 'notes' => $validated['notes'] ?? null,
                 'special_requests' => $validated['special_requests'] ?? null,
+                'is_venue_included' => !empty($validated['venue_id']),
+                'venue_id' => $validated['venue_id'] ?? null,
+                'venue_price' => $validated['venue_price'] ?? 0,
             ]);
 
             DB::commit();

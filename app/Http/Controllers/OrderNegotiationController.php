@@ -29,7 +29,7 @@ class OrderNegotiationController extends Controller
     {
         $order = Order::with(['client', 'package', 'venue'])->findOrFail($id);
         $packages = Package::all();
-        $venues = Venue::query()->active()->orderBy('name')->get();
+        $venues = Venue::with('pricing')->active()->orderBy('name')->get();
 
         return Inertia::render('admin/orders/EditOrderPage', [
             'order' => [
@@ -91,6 +91,14 @@ class OrderNegotiationController extends Controller
                     'id' => $venue->id,
                     'name' => $venue->name,
                     'city' => $venue->city,
+                    'pricing' => $venue->pricing ? $venue->pricing->where('is_active', true)->map(function ($p) {
+                        return [
+                            'id' => $p->id,
+                            'day_type' => $p->day_type,
+                            'session_type' => $p->session_type,
+                            'base_price' => $p->base_price,
+                        ];
+                    })->values() : [],
                 ];
             }),
         ]);
@@ -181,9 +189,16 @@ class OrderNegotiationController extends Controller
         $dpType = $validated['dp_type'] ?? 'percent';
         $dpValue = floatval($validated['dp_value'] ?? 30);
         $dpAmount = $this->resolveDpAmount($finalPrice, $dpType, $dpValue);
-        $remainingAmount = $finalPrice - $dpAmount;
+
         $initialPaymentType = $validated['initial_payment_type'] ?? $order->initial_payment_type ?? 'booking';
-        $bookingAmount = floatval($validated['booking_amount'] ?? $order->booking_amount ?? 0);
+        
+        if ($initialPaymentType === 'booking') {
+            $bookingAmount = floatval($validated['booking_amount'] ?? $order->booking_amount ?? 0);
+        } else {
+            $bookingAmount = 0;
+        }
+        
+        $remainingAmount = max(0, $finalPrice - $dpAmount - $bookingAmount);
 
         $order->update([
             'package_id' => $validated['package_id'],
@@ -269,12 +284,23 @@ class OrderNegotiationController extends Controller
         $dpValue = floatval($validated['dp_value'] ?? 30);
         $dpAmount = $this->resolveDpAmount($finalPrice, $dpType, $dpValue);
 
+        $initialPaymentType = $validated['initial_payment_type'] ?? 'booking';
+        
+        if ($initialPaymentType === 'booking') {
+            $bookingAmount = floatval($validated['booking_amount'] ?? 0);
+        } else {
+            $bookingAmount = 0;
+        }
+
+        $remainingAmount = max(0, $finalPrice - $dpAmount - $bookingAmount);
+
         return response()->json([
             'total_price' => round($totalPrice, 2),
             'discount' => round($discount, 2),
             'final_price' => round($finalPrice, 2),
             'dp_amount' => round($dpAmount, 2),
-            'remaining_amount' => round($finalPrice - $dpAmount, 2),
+            'booking_amount' => round($bookingAmount, 2),
+            'remaining_amount' => round($remainingAmount, 2),
         ]);
     }
 }

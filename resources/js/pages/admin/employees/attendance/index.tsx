@@ -191,22 +191,22 @@ const EmployeeAttendancePage: React.FC = () => {
             await api.post('/employee-attendances/check-in', data);
             fetchAttendances();
             closeCheckInModal();
-            alert('Check-in berhasil!');
+            await window.showAlert('Check-in berhasil!');
           },
-          (error) => {
+          async (error) => {
             console.error('GPS Error:', error);
-            alert('Tidak dapat mendapatkan lokasi GPS. Silakan aktifkan GPS Anda.');
+            await window.showAlert('Tidak dapat mendapatkan lokasi GPS. Silakan aktifkan GPS Anda.');
           }
         );
       } else {
         await api.post('/employee-attendances/check-in', checkInData);
         fetchAttendances();
         closeCheckInModal();
-        alert('Check-in berhasil!');
+        await window.showAlert('Check-in berhasil!');
       }
     } catch (error) {
       console.error('Error checking in:', error);
-      alert('Gagal melakukan check-in');
+      await window.showAlert('Gagal melakukan check-in');
     }
   };
 
@@ -218,10 +218,10 @@ const EmployeeAttendancePage: React.FC = () => {
       });
       fetchAttendances();
       closeCheckOutModal();
-      alert('Check-out berhasil!');
+      await window.showAlert('Check-out berhasil!');
     } catch (error) {
       console.error('Error checking out:', error);
-      alert('Gagal melakukan check-out');
+      await window.showAlert('Gagal melakukan check-out');
     }
   };
 
@@ -234,23 +234,23 @@ const EmployeeAttendancePage: React.FC = () => {
       });
       fetchAttendances();
       closeLeaveModal();
-      alert('Pengajuan cuti berhasil diajukan!');
+      await window.showAlert('Pengajuan cuti berhasil diajukan!');
     } catch (error) {
       console.error('Error requesting leave:', error);
-      alert('Gagal mengajukan cuti');
+      await window.showAlert('Gagal mengajukan cuti');
     }
   };
 
   const handleApproveLeave = async (id: number) => {
-    if (!confirm('Apakah Anda yakin ingin menyetujui pengajuan cuti ini?')) return;
+    if (!await window.showConfirm('Apakah Anda yakin ingin menyetujui pengajuan cuti ini?')) return;
     
     try {
       await api.post(`/employee-attendances/${id}/approve`);
       fetchAttendances();
-      alert('Pengajuan cuti berhasil disetujui!');
+      await window.showAlert('Pengajuan cuti berhasil disetujui!');
     } catch (error) {
       console.error('Error approving leave:', error);
-      alert('Gagal menyetujui pengajuan cuti');
+      await window.showAlert('Gagal menyetujui pengajuan cuti');
     }
   };
 
@@ -266,7 +266,7 @@ const EmployeeAttendancePage: React.FC = () => {
       closeModal();
     } catch (error) {
       console.error('Error saving attendance:', error);
-      alert('Gagal menyimpan data absensi');
+      await window.showAlert('Gagal menyimpan data absensi');
     }
   };
 
@@ -548,7 +548,7 @@ const EmployeeAttendancePage: React.FC = () => {
                 )}
                 {canCheckOut && (
                   <button
-                    onClick={() => openCheckOutModal(todayAttendance)}
+                    onClick={async () => openCheckOutModal(todayAttendance)}
                     className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
                   >
                     <LogOut className="w-5 h-5" />
@@ -657,7 +657,7 @@ const EmployeeAttendancePage: React.FC = () => {
                         <div className="flex items-center gap-2">
                           {(attendance.status === 'on_leave' || attendance.status === 'sick') && !attendance.approved_at && (
                             <button
-                              onClick={() => handleApproveLeave(attendance.id)}
+                              onClick={async () => handleApproveLeave(attendance.id)}
                               className="text-green-600 hover:text-green-900"
                               title="Setujui"
                             >
@@ -666,7 +666,7 @@ const EmployeeAttendancePage: React.FC = () => {
                           )}
                           {attendance.check_in && !attendance.check_out && (
                             <button
-                              onClick={() => openCheckOutModal(attendance)}
+                              onClick={async () => openCheckOutModal(attendance)}
                               className="text-orange-600 hover:text-orange-900"
                               title="Check Out"
                             >

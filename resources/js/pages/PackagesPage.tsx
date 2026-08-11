@@ -2,8 +2,20 @@ import { Head, Link, router, usePage } from '@inertiajs/react';
 import axios from 'axios';
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
+import { Dialog } from '@headlessui/react';
+import { X, Package as PackageIcon } from 'lucide-react';
 import { PublicLayout } from '../layouts/PublicLayout';
 import { images } from '../config/theme';
+
+interface InventoryItem {
+    id: number;
+    name: string;
+    unit: string;
+    pivot?: {
+        quantity: number;
+        notes?: string;
+    };
+}
 
 interface Package {
     id: number;
@@ -14,6 +26,8 @@ interface Package {
     venue_id?: number | null;
     venue_price?: number;
     is_active?: boolean;
+    image_url?: string;
+    inventory_items?: InventoryItem[];
 }
 
 interface Venue {
@@ -23,6 +37,9 @@ interface Venue {
     address?: string;
     is_active?: boolean;
     pricing?: Array<{
+        id: number;
+        day_type: string;
+        session_type: string;
         base_price: number;
         is_active: boolean;
     }>;
@@ -39,6 +56,7 @@ interface CheckoutForm {
     event_location: string;
     is_venue_included: boolean;
     venue_id: string;
+    venue_pricing_id: string;
     venue_price: string;
     guest_count: string;
     notes: string;
@@ -142,6 +160,7 @@ const PackagesPage: React.FC = () => {
     const [venues, setVenues] = useState<Venue[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+    const [selectedPackageDetail, setSelectedPackageDetail] = useState<Package | null>(null);
     const [selectedPackage, setSelectedPackage] = useState<Package | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [successMessage, setSuccessMessage] = useState('');
@@ -166,6 +185,7 @@ const PackagesPage: React.FC = () => {
         event_location: '',
         is_venue_included: false,
         venue_id: '',
+        venue_pricing_id: '',
         venue_price: '0',
         guest_count: '',
         notes: '',
@@ -246,27 +266,34 @@ const PackagesPage: React.FC = () => {
     }, [user]);
 
     const totalPrice = useMemo(() => {
-        const packagePrice = selectedPackage?.base_price || 0;
+        const packagePrice = Number(selectedPackage?.base_price || 0);
         const venuePrice = formData.is_venue_included ? Number(formData.venue_price || 0) : 0;
         return packagePrice + venuePrice;
     }, [selectedPackage, formData.is_venue_included, formData.venue_price]);
 
-    const handleOrderClick = (pkg: Package) => {
+    const handleOrderClick = (e: React.MouseEvent, pkg: Package) => {
+        e.stopPropagation();
         if (!user) {
             router.visit('/login');
             return;
         }
 
         setSelectedPackage(pkg);
-        setFormData((prev) => ({
-            ...prev,
-            package_id: pkg.id.toString(),
-            package_name: pkg.name,
-            package_price: pkg.base_price,
-            is_venue_included: !!pkg.includes_venue,
-            venue_id: pkg.venue_id ? pkg.venue_id.toString() : '',
-            venue_price: (pkg.venue_price || 0).toString(),
-        }));
+        setFormData((prev) => {
+            const venue = pkg.includes_venue && pkg.venue_id ? venues.find(v => v.id === pkg.venue_id) : null;
+            const address = venue ? [venue.name, venue.address, venue.city].filter(Boolean).join(', ') : '';
+            return {
+                ...prev,
+                package_id: pkg.id.toString(),
+                package_name: pkg.name,
+                package_price: pkg.base_price,
+                is_venue_included: !!pkg.includes_venue,
+                venue_id: pkg.venue_id ? pkg.venue_id.toString() : '',
+                venue_price: '0',
+                venue_pricing_id: '',
+                event_location: address || prev.event_location
+            };
+        });
         setShowCheckoutModal(true);
         setSuccessMessage('');
         setErrorMessage('');
@@ -429,7 +456,11 @@ const PackagesPage: React.FC = () => {
                             {packageList.slice(0, visiblePackages).map((pkg) => {
                                 const features = parseFeatureList(pkg.description || '');
                                 return (
-                                    <article key={pkg.id} className="rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-7 shadow-[0_14px_30px_-26px_rgba(27,36,48,0.6)] transition hover:-translate-y-1 hover:shadow-[0_20px_45px_-30px_rgba(27,36,48,0.7)]">
+                                    <article 
+                                        key={pkg.id} 
+                                        onClick={() => setSelectedPackageDetail(pkg)}
+                                        className="cursor-pointer rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-7 shadow-[0_14px_30px_-26px_rgba(27,36,48,0.6)] transition hover:-translate-y-1 hover:shadow-[0_20px_45px_-30px_rgba(27,36,48,0.7)]"
+                                    >
                                         <div className="flex items-start justify-between gap-4">
                                             <div>
                                                 <h2 className="font-serif text-3xl font-bold text-[#2A2420]">{pkg.name}</h2>
@@ -450,7 +481,7 @@ const PackagesPage: React.FC = () => {
                                         </ul>
 
                                         <button
-                                            onClick={() => handleOrderClick(pkg)}
+                                            onClick={(e) => handleOrderClick(e, pkg)}
                                             className="mt-7 w-full rounded-2xl bg-gradient-to-r from-[#B08A56] to-[#7A5C44] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_25px_-18px_rgba(122,92,68,0.7)] transition hover:brightness-95"
                                         >
                                             {user ? 'Pesan Sekarang' : 'Login untuk Pesan'}
@@ -664,12 +695,14 @@ const PackagesPage: React.FC = () => {
                                         <input
                                             type="checkbox"
                                             checked={!!formData.is_venue_included}
+                                            disabled={!!selectedPackage?.includes_venue}
                                             onChange={(e) => {
                                                 const checked = e.target.checked;
                                                 setFormData((prev) => ({
                                                     ...prev,
                                                     is_venue_included: checked,
                                                     venue_id: checked ? prev.venue_id : '',
+                                                    venue_pricing_id: checked ? prev.venue_pricing_id : '',
                                                     venue_price: checked ? prev.venue_price : '0',
                                                 }));
                                             }}
@@ -679,33 +712,78 @@ const PackagesPage: React.FC = () => {
 
                                     {formData.is_venue_included ? (
                                         <div className="grid gap-3 sm:grid-cols-1">
-                                            <select 
-                                                name="venue_id" 
+                                            <select
+                                                name="venue_id"
+                                                disabled={!!selectedPackage?.includes_venue}
                                                 value={formData.venue_id} 
                                                 onChange={(e) => {
                                                     const venueId = e.target.value;
                                                     const venue = venues.find(v => v.id.toString() === venueId);
-                                                    const pricing = venue?.pricing?.[0]; // Get first active pricing
-                                                    const price = pricing ? pricing.base_price : 0;
+                                                    const pricingList = venue?.pricing || [];
                                                     const address = venue ? [venue.name, venue.address, venue.city].filter(Boolean).join(', ') : '';
+                                                    
+                                                    let selectedPricingId = '';
+                                                    let price = 0;
+
+                                                    // Auto-select first active pricing if there's exactly one
+                                                    if (pricingList.length === 1) {
+                                                        selectedPricingId = pricingList[0].id.toString();
+                                                        price = pricingList[0].base_price;
+                                                    }
                                                     
                                                     setFormData(prev => ({
                                                         ...prev,
                                                         venue_id: venueId,
+                                                        venue_pricing_id: selectedPricingId,
                                                         venue_price: price.toString(),
                                                         event_location: address || prev.event_location
                                                     }));
                                                 }} 
-                                                className="rounded-xl border border-slate-300 px-4 py-3"
+                                                className={`rounded-xl border px-4 py-3 ${!!selectedPackage?.includes_venue ? 'bg-slate-100 border-slate-200 cursor-not-allowed text-slate-500' : 'border-slate-300'}`}
+                                                required={formData.is_venue_included}
                                             >
                                                 <option value="">Pilih venue</option>
                                                 {venues.map((venue) => (
                                                     <option key={venue.id} value={venue.id.toString()}>
                                                         {venue.name} {venue.city ? `(${venue.city})` : ''}
-                                                        {venue.pricing?.[0] ? ` - ${formatCurrency(venue.pricing[0].base_price)}` : ''}
                                                     </option>
                                                 ))}
                                             </select>
+
+                                            {formData.venue_id && (
+                                                <select
+                                                    name="venue_pricing_id"
+                                                    value={formData.venue_pricing_id}
+                                                    onChange={(e) => {
+                                                        const pricingId = e.target.value;
+                                                        const venue = venues.find(v => v.id.toString() === formData.venue_id);
+                                                        const pricing = venue?.pricing?.find(p => p.id.toString() === pricingId);
+                                                        const price = pricing ? pricing.base_price : 0;
+
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            venue_pricing_id: pricingId,
+                                                            venue_price: price.toString(),
+                                                        }));
+                                                    }}
+                                                    className="rounded-xl border border-slate-300 px-4 py-3 mt-2"
+                                                    required={formData.is_venue_included}
+                                                >
+                                                    <option value="">-- Pilih Paket Harga --</option>
+                                                    {venues.find(v => v.id.toString() === formData.venue_id)?.pricing?.map(p => (
+                                                        <option key={p.id} value={p.id.toString()}>
+                                                            {p.day_type} / {p.session_type} — {formatCurrency(Math.round(Number(p.base_price) || 0))}
+                                                        </option>
+                                                    ))}
+                                                </select>
+                                            )}
+
+                                            {Number(formData.venue_price) > 0 && (
+                                                <div className="flex items-center gap-2 rounded-lg bg-green-50 border border-green-200 px-4 py-2 mt-2">
+                                                    <span className="text-sm text-green-700">✓ Harga venue yang ditambahkan:</span>
+                                                    <span className="text-sm font-bold text-green-800">{formatCurrency(Number(formData.venue_price))}</span>
+                                                </div>
+                                            )}
                                         </div>
                                     ) : (
                                         <p className="text-xs text-slate-500">Venue bisa Anda urus sendiri. Harga paket tidak ditambah biaya venue.</p>
@@ -758,6 +836,78 @@ const PackagesPage: React.FC = () => {
                         </motion.div>
                     </motion.div>
                 )}
+
+                {/* Package Detail Modal */}
+                <Dialog 
+                    open={!!selectedPackageDetail} 
+                    onClose={() => setSelectedPackageDetail(null)} 
+                    className="relative z-50"
+                >
+                    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" aria-hidden="true" />
+                    <div className="fixed inset-0 flex items-center justify-center p-4">
+                        <Dialog.Panel className="mx-auto w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-3xl bg-white shadow-2xl">
+                            {selectedPackageDetail?.image_url && (
+                                <div className="h-64 w-full bg-slate-100">
+                                    <img 
+                                        src={selectedPackageDetail.image_url.startsWith('http') ? selectedPackageDetail.image_url : `/storage/${selectedPackageDetail.image_url}`}
+                                        alt={selectedPackageDetail.name} 
+                                        className="h-full w-full object-cover" 
+                                    />
+                                </div>
+                            )}
+                            <div className="p-8">
+                                <div className="flex items-start justify-between mb-6">
+                                    <div>
+                                        <Dialog.Title className="text-3xl font-serif font-bold text-slate-900">{selectedPackageDetail?.name}</Dialog.Title>
+                                        <p className="mt-2 text-2xl font-bold text-[#B08A56]">{selectedPackageDetail ? formatCurrency(selectedPackageDetail.base_price) : ''}</p>
+                                    </div>
+                                    <button onClick={() => setSelectedPackageDetail(null)} className="rounded-full bg-slate-100 p-2 text-slate-500 hover:bg-slate-200">
+                                        <X className="h-5 w-5" />
+                                    </button>
+                                </div>
+
+                                <div className="prose prose-slate max-w-none">
+                                    <p className="whitespace-pre-wrap text-slate-700 leading-relaxed">{selectedPackageDetail?.description}</p>
+                                </div>
+
+                                {selectedPackageDetail?.inventory_items && selectedPackageDetail.inventory_items.length > 0 && (
+                                    <div className="mt-8 border-t border-slate-100 pt-8">
+                                        <h3 className="text-lg font-bold text-slate-900 mb-4">Item yang Termasuk</h3>
+                                        <div className="grid gap-4 sm:grid-cols-2">
+                                            {selectedPackageDetail.inventory_items.map((item) => (
+                                                <div key={item.id} className="flex items-start gap-3 rounded-xl bg-slate-50 p-4">
+                                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white shadow-sm">
+                                                        <PackageIcon className="h-5 w-5 text-[#B08A56]" />
+                                                    </div>
+                                                    <div>
+                                                        <p className="font-medium text-slate-900">{item.name}</p>
+                                                        <p className="text-sm text-slate-500">Qty: {item.pivot?.quantity || 1} {item.unit}</p>
+                                                        {item.pivot?.notes && (
+                                                            <p className="text-xs text-slate-400 mt-1 italic">"{item.pivot.notes}"</p>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div className="mt-8 flex justify-end">
+                                    <button
+                                        onClick={() => {
+                                            const pkg = selectedPackageDetail;
+                                            setSelectedPackageDetail(null);
+                                            if (pkg) handleOrderClick({ stopPropagation: () => {} } as React.MouseEvent, pkg);
+                                        }}
+                                        className="rounded-2xl bg-gradient-to-r from-[#B08A56] to-[#7A5C44] px-8 py-3 text-sm font-semibold text-white shadow-lg transition hover:brightness-95"
+                                    >
+                                        Pesan Paket Ini
+                                    </button>
+                                </div>
+                            </div>
+                        </Dialog.Panel>
+                    </div>
+                </Dialog>
             </PublicLayout>
         </>
     );

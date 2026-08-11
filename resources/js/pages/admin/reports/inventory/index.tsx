@@ -47,7 +47,7 @@ export default function InventoryReportPage() {
 
     const handleExport = async () => {
         try {
-            const response = await axios.post('/api/reports-export-csv', {
+            const response = await axios.post('/api/reports-export-pdf', {
                 type: 'inventory',
             }, {
                 responseType: 'blob',
@@ -56,13 +56,13 @@ export default function InventoryReportPage() {
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `inventory_report_${new Date().toISOString().split('T')[0]}.csv`);
+            link.setAttribute('download', `inventory_report_${new Date().toISOString().split('T')[0]}.pdf`);
             document.body.appendChild(link);
             link.click();
             link.remove();
         } catch (error) {
             console.error('Error exporting data:', error);
-            alert('Gagal export data');
+            await window.showAlert('Gagal export data');
         }
     };
 
@@ -128,7 +128,7 @@ export default function InventoryReportPage() {
                         className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
                     >
                         <Download className="w-5 h-5" />
-                        Export CSV
+                        Export PDF
                     </button>
                 </div>
 

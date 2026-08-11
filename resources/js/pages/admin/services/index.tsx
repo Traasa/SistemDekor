@@ -24,9 +24,10 @@ export default function ServicesPage() {
         description: '',
         price: '',
         category: '',
-        image: '',
         is_active: true,
     });
+    const [imageFile, setImageFile] = useState<File | null>(null);
+    const [imagePreview, setImagePreview] = useState<string>('');
 
     useEffect(() => {
         fetchServices();
@@ -46,50 +47,62 @@ export default function ServicesPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const submitData = {
-                ...formData,
-                price: parseFloat(formData.price),
-            };
+            const submitData = new FormData();
+            submitData.append('name', formData.name);
+            submitData.append('description', formData.description);
+            submitData.append('price', formData.price);
+            if (formData.category) submitData.append('category', formData.category);
+            submitData.append('is_active', formData.is_active ? '1' : '0');
+            
+            if (imageFile) {
+                submitData.append('image', imageFile);
+            }
 
             if (editingId) {
-                await axios.put(`/api/services/${editingId}`, submitData);
+                submitData.append('_method', 'PUT');
+                await axios.post(`/api/services/${editingId}`, submitData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
             } else {
-                await axios.post('/api/services', submitData);
+                await axios.post('/api/services', submitData, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
             }
             
             setShowModal(false);
             resetForm();
             fetchServices();
-            alert('Layanan berhasil disimpan!');
+            await window.showAlert('Layanan berhasil disimpan!');
         } catch (error) {
             console.error('Failed to save service:', error);
-            alert('Gagal menyimpan layanan');
+            await window.showAlert('Gagal menyimpan layanan');
         }
     };
 
-    const handleEdit = (service: Service) => {
+    const handleEdit = async (service: Service) => {
         setEditingId(service.id);
         setFormData({
             name: service.name,
             description: service.description,
             price: service.price.toString(),
             category: service.category || '',
-            image: service.image || '',
             is_active: service.is_active,
         });
+        setImageFile(null);
+        setImagePreview(service.image || '');
         setShowModal(true);
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Yakin ingin menghapus layanan ini?')) return;
+        if (!await window.showConfirm('Yakin ingin menghapus layanan ini?')) return;
         
         try {
             await axios.delete(`/api/services/${id}`);
             fetchServices();
-            alert('Layanan berhasil dihapus');
+            await window.showAlert('Layanan berhasil dihapus');
         } catch (error) {
             console.error('Failed to delete service:', error);
-            alert('Gagal menghapus layanan');
+            await window.showAlert('Gagal menghapus layanan');
         }
     };
 
@@ -99,9 +112,10 @@ export default function ServicesPage() {
             description: '',
             price: '',
             category: '',
-            image: '',
             is_active: true,
         });
+        setImageFile(null);
+        setImagePreview('');
         setEditingId(null);
     };
 
@@ -114,7 +128,7 @@ export default function ServicesPage() {
                         <p className="mt-1 text-sm text-gray-500">Kelola layanan yang ditawarkan</p>
                     </div>
                     <button
-                        onClick={() => setShowModal(true)}
+                        onClick={async () => setShowModal(true)}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
                     >
                         <Plus className="h-5 w-5" />
@@ -155,10 +169,10 @@ export default function ServicesPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <button onClick={() => handleEdit(service)} className="text-blue-600 hover:text-blue-900 mr-3">
+                                            <button onClick={async () => handleEdit(service)} className="text-blue-600 hover:text-blue-900 mr-3">
                                                 <Edit className="h-5 w-5" />
                                             </button>
-                                            <button onClick={() => handleDelete(service.id)} className="text-red-600 hover:text-red-900">
+                                            <button onClick={async () => handleDelete(service.id)} className="text-red-600 hover:text-red-900">
                                                 <Trash2 className="h-5 w-5" />
                                             </button>
                                         </td>
@@ -175,7 +189,7 @@ export default function ServicesPage() {
                         <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-bold">{editingId ? 'Edit Layanan' : 'Tambah Layanan'}</h3>
-                                <button onClick={() => { setShowModal(false); resetForm(); }}>
+                                <button onClick={async () => { setShowModal(false); resetForm(); }}>
                                     <X className="h-6 w-6" />
                                 </button>
                             </div>
@@ -227,14 +241,34 @@ export default function ServicesPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">URL Gambar</label>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Gambar</label>
                                     <input
-                                        type="text"
-                                        value={formData.image}
-                                        onChange={(e) => setFormData({...formData, image: e.target.value})}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) {
+                                                setImageFile(file);
+                                                setImagePreview(URL.createObjectURL(file));
+                                            }
+                                        }}
                                         className="w-full px-3 py-2 border rounded-lg"
-                                        placeholder="/images/services/example.jpg"
                                     />
+                                    {imagePreview && (
+                                        <div className="mt-2 relative inline-block">
+                                            <img src={imagePreview} alt="Preview" className="h-32 rounded-lg object-cover" />
+                                            <button
+                                                type="button"
+                                                onClick={async () => {
+                                                    setImageFile(null);
+                                                    setImagePreview('');
+                                                }}
+                                                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
 
                                 <div className="flex items-center">
@@ -250,7 +284,7 @@ export default function ServicesPage() {
                                 <div className="flex justify-end gap-3 mt-6">
                                     <button
                                         type="button"
-                                        onClick={() => { setShowModal(false); resetForm(); }}
+                                        onClick={async () => { setShowModal(false); resetForm(); }}
                                         className="px-4 py-2 border rounded-lg"
                                     >
                                         Batal

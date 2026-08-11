@@ -454,6 +454,8 @@ class ClientOrderController extends Controller
                 'discount' => $order->discount ?? 0,
                 'final_price' => $order->final_price ?? $order->total_price,
                 'dp_amount' => $order->dp_amount ?? ($order->final_price * 0.3),
+                'booking_amount' => $order->booking_amount ?? 0,
+                'initial_payment_type' => $order->initial_payment_type,
                 'total_paid' => $order->total_paid ?? 0,
                 'remaining_amount' => ($order->final_price ?? 0) - ($order->total_paid ?? 0),
                 'status' => $order->status,
@@ -485,6 +487,7 @@ class ClientOrderController extends Controller
                     ];
                 }),
                 'payment_link_active' => $order->payment_link_active ?? false,
+                'payment_link_token' => $order->payment_link_token,
                 'payment_link_expires_at' => $order->payment_link_expires_at ? $order->payment_link_expires_at->format('d M Y H:i') : null,
                 'created_at' => $order->created_at->format('d M Y H:i'),
                 'updated_at' => $order->updated_at->format('d M Y H:i'),

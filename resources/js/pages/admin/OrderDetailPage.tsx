@@ -51,6 +51,7 @@ interface OrderDetail {
     negotiated_at?: string | null;
     payment_proofs: PaymentProof[];
     payment_link_active: boolean;
+    payment_link_token: string | null;
     payment_link_expires_at: string | null;
     payment_link_type?: 'booking' | 'dp' | 'installment' | 'full' | null;
     payment_link_amount?: number | null;
@@ -144,26 +145,45 @@ const OrderDetailPage: React.FC<Props> = ({ order }) => {
 
             // Show success message with payment type
             if (response.data.payment_type) {
-                alert(`Payment link for ${response.data.payment_type.toUpperCase()} generated successfully!`);
+                await window.showAlert(`Payment link for ${response.data.payment_type.toUpperCase()} generated successfully!`);
             }
         } catch (error: any) {
             if (error.response?.data?.link) {
                 // Already has active link
                 setPaymentLink(error.response.data.link);
                 setShowPaymentLinkModal(true);
-                alert(error.response.data.message || 'Using existing payment link');
+                await window.showAlert(error.response.data.message || 'Using existing payment link');
             } else {
                 setLinkError(error.response?.data?.message || 'Failed to generate payment link');
-                alert(error.response?.data?.message || 'Failed to generate payment link');
+                await window.showAlert(error.response?.data?.message || 'Failed to generate payment link');
             }
         } finally {
             setGeneratingLink(false);
         }
     };
 
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(paymentLink);
-        alert('Payment link copied to clipboard!');
+    const copyToClipboard = async (linkToCopy?: string) => {
+        const textToCopy = linkToCopy || paymentLink;
+        if (!textToCopy) {
+            await window.showAlert('Link pembayaran tidak tersedia.');
+            return;
+        }
+        navigator.clipboard.writeText(textToCopy);
+        await window.showAlert('Payment link copied to clipboard!');
+    };
+
+    const cancelPaymentLink = async () => {
+        if (!await window.showConfirm('Apakah Anda yakin ingin membatalkan link pembayaran yang aktif ini?')) {
+            return;
+        }
+
+        try {
+            await axios.post(`/admin/orders/${order.id}/cancel-payment-link`);
+            await window.showAlert('Link pembayaran berhasil dibatalkan.');
+            router.reload();
+        } catch (error: any) {
+            await window.showAlert(error.response?.data?.message || 'Gagal membatalkan link pembayaran');
+        }
     };
 
     const downloadDocument = (type: 'invoice' | 'contract') => {
@@ -225,7 +245,7 @@ Link upload berlaku selama 48 jam. Terima kasih!`;
     };
 
     const verifyPayment = async (proofId: number) => {
-        if (!confirm('Apakah Anda yakin ingin memverifikasi pembayaran ini?')) {
+        if (!await window.showConfirm('Apakah Anda yakin ingin memverifikasi pembayaran ini?')) {
             return;
         }
 
@@ -233,10 +253,10 @@ Link upload berlaku selama 48 jam. Terima kasih!`;
 
         try {
             await axios.post(`/admin/payment-proofs/${proofId}/verify`);
-            alert('Payment verified successfully!');
+            await window.showAlert('Payment verified successfully!');
             router.reload();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Failed to verify payment');
+            await window.showAlert(error.response?.data?.message || 'Failed to verify payment');
         } finally {
             setVerifyingProof(null);
         }
@@ -271,17 +291,17 @@ Link berlaku selama 48 jam. Terima kasih!`;
 
             window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
 
-            alert('Payment rejected. New payment link has been generated and sent via WhatsApp.');
+            await window.showAlert('Payment rejected. New payment link has been generated and sent via WhatsApp.');
             router.reload();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Failed to reject payment');
+            await window.showAlert(error.response?.data?.message || 'Failed to reject payment');
         } finally {
             setVerifyingProof(null);
         }
     };
 
     const directConfirmPayment = async (paymentType: 'booking' | 'dp' | 'full') => {
-        const defaultAmount = paymentType === 'full' ? order.remaining_amount : paymentType === 'dp' ? order.dp_amount : 1000000;
+        const defaultAmount = paymentType === 'full' ? order.remaining_amount : paymentType === 'dp' ? order.dp_amount : order.booking_amount || 0;
         const normalizedDefault = Math.max(Math.round(defaultAmount || 0), 0);
         const amountInput = prompt(
             `Masukkan nominal pembayaran ${paymentType.toUpperCase()} (Rp). Contoh: 1500000`,
@@ -295,13 +315,13 @@ Link berlaku selama 48 jam. Terima kasih!`;
         const normalizedInput = amountInput.replace(/[^\d]/g, '');
         const amount = Number(normalizedInput);
         if (Number.isNaN(amount) || amount <= 0) {
-            alert('Nominal pembayaran tidak valid.');
+            await window.showAlert('Nominal pembayaran tidak valid.');
             return;
         }
 
         const notes = prompt('Catatan admin (opsional):', 'Pembayaran langsung saat pertemuan dengan client.') || undefined;
 
-        if (!confirm(`Konfirmasi pembayaran ${paymentType.toUpperCase()} sebesar ${formatCurrency(amount)} sekarang?`)) {
+        if (!await window.showConfirm(`Konfirmasi pembayaran ${paymentType.toUpperCase()} sebesar ${formatCurrency(amount)} sekarang?`)) {
             return;
         }
 
@@ -313,10 +333,10 @@ Link berlaku selama 48 jam. Terima kasih!`;
                 auto_confirm_order: true,
             });
 
-            alert('Pembayaran onsite berhasil dikonfirmasi.');
+            await window.showAlert('Pembayaran onsite berhasil dikonfirmasi.');
             router.reload();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal mengonfirmasi pembayaran onsite.');
+            await window.showAlert(error.response?.data?.message || 'Gagal mengonfirmasi pembayaran onsite.');
         }
     };
 
@@ -332,7 +352,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
     };
 
     const confirmOrder = async () => {
-        if (!confirm('Apakah Anda yakin ingin mengkonfirmasi order ini? Order akan siap diproses setelah dikonfirmasi.')) {
+        if (!await window.showConfirm('Apakah Anda yakin ingin mengkonfirmasi order ini? Order akan siap diproses setelah dikonfirmasi.')) {
             return;
         }
 
@@ -340,10 +360,10 @@ Link berlaku selama 48 jam. Terima kasih!`;
 
         try {
             await axios.post(`/admin/orders/${order.id}/confirm`);
-            alert('Order berhasil dikonfirmasi! Order siap diproses.');
+            await window.showAlert('Order berhasil dikonfirmasi! Order siap diproses.');
             router.reload();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal mengkonfirmasi order');
+            await window.showAlert(error.response?.data?.message || 'Gagal mengkonfirmasi order');
         } finally {
             setConfirmingOrder(false);
         }
@@ -358,7 +378,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
 
         const confirmMessage = `Apakah Anda yakin ingin mengubah status order menjadi "${statusLabels[newStatus as keyof typeof statusLabels]}"?`;
 
-        if (!confirm(confirmMessage)) {
+        if (!await window.showConfirm(confirmMessage)) {
             return;
         }
 
@@ -371,10 +391,10 @@ Link berlaku selama 48 jam. Terima kasih!`;
                 status: newStatus,
                 notes: notes,
             });
-            alert('Status order berhasil diupdate!');
+            await window.showAlert('Status order berhasil diupdate!');
             router.reload();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal mengupdate status order');
+            await window.showAlert(error.response?.data?.message || 'Gagal mengupdate status order');
         } finally {
             setUpdatingStatus(false);
         }
@@ -427,7 +447,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
                 {/* Header */}
                 <div className="flex items-center justify-between">
                     <div>
-                        <button onClick={() => router.visit('/admin/orders')} className="mb-2 flex items-center text-gray-600 hover:text-gray-900">
+                        <button onClick={async () => router.visit('/admin/orders')} className="mb-2 flex items-center text-gray-600 hover:text-gray-900">
                             ← Kembali ke Wedding Order
                         </button>
                         <h1 className="text-3xl font-bold text-gray-900">Detail Wedding Order: {order.order_code}</h1>
@@ -435,27 +455,27 @@ Link berlaku selama 48 jam. Terima kasih!`;
                     </div>
                     <div className="flex gap-3">
                         <button
-                            onClick={() => contactWhatsApp(order.client.phone)}
+                            onClick={async () => contactWhatsApp(order.client.phone)}
                             className="flex items-center gap-2 rounded-lg bg-green-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-green-600"
                         >
                             <span>📱</span>
                             <span>Hubungi via WhatsApp</span>
                         </button>
                         <button
-                            onClick={() => downloadDocument('invoice')}
+                            onClick={async () => downloadDocument('invoice')}
                             className="flex items-center gap-2 rounded-lg bg-slate-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
                         >
                             🖨️ Invoice
                         </button>
                         <button
-                            onClick={() => downloadDocument('contract')}
+                            onClick={async () => downloadDocument('contract')}
                             className="flex items-center gap-2 rounded-lg bg-slate-700 px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-slate-800"
                         >
                             📄 Kontrak
                         </button>
-                        {order.is_negotiable && (
+                        {order.payment_status === 'unpaid' && (
                             <button
-                                onClick={() => router.visit(`/admin/orders/${order.id}/edit`)}
+                                onClick={async () => router.visit(`/admin/orders/${order.id}/edit`)}
                                 className="flex items-center gap-2 rounded-lg bg-blue-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-blue-600"
                             >
                                 <span>✏️</span>
@@ -463,7 +483,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
                             </button>
                         )}
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 // Auto-determine payment type based on status
                                 if (order.payment_status === 'unpaid' || order.payment_status === 'booking_pending') {
                                     generatePaymentLink(initialPaymentType);
@@ -475,9 +495,11 @@ Link berlaku selama 48 jam. Terima kasih!`;
                                     generatePaymentLink();
                                 }
                             }}
-                            disabled={generatingLink || order.is_negotiable}
-                            className="flex items-center gap-2 rounded-lg bg-purple-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-purple-600 disabled:bg-gray-400"
-                            title={order.is_negotiable ? 'Finalize order before generating payment link' : ''}
+                            disabled={generatingLink || order.is_negotiable || order.payment_link_active}
+                            className={`flex items-center gap-2 rounded-lg px-6 py-3 font-semibold text-white transition-colors ${
+                                order.is_negotiable || order.payment_link_active ? 'bg-gray-400 cursor-not-allowed' : 'bg-purple-500 hover:bg-purple-600'
+                            }`}
+                            title={order.is_negotiable ? 'Finalize order before generating payment link' : order.payment_link_active ? 'Payment link is currently active' : ''}
                         >
                             <span>🔗</span>
                             <span>
@@ -487,19 +509,19 @@ Link berlaku selama 48 jam. Terima kasih!`;
                         {!order.is_negotiable && order.remaining_amount > 0 && (
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => directConfirmPayment('booking')}
+                                    onClick={async () => directConfirmPayment('booking')}
                                     className="rounded-lg bg-amber-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-amber-600"
                                 >
                                     ⚡ Booking Langsung
                                 </button>
                                 <button
-                                    onClick={() => directConfirmPayment('dp')}
+                                    onClick={async () => directConfirmPayment('dp')}
                                     className="rounded-lg bg-emerald-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-emerald-600"
                                 >
                                     ⚡ DP Langsung
                                 </button>
                                 <button
-                                    onClick={() => directConfirmPayment('full')}
+                                    onClick={async () => directConfirmPayment('full')}
                                     className="rounded-lg bg-indigo-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-indigo-600"
                                 >
                                     ⚡ Lunas Langsung
@@ -539,7 +561,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
                                     📱 Send via WhatsApp
                                 </button>
                                 <button
-                                    onClick={() => setShowPaymentLinkModal(false)}
+                                    onClick={async () => setShowPaymentLinkModal(false)}
                                     className="rounded-lg bg-purple-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-purple-600"
                                 >
                                     Close
@@ -606,7 +628,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
                                             Order masih dalam tahap negosiasi. Edit dan finalisasi order sebelum generate payment link.
                                         </p>
                                         <button
-                                            onClick={() => router.visit(`/admin/orders/${order.id}/edit`)}
+                                            onClick={async () => router.visit(`/admin/orders/${order.id}/edit`)}
                                             className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600"
                                         >
                                             ✏️ Edit & Finalisasi Order
@@ -626,12 +648,24 @@ Link berlaku selama 48 jam. Terima kasih!`;
                                         <p className="mb-3 text-sm text-gray-600">
                                             Link pembayaran {order.payment_link_type?.toUpperCase()} telah dibuat dan sedang menunggu client.
                                         </p>
-                                        <div className="flex gap-2">
+                                        <div className="flex flex-wrap gap-2">
                                             <button
                                                 onClick={sendPaymentLinkViaWhatsApp}
                                                 className="rounded-lg bg-green-500 px-4 py-2 text-sm font-semibold text-white hover:bg-green-600"
                                             >
                                                 📱 Kirim via WhatsApp
+                                            </button>
+                                            <button
+                                                onClick={() => copyToClipboard(`${window.location.origin}/payment/${order.payment_link_token}`)}
+                                                className="rounded-lg bg-gray-100 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-200 border border-gray-300"
+                                            >
+                                                📋 Copy Link
+                                            </button>
+                                            <button
+                                                onClick={cancelPaymentLink}
+                                                className="rounded-lg bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-600"
+                                            >
+                                                ✕ Batalkan Link
                                             </button>
                                         </div>
                                     </div>
@@ -656,7 +690,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
                                                 Nominal {initialPaymentLabel}: {formatCurrency(initialPaymentAmount)}
                                             </p>
                                             <button
-                                                onClick={() => generatePaymentLink(initialPaymentType)}
+                                                onClick={async () => generatePaymentLink(initialPaymentType)}
                                                 disabled={
                                                     generatingLink ||
                                                     (initialPaymentType === 'booking' && initialPaymentAmount <= 0) ||
@@ -670,59 +704,37 @@ Link berlaku selama 48 jam. Terima kasih!`;
                                     </div>
                                 )}
 
-                            {/* Step 2b: Generate Payment Link for DP */}
-                            {!order.is_negotiable && paymentProgress.hasBooking && !paymentProgress.hasDP && order.remaining_amount > 0 && !order.payment_link_active && !order.payment_proofs.some((p: PaymentProof) => p.status === 'pending') && (
+                            {/* Step 2b: Generate Payment Link for Subsequent Payments (Custom DP/Cicilan/Pelunasan) */}
+                            {!order.is_negotiable && paymentProgress.totalPaid > 0 && !paymentProgress.hasFull && order.remaining_amount > 0 && !order.payment_link_active && !order.payment_proofs.some((p: PaymentProof) => p.status === 'pending') && (
                                 <div className="flex items-start gap-4 rounded-lg border-l-4 border-purple-500 bg-gray-50 p-4">
                                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-600">
                                         2b
                                     </div>
                                     <div className="flex-1">
-                                        <h4 className="mb-1 font-semibold text-gray-900">Generate Payment Link - DP</h4>
+                                        <h4 className="mb-1 font-semibold text-gray-900">Generate Payment Link - Pembayaran Selanjutnya</h4>
                                         <p className="mb-3 text-sm text-gray-600">
-                                            Booking sudah dibayar. Generate link DP sebagai fase pembayaran berikutnya.
-                                        </p>
-                                        <button
-                                            onClick={() => generatePaymentLink('dp')}
-                                            disabled={generatingLink}
-                                            className="rounded-lg bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-600 disabled:bg-gray-400"
-                                        >
-                                            {generatingLink ? 'Generating...' : '🔗 Generate DP Link'}
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Step 2c: Generate Payment Link for Cicilan/Pelunasan */}
-                            {!order.is_negotiable && paymentProgress.hasDP && !paymentProgress.hasFull && order.remaining_amount > 0 && !order.payment_link_active && !order.payment_proofs.some((p: PaymentProof) => p.status === 'pending') && (
-                                <div className="flex items-start gap-4 rounded-lg border-l-4 border-purple-500 bg-gray-50 p-4">
-                                    <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-purple-100 font-bold text-purple-600">
-                                        2c
-                                    </div>
-                                    <div className="flex-1">
-                                        <h4 className="mb-1 font-semibold text-gray-900">Generate Payment Link - Cicilan/Pelunasan</h4>
-                                        <p className="mb-3 text-sm text-gray-600">
-                                            Generate link cicilan atau pelunasan untuk sisa tagihan {formatRupiah(order.remaining_amount || 0)}.
+                                            Generate link pembayaran custom (DP Lanjutan / Cicilan) atau langsung Pelunasan untuk sisa tagihan {formatRupiah(order.remaining_amount || 0)}.
                                         </p>
                                         <div className="flex flex-wrap gap-2">
                                             <div className="min-w-[220px]">
                                                 <input
-                                                    type="number"
-                                                    min="0"
-                                                    value={installmentAmount}
-                                                    onChange={(e) => setInstallmentAmount(e.target.value)}
-                                                    placeholder="Nominal cicilan"
+                                                    type="text"
+                                                    inputMode="numeric"
+                                                    value={installmentAmount ? Number(installmentAmount).toLocaleString('id-ID') : ''}
+                                                    onChange={(e) => setInstallmentAmount(e.target.value.replace(/\D/g, ''))}
+                                                    placeholder="Nominal Pembayaran"
                                                     className="w-full rounded-lg border border-purple-200 px-3 py-2 text-sm"
                                                 />
                                             </div>
                                             <button
-                                                onClick={() => generatePaymentLink('installment', Number(installmentAmount || 0))}
+                                                onClick={async () => generatePaymentLink('installment', Number(installmentAmount || 0))}
                                                 disabled={generatingLink || Number(installmentAmount || 0) <= 0}
                                                 className="rounded-lg bg-purple-500 px-4 py-2 text-sm font-semibold text-white hover:bg-purple-600 disabled:bg-gray-400"
                                             >
-                                                {generatingLink ? 'Generating...' : '🔗 Generate Cicilan Link'}
+                                                {generatingLink ? 'Generating...' : '🔗 Generate Link Pembayaran'}
                                             </button>
                                             <button
-                                                onClick={() => generatePaymentLink('full')}
+                                                onClick={async () => generatePaymentLink('full')}
                                                 disabled={generatingLink}
                                                 className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-600 disabled:bg-gray-400"
                                             >
@@ -754,7 +766,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
                             )}
 
                             {/* Step 4: Confirm Order */}
-                            {(paymentProgress.hasDP || paymentProgress.hasFull) && !['confirmed', 'processing', 'completed'].includes(order.status) && (
+                            {(paymentProgress.hasDP || paymentProgress.hasBooking || paymentProgress.hasFull) && !['confirmed', 'processing', 'completed'].includes(order.status) && (
                                 <div className="flex items-start gap-4 rounded-lg border-l-4 border-green-500 bg-gray-50 p-4">
                                     <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-green-100 font-bold text-green-600">
                                         4
@@ -764,7 +776,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
                                         <p className="mb-3 text-sm text-gray-600">
                                             {paymentProgress.hasFull
                                                 ? 'Pembayaran LUNAS terverifikasi. Konfirmasi order untuk mulai proses.'
-                                                : 'Pembayaran DP terverifikasi. Konfirmasi order untuk mulai proses (pelunasan bisa dilakukan kemudian).'}
+                                                : `Pembayaran ${paymentProgress.hasDP ? 'DP' : 'Booking'} terverifikasi. Konfirmasi order untuk mulai proses (pelunasan bisa dilakukan kemudian).`}
                                         </p>
                                         <button
                                             onClick={confirmOrder}
@@ -789,7 +801,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
                                             Order sudah dikonfirmasi. Ubah status ke "Sedang Diproses" untuk mulai pengerjaan.
                                         </p>
                                         <button
-                                            onClick={() => updateOrderStatus('processing')}
+                                            onClick={async () => updateOrderStatus('processing')}
                                             disabled={updatingStatus}
                                             className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-600 disabled:bg-gray-400"
                                         >
@@ -811,7 +823,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
                                             Order sedang diproses. Tandai sebagai selesai setelah acara berlangsung.
                                         </p>
                                         <button
-                                            onClick={() => updateOrderStatus('completed')}
+                                            onClick={async () => updateOrderStatus('completed')}
                                             disabled={updatingStatus}
                                             className="rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-600 disabled:bg-gray-400"
                                         >
@@ -836,7 +848,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
                             {!['completed', 'cancelled'].includes(order.status) && (
                                 <div className="border-t pt-3">
                                     <button
-                                        onClick={() => updateOrderStatus('cancelled')}
+                                        onClick={async () => updateOrderStatus('cancelled')}
                                         disabled={updatingStatus}
                                         className="text-sm font-medium text-red-600 hover:text-red-700"
                                     >
@@ -1118,14 +1130,14 @@ Link berlaku selama 48 jam. Terima kasih!`;
                                     {proof.status === 'pending' && (
                                         <div className="flex gap-3 border-t border-gray-200 pt-4">
                                             <button
-                                                onClick={() => verifyPayment(proof.id)}
+                                                onClick={async () => verifyPayment(proof.id)}
                                                 disabled={verifyingProof === proof.id}
                                                 className="flex-1 rounded-lg bg-green-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-green-600 disabled:bg-gray-400"
                                             >
                                                 ✓ Verifikasi Pembayaran
                                             </button>
                                             <button
-                                                onClick={() => rejectPayment(proof.id)}
+                                                onClick={async () => rejectPayment(proof.id)}
                                                 disabled={verifyingProof === proof.id}
                                                 className="flex-1 rounded-lg bg-red-500 px-4 py-2 font-semibold text-white transition-colors hover:bg-red-600 disabled:bg-gray-400"
                                             >
@@ -1144,13 +1156,13 @@ Link berlaku selama 48 jam. Terima kasih!`;
                 {/* Action Buttons */}
                 <div className="flex gap-3">
                     <button
-                        onClick={() => router.visit('/admin/orders')}
+                        onClick={async () => router.visit('/admin/orders')}
                         className="flex-1 rounded-lg bg-gray-200 px-6 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-300"
                     >
                         Kembali
                     </button>
                     <button
-                        onClick={() => contactWhatsApp(order.client.phone)}
+                        onClick={async () => contactWhatsApp(order.client.phone)}
                         className="flex-1 rounded-lg bg-green-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-green-600"
                     >
                         Hubungi Client

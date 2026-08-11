@@ -79,10 +79,10 @@ export default function EmailTemplatesPage() {
                 type: selectedTemplate,
                 ...editData,
             });
-            alert('Template berhasil disimpan!');
+            await window.showAlert('Template berhasil disimpan!');
             fetchTemplates();
         } catch (error) {
-            alert('Gagal menyimpan template');
+            await window.showAlert('Gagal menyimpan template');
         } finally {
             setSaving(false);
         }
@@ -120,7 +120,7 @@ export default function EmailTemplatesPage() {
                                 {Object.keys(templateLabels).map((key) => (
                                     <button
                                         key={key}
-                                        onClick={() => setSelectedTemplate(key)}
+                                        onClick={async () => setSelectedTemplate(key)}
                                         className={`w-full text-left px-4 py-3 rounded-lg transition ${
                                             selectedTemplate === key
                                                 ? 'bg-blue-100 text-blue-700 font-medium'

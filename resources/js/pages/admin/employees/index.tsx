@@ -134,19 +134,19 @@ const EmployeesPage: React.FC = () => {
       closeModal();
     } catch (error) {
       console.error('Error saving employee:', error);
-      alert('Gagal menyimpan data karyawan');
+      await window.showAlert('Gagal menyimpan data karyawan');
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus karyawan ini?')) return;
+    if (!await window.showConfirm('Apakah Anda yakin ingin menghapus karyawan ini?')) return;
     
     try {
       await api.delete(`/employees/${id}`);
       fetchEmployees();
     } catch (error: any) {
       console.error('Error deleting employee:', error);
-      alert(error.response?.data?.message || 'Gagal menghapus karyawan');
+      await window.showAlert(error.response?.data?.message || 'Gagal menghapus karyawan');
     }
   };
 
@@ -198,7 +198,7 @@ const EmployeesPage: React.FC = () => {
     setEditingEmployee(null);
   };
 
-  const handleSkillToggle = (skill: string) => {
+  const handleSkillToggle = async (skill: string) => {
     setFormData(prev => ({
       ...prev,
       skills: prev.skills.includes(skill)
@@ -356,7 +356,7 @@ const EmployeesPage: React.FC = () => {
               </select>
 
               <button
-                onClick={() => openModal()}
+                onClick={async () => openModal()}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <UserPlus className="w-5 h-5" />
@@ -444,13 +444,13 @@ const EmployeesPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => openModal(employee)}
+                            onClick={async () => openModal(employee)}
                             className="text-blue-600 hover:text-blue-900"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(employee.id)}
+                            onClick={async () => handleDelete(employee.id)}
                             className="text-red-600 hover:text-red-900"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -677,7 +677,7 @@ const EmployeesPage: React.FC = () => {
                       <button
                         key={skill}
                         type="button"
-                        onClick={() => handleSkillToggle(skill)}
+                        onClick={async () => handleSkillToggle(skill)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           formData.skills.includes(skill)
                             ? 'bg-blue-600 text-white'

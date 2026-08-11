@@ -143,7 +143,7 @@ export default function TasksPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedEvent) {
-            alert('Pilih event terlebih dahulu');
+            await window.showAlert('Pilih event terlebih dahulu');
             return;
         }
 
@@ -162,13 +162,13 @@ export default function TasksPage() {
             setShowModal(false);
             resetForm();
             fetchTasks(selectedEvent);
-            alert('Task berhasil disimpan');
+            await window.showAlert('Task berhasil disimpan');
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal menyimpan task');
+            await window.showAlert(error.response?.data?.message || 'Gagal menyimpan task');
         }
     };
 
-    const handleEdit = (task: TaskAssignment) => {
+    const handleEdit = async (task: TaskAssignment) => {
         setEditingId(task.id);
         setFormData({
             user_id: String(task.user_id),
@@ -192,15 +192,15 @@ export default function TasksPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Yakin ingin menghapus task ini?')) return;
+        if (!await window.showConfirm('Yakin ingin menghapus task ini?')) return;
         if (!selectedEvent) return;
 
         try {
             await axios.delete(`/api/events/${selectedEvent}/tasks/${id}`);
             fetchTasks(selectedEvent);
-            alert('Task berhasil dihapus');
+            await window.showAlert('Task berhasil dihapus');
         } catch (error) {
-            alert('Gagal menghapus task');
+            await window.showAlert('Gagal menghapus task');
         }
     };
 
@@ -277,7 +277,7 @@ export default function TasksPage() {
                         </p>
                     </div>
                     <button
-                        onClick={() => setShowModal(true)}
+                        onClick={async () => setShowModal(true)}
                         disabled={!selectedEvent}
                         className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:bg-gray-400"
                     >
@@ -358,10 +358,10 @@ export default function TasksPage() {
                                                 <span className={`rounded-full px-2 py-1 text-xs font-semibold ${getStatusColor(task.status)}`}>{task.status}</span>
                                             </td>
                                             <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                                                <button onClick={() => handleEdit(task)} className="mr-3 text-blue-600 hover:text-blue-900">
+                                                <button onClick={async () => handleEdit(task)} className="mr-3 text-blue-600 hover:text-blue-900">
                                                     <Edit className="h-5 w-5" />
                                                 </button>
-                                                <button onClick={() => handleDelete(task.id)} className="text-red-600 hover:text-red-900">
+                                                <button onClick={async () => handleDelete(task.id)} className="text-red-600 hover:text-red-900">
                                                     <Trash2 className="h-5 w-5" />
                                                 </button>
                                             </td>
@@ -383,7 +383,7 @@ export default function TasksPage() {
                         <div className="mx-4 max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-lg bg-white p-6">
                             <div className="mb-4 flex items-center justify-between">
                                 <h3 className="text-lg font-bold">{editingId ? 'Edit Task' : 'Tambah Task'}</h3>
-                                <button onClick={() => { setShowModal(false); resetForm(); }}>
+                                <button onClick={async () => { setShowModal(false); resetForm(); }}>
                                     <X className="h-6 w-6" />
                                 </button>
                             </div>
@@ -551,7 +551,7 @@ export default function TasksPage() {
 
                                                 <button
                                                     type="button"
-                                                    onClick={() => removeRequirementRow(index)}
+                                                    onClick={async () => removeRequirementRow(index)}
                                                     className="rounded border border-red-200 bg-red-50 px-2 py-1 text-red-600 hover:bg-red-100 md:col-span-1"
                                                 >
                                                     <Trash2 className="mx-auto h-4 w-4" />
@@ -564,7 +564,7 @@ export default function TasksPage() {
                                 <div className="mt-6 flex justify-end gap-3">
                                     <button
                                         type="button"
-                                        onClick={() => { setShowModal(false); resetForm(); }}
+                                        onClick={async () => { setShowModal(false); resetForm(); }}
                                         className="rounded-lg border px-4 py-2"
                                     >
                                         Batal

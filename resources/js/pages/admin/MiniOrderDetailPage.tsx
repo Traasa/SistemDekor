@@ -93,20 +93,20 @@ const MiniOrderDetailPage: React.FC<Props> = ({ order }) => {
                 // keep the page state; user can view persistent link below
             }
         } catch (error: any) {
-            alert('Gagal generate payment link: ' + (error.response?.data?.message || error.message));
+            await window.showAlert('Gagal generate payment link: ' + (error.response?.data?.message || error.message));
         } finally {
             setGeneratingLink(false);
         }
     };
 
     const verifyPaymentProof = async (proofId: number) => {
-        if (!confirm('Verifikasi bukti pembayaran ini?')) return;
+        if (!await window.showConfirm('Verifikasi bukti pembayaran ini?')) return;
         setVerifyingProof(proofId);
         try {
             await axios.post(`/api/mini-payment-proofs/${proofId}/verify`);
             router.reload();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal verifikasi pembayaran');
+            await window.showAlert(error.response?.data?.message || 'Gagal verifikasi pembayaran');
         } finally {
             setVerifyingProof(null);
         }
@@ -120,7 +120,7 @@ const MiniOrderDetailPage: React.FC<Props> = ({ order }) => {
             await axios.post(`/api/mini-payment-proofs/${proofId}/reject`, { admin_notes: reason });
             router.reload();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal menolak pembayaran');
+            await window.showAlert(error.response?.data?.message || 'Gagal menolak pembayaran');
         } finally {
             setVerifyingProof(null);
         }
@@ -131,7 +131,7 @@ const MiniOrderDetailPage: React.FC<Props> = ({ order }) => {
             <div className="space-y-6">
                 <div className="flex items-center justify-between">
                     <div>
-                        <button onClick={() => router.visit('/admin/mini-orders')} className="mb-2 flex items-center text-gray-600 hover:text-gray-900">
+                        <button onClick={async () => router.visit('/admin/mini-orders')} className="mb-2 flex items-center text-gray-600 hover:text-gray-900">
                             ← Kembali ke Mini Order
                         </button>
                         <h1 className="text-3xl font-bold text-gray-900">Detail Mini Order: {order.order_code}</h1>
@@ -140,7 +140,7 @@ const MiniOrderDetailPage: React.FC<Props> = ({ order }) => {
                     <div className="flex gap-3">
                         {order.is_negotiable && (
                             <button
-                                onClick={() => router.visit(`/admin/mini-orders/${order.id}/edit`)}
+                                onClick={async () => router.visit(`/admin/mini-orders/${order.id}/edit`)}
                                 className="flex items-center gap-2 rounded-lg bg-blue-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-blue-600"
                             >
                                 <span>✏️</span>
@@ -148,7 +148,7 @@ const MiniOrderDetailPage: React.FC<Props> = ({ order }) => {
                             </button>
                         )}
                         <button
-                            onClick={() => window.open(`/admin/mini-orders/${order.id}/invoice`, '_blank')}
+                            onClick={async () => window.open(`/admin/mini-orders/${order.id}/invoice`, '_blank')}
                             className="flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-6 py-3 font-semibold text-slate-700 transition-colors hover:bg-slate-50"
                         >
                             <span>⬇️</span>
@@ -272,7 +272,7 @@ const MiniOrderDetailPage: React.FC<Props> = ({ order }) => {
                                             className="w-full rounded-lg border border-indigo-200 px-3 py-2 text-sm"
                                         />
                                         <button
-                                            onClick={() => generatePaymentLink('dp', Number(dpAmount || 0))}
+                                            onClick={async () => generatePaymentLink('dp', Number(dpAmount || 0))}
                                             disabled={generatingLink}
                                             className="w-full rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-600 disabled:bg-gray-400"
                                         >
@@ -280,7 +280,7 @@ const MiniOrderDetailPage: React.FC<Props> = ({ order }) => {
                                         </button>
                                     </div>
                                     <button
-                                        onClick={() => generatePaymentLink('full')}
+                                        onClick={async () => generatePaymentLink('full')}
                                         disabled={generatingLink}
                                         className="w-full rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 disabled:bg-gray-400"
                                     >
@@ -302,16 +302,16 @@ const MiniOrderDetailPage: React.FC<Props> = ({ order }) => {
                                     <div className="flex gap-2">
                                         <a href={currentLink || (order.payment_link_active ? `${window.location.origin}/mini-payment/${(order as any).payment_link_token}` : '#')} target="_blank" rel="noreferrer" className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white">Open Link</a>
                                         <button
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 const linkText = currentLink || (order.payment_link_active ? `${window.location.origin}/mini-payment/${(order as any).payment_link_token}` : '');
                                                 navigator.clipboard.writeText(linkText);
-                                                alert('Link copied to clipboard');
+                                                await window.showAlert('Link copied to clipboard');
                                             }}
                                             className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-semibold"
                                         >
                                             Copy Link
                                         </button>
-                                        <button onClick={() => setShowLinkModal(true)} className="rounded-lg bg-white border px-4 py-2 text-sm">View</button>
+                                        <button onClick={async () => setShowLinkModal(true)} className="rounded-lg bg-white border px-4 py-2 text-sm">View</button>
                                     </div>
                                 </div>
                             </div>
@@ -340,14 +340,14 @@ const MiniOrderDetailPage: React.FC<Props> = ({ order }) => {
                                             {proof.status === 'pending' && (
                                                 <div className="mt-3 flex gap-2">
                                                     <button
-                                                        onClick={() => verifyPaymentProof(proof.id)}
+                                                        onClick={async () => verifyPaymentProof(proof.id)}
                                                         disabled={verifyingProof === proof.id}
                                                         className="flex-1 rounded-lg bg-green-500 px-3 py-2 text-sm font-semibold text-white hover:bg-green-600 disabled:bg-gray-400"
                                                     >
                                                         Verifikasi
                                                     </button>
                                                     <button
-                                                        onClick={() => rejectPaymentProof(proof.id)}
+                                                        onClick={async () => rejectPaymentProof(proof.id)}
                                                         disabled={verifyingProof === proof.id}
                                                         className="flex-1 rounded-lg bg-red-500 px-3 py-2 text-sm font-semibold text-white hover:bg-red-600 disabled:bg-gray-400"
                                                     >
@@ -373,9 +373,9 @@ const MiniOrderDetailPage: React.FC<Props> = ({ order }) => {
                                 <div className="mb-4 text-xs text-gray-500">Expires: {linkExpiresAt || order.payment_link_expires_at}</div>
                             ) : null}
                             <div className="flex justify-end gap-2">
-                                <button onClick={() => { navigator.clipboard.writeText(currentLink || (order.payment_link_active ? `${window.location.origin}/mini-payment/${(order as any).payment_link_token}` : '')); alert('Link copied'); }} className="rounded-lg bg-gray-200 px-4 py-2 text-sm">Copy</button>
+                                <button onClick={async () => { navigator.clipboard.writeText(currentLink || (order.payment_link_active ? `${window.location.origin}/mini-payment/${(order as any).payment_link_token}` : '')); await window.showAlert('Link copied'); }} className="rounded-lg bg-gray-200 px-4 py-2 text-sm">Copy</button>
                                 <a href={currentLink || (order.payment_link_active ? `${window.location.origin}/mini-payment/${(order as any).payment_link_token}` : '#')} target="_blank" rel="noreferrer" className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-semibold text-white">Open</a>
-                                <button onClick={() => setShowLinkModal(false)} className="rounded-lg bg-white border px-4 py-2 text-sm">Close</button>
+                                <button onClick={async () => setShowLinkModal(false)} className="rounded-lg bg-white border px-4 py-2 text-sm">Close</button>
                             </div>
                         </div>
                     </div>

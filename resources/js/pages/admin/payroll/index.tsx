@@ -145,12 +145,12 @@ export default function PayrollPage() {
             closeModal();
             fetchData();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal menyimpan payroll');
+            await window.showAlert(error.response?.data?.message || 'Gagal menyimpan payroll');
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Hapus data payroll ini?')) {
+        if (!await window.showConfirm('Hapus data payroll ini?')) {
             return;
         }
 
@@ -158,7 +158,7 @@ export default function PayrollPage() {
             await axios.delete(`/api/employee-payrolls/${id}`);
             fetchData();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal menghapus payroll');
+            await window.showAlert(error.response?.data?.message || 'Gagal menghapus payroll');
         }
     };
 
@@ -227,8 +227,8 @@ export default function PayrollPage() {
                                         <td className="px-4 py-3 text-sm font-semibold text-gray-900">{formatCurrency(row.total_amount)}</td>
                                         <td className="px-4 py-3 text-sm text-gray-700">{row.status}</td>
                                         <td className="px-4 py-3 text-sm">
-                                            <button onClick={() => openEdit(row)} className="mr-2 text-blue-600 hover:text-blue-800">Edit</button>
-                                            <button onClick={() => handleDelete(row.id)} className="text-red-600 hover:text-red-800">
+                                            <button onClick={async () => openEdit(row)} className="mr-2 text-blue-600 hover:text-blue-800">Edit</button>
+                                            <button onClick={async () => handleDelete(row.id)} className="text-red-600 hover:text-red-800">
                                                 <Trash2 className="inline h-4 w-4" />
                                             </button>
                                         </td>

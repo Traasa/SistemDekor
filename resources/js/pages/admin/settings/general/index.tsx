@@ -143,7 +143,7 @@ export default function GeneralSettingsPage() {
         }
     };
 
-    const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
@@ -154,7 +154,7 @@ export default function GeneralSettingsPage() {
         }
     };
 
-    const handleFaviconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFaviconChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
@@ -165,7 +165,7 @@ export default function GeneralSettingsPage() {
         }
     };
 
-    const handleHeroChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleHeroChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
@@ -176,7 +176,7 @@ export default function GeneralSettingsPage() {
         }
     };
 
-    const handleHeroSideChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleHeroSideChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
@@ -187,7 +187,7 @@ export default function GeneralSettingsPage() {
         }
     };
 
-    const handleAboutGalleryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAboutGalleryChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length > 0) {
             Promise.all(
@@ -203,7 +203,7 @@ export default function GeneralSettingsPage() {
         }
     };
 
-    const handlePortfolioChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handlePortfolioChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         if (files.length > 0) {
             Promise.all(
@@ -276,13 +276,13 @@ export default function GeneralSettingsPage() {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
 
-            alert('Pengaturan berhasil disimpan!');
+            await window.showAlert('Pengaturan berhasil disimpan!');
             fetchSettings();
         } catch (error: any) {
             if (error.response?.data?.errors) {
                 setErrors(error.response.data.errors);
             }
-            alert('Gagal menyimpan pengaturan');
+            await window.showAlert('Gagal menyimpan pengaturan');
         } finally {
             setSaving(false);
         }

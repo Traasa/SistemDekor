@@ -144,19 +144,19 @@ const EmployeeAssignmentsPage: React.FC = () => {
       closeModal();
     } catch (error) {
       console.error('Error saving assignment:', error);
-      alert('Gagal menyimpan penugasan');
+      await window.showAlert('Gagal menyimpan penugasan');
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus penugasan ini?')) return;
+    if (!await window.showConfirm('Apakah Anda yakin ingin menghapus penugasan ini?')) return;
     
     try {
       await api.delete(`/employee-assignments/${id}`);
       fetchAssignments();
     } catch (error: any) {
       console.error('Error deleting assignment:', error);
-      alert(error.response?.data?.message || 'Gagal menghapus penugasan');
+      await window.showAlert(error.response?.data?.message || 'Gagal menghapus penugasan');
     }
   };
 
@@ -199,7 +199,7 @@ const EmployeeAssignmentsPage: React.FC = () => {
     setNewTask('');
   };
 
-  const handleAddTask = () => {
+  const handleAddTask = async () => {
     if (newTask.trim()) {
       setFormData(prev => ({
         ...prev,
@@ -209,7 +209,7 @@ const EmployeeAssignmentsPage: React.FC = () => {
     }
   };
 
-  const handleRemoveTask = (index: number) => {
+  const handleRemoveTask = async (index: number) => {
     setFormData(prev => ({
       ...prev,
       tasks: prev.tasks.filter((_, i) => i !== index)
@@ -355,7 +355,7 @@ const EmployeeAssignmentsPage: React.FC = () => {
               </select>
 
               <button
-                onClick={() => openModal()}
+                onClick={async () => openModal()}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
               >
                 <Plus className="w-5 h-5" />
@@ -460,13 +460,13 @@ const EmployeeAssignmentsPage: React.FC = () => {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center gap-2">
                           <button
-                            onClick={() => openModal(assignment)}
+                            onClick={async () => openModal(assignment)}
                             className="text-blue-600 hover:text-blue-900"
                           >
                             <Edit className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(assignment.id)}
+                            onClick={async () => handleDelete(assignment.id)}
                             className="text-red-600 hover:text-red-900"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -646,7 +646,7 @@ const EmployeeAssignmentsPage: React.FC = () => {
                             <span className="flex-1 text-sm text-gray-900">{task}</span>
                             <button
                               type="button"
-                              onClick={() => handleRemoveTask(idx)}
+                              onClick={async () => handleRemoveTask(idx)}
                               className="text-red-600 hover:text-red-900"
                             >
                               <XCircle className="w-4 h-4" />

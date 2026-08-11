@@ -72,10 +72,10 @@ const defaultForm = {
     base_price: '',
     includes_venue: false,
     venue_id: '',
-    venue_price: '0',
-    slug: '',
+    image: null as File | null,
     image_url: '',
     is_active: true,
+    slug: '',
 };
 
 export default function PackagesPage() {
@@ -143,8 +143,8 @@ export default function PackagesPage() {
             base_price: pkg.base_price.toString(),
             includes_venue: !!pkg.includes_venue,
             venue_id: pkg.venue_id?.toString() || '',
-            venue_price: (pkg.venue_price || 0).toString(),
             slug: pkg.slug,
+            image: null,
             image_url: pkg.image_url || '',
             is_active: pkg.is_active,
         });
@@ -192,41 +192,61 @@ export default function PackagesPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
-            const payload = {
-                ...formData,
-                base_price: Number(formData.base_price),
-                includes_venue: !!formData.includes_venue,
-                venue_id: formData.includes_venue && formData.venue_id ? Number(formData.venue_id) : null,
-                venue_price: formData.includes_venue ? Number(formData.venue_price || 0) : 0,
-                inventory_items: selectedItems.map((item) => ({
-                    inventory_item_id: item.inventory_item_id,
-                    quantity: item.quantity,
-                    notes: item.notes || null,
-                })),
-            };
+            const payload = new FormData();
+            payload.append('name', formData.name);
+            payload.append('description', formData.description);
+            payload.append('base_price', formData.base_price);
+            payload.append('includes_venue', formData.includes_venue ? '1' : '0');
+            
+            if (formData.includes_venue && formData.venue_id) {
+                payload.append('venue_id', formData.venue_id);
+            }
+            
+            if (formData.image) {
+                payload.append('image', formData.image);
+            }
+            
+            payload.append('is_active', formData.is_active ? '1' : '0');
+            if (formData.slug) payload.append('slug', formData.slug);
+            
+            // Append inventory items as JSON string so backend can parse it, or as array
+            const inventoryItems = selectedItems.map((item) => ({
+                inventory_item_id: item.inventory_item_id,
+                quantity: item.quantity,
+                notes: item.notes || null,
+            }));
+            
+            if (inventoryItems.length > 0) {
+                payload.append('inventory_items_json', JSON.stringify(inventoryItems));
+            }
 
             if (editingId) {
-                await axios.put(`/api/packages/${editingId}`, payload);
+                payload.append('_method', 'PUT');
+                await axios.post(`/api/packages/${editingId}`, payload, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
             } else {
-                await axios.post('/api/packages', payload);
+                await axios.post('/api/packages', payload, {
+                    headers: { 'Content-Type': 'multipart/form-data' }
+                });
             }
 
             closeModal();
             await fetchInitialData();
-            alert('Paket berhasil disimpan');
+            await window.showAlert('Paket berhasil disimpan');
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal menyimpan paket');
+            await window.showAlert(error.response?.data?.message || 'Gagal menyimpan paket');
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Yakin ingin menghapus paket ini?')) return;
+        if (!await window.showConfirm('Yakin ingin menghapus paket ini?')) return;
 
         try {
             await axios.delete(`/api/packages/${id}`);
             fetchInitialData();
         } catch (error) {
-            alert('Gagal menghapus paket');
+            await window.showAlert('Gagal menghapus paket');
         }
     };
 
@@ -292,10 +312,10 @@ export default function PackagesPage() {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 text-sm font-medium">
-                                            <button onClick={() => openEdit(pkg)} className="mr-3 text-blue-600 hover:text-blue-800">
+                                            <button onClick={async () => openEdit(pkg)} className="mr-3 text-blue-600 hover:text-blue-800">
                                                 <Edit className="h-4 w-4" />
                                             </button>
-                                            <button onClick={() => handleDelete(pkg.id)} className="text-red-600 hover:text-red-800">
+                                            <button onClick={async () => handleDelete(pkg.id)} className="text-red-600 hover:text-red-800">
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
                                         </td>
@@ -331,8 +351,16 @@ export default function PackagesPage() {
                                         <input type="text" value={formData.slug} onChange={(e) => setFormData((prev) => ({ ...prev, slug: e.target.value }))} className="w-full rounded-lg border px-3 py-2" />
                                     </div>
                                     <div>
-                                        <label className="mb-1 block text-sm font-medium text-gray-700">Image URL</label>
-                                        <input type="text" value={formData.image_url} onChange={(e) => setFormData((prev) => ({ ...prev, image_url: e.target.value }))} className="w-full rounded-lg border px-3 py-2" />
+                                        <label className="mb-1 block text-sm font-medium text-gray-700">Gambar Paket</label>
+                                        <input 
+                                            type="file" 
+                                            accept="image/*" 
+                                            onChange={(e) => setFormData((prev) => ({ ...prev, image: e.target.files ? e.target.files[0] : null }))} 
+                                            className="w-full rounded-lg border px-3 py-2 bg-white" 
+                                        />
+                                        {formData.image_url && !formData.image && (
+                                            <p className="mt-1 text-xs text-gray-500">Gambar saat ini sudah tersimpan. Unggah baru untuk mengganti.</p>
+                                        )}
                                     </div>
                                 </div>
 
@@ -347,7 +375,6 @@ export default function PackagesPage() {
                                                     ...prev,
                                                     includes_venue: e.target.checked,
                                                     venue_id: e.target.checked ? prev.venue_id : '',
-                                                    venue_price: e.target.checked ? prev.venue_price : '0',
                                                 }))
                                             }
                                         />
@@ -370,16 +397,6 @@ export default function PackagesPage() {
                                                         </option>
                                                     ))}
                                                 </select>
-                                            </div>
-                                            <div>
-                                                <label className="mb-1 block text-sm font-medium text-gray-700">Harga Venue</label>
-                                                <input
-                                                    type="number"
-                                                    min={0}
-                                                    value={formData.venue_price}
-                                                    onChange={(e) => setFormData((prev) => ({ ...prev, venue_price: e.target.value }))}
-                                                    className="w-full rounded-lg border px-3 py-2"
-                                                />
                                             </div>
                                         </div>
                                     )}

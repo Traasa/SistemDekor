@@ -139,7 +139,7 @@ class PaymentController extends Controller
         $hoursValid = $request->input('hours_valid', 48); // Default 48 hours
         $paymentLink = $order->generatePaymentLink($hoursValid, $paymentType);
         $paymentAmount = $request->input('payment_amount');
-        if ($paymentType === 'installment' && $paymentAmount !== null) {
+        if (in_array($paymentType, ['booking', 'dp', 'installment']) && $paymentAmount !== null) {
             $order->payment_link_amount = (float) $paymentAmount;
         } else {
             $order->payment_link_amount = null;
@@ -164,6 +164,50 @@ class PaymentController extends Controller
             'link' => $paymentLink,
             'payment_type' => $paymentType,
             'expires_at' => $order->payment_link_expires_at->format('Y-m-d H:i:s'),
+        ]);
+    }
+
+    /**
+     * Cancel active payment link
+     */
+    public function cancelLink(Request $request, $orderId)
+    {
+        $order = Order::findOrFail($orderId);
+
+        if (!$order->payment_link_active) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada link pembayaran yang aktif.',
+            ], 400);
+        }
+
+        $order->payment_link_active = false;
+        
+        $totalPaid = (float) $order->paymentProofs()->where('status', PaymentProof::STATUS_VERIFIED)->sum('amount');
+        $dpPaid = (float) $order->paymentProofs()
+            ->where('status', PaymentProof::STATUS_VERIFIED)
+            ->where('payment_type', PaymentProof::PAYMENT_TYPE_DP)
+            ->sum('amount');
+        $bookingPaid = (float) $order->paymentProofs()
+            ->where('status', PaymentProof::STATUS_VERIFIED)
+            ->where('payment_type', PaymentProof::PAYMENT_TYPE_BOOKING)
+            ->sum('amount');
+
+        if ($totalPaid >= (float) $order->final_price && $order->final_price > 0) {
+            $order->payment_status = Order::PAYMENT_PAID;
+        } elseif ($bookingPaid > 0 && $dpPaid <= 0) {
+            $order->payment_status = Order::PAYMENT_BOOKED;
+        } elseif ($dpPaid > 0) {
+            $order->payment_status = $totalPaid > $dpPaid ? Order::PAYMENT_PARTIAL : Order::PAYMENT_DP_PAID;
+        } else {
+            $order->payment_status = Order::PAYMENT_UNPAID;
+        }
+
+        $order->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Link pembayaran berhasil dibatalkan.',
         ]);
     }
 
@@ -371,18 +415,27 @@ class PaymentController extends Controller
                     ->where('payment_type', PaymentProof::PAYMENT_TYPE_BOOKING)
                     ->sum('amount');
 
+                $advancedStatuses = [Order::STATUS_CONFIRMED, Order::STATUS_PROCESSING, Order::STATUS_COMPLETED];
                 if ($totalPaid >= (float) $order->final_price) {
                     $order->payment_status = Order::PAYMENT_PAID;
-                    $order->status = Order::STATUS_PAID;
+                    if (!in_array($order->status, $advancedStatuses)) {
+                        $order->status = Order::STATUS_PAID;
+                    }
                 } elseif ($bookingPaid > 0 && $dpPaid <= 0) {
                     $order->payment_status = Order::PAYMENT_BOOKED;
-                    $order->status = Order::STATUS_BOOKED;
+                    if (!in_array($order->status, array_merge($advancedStatuses, [Order::STATUS_PAID]))) {
+                        $order->status = Order::STATUS_BOOKED;
+                    }
                 } elseif ($dpPaid > 0) {
                     $order->payment_status = $totalPaid > $dpPaid ? Order::PAYMENT_PARTIAL : Order::PAYMENT_DP_PAID;
-                    $order->status = Order::STATUS_DP_PAID;
+                    if (!in_array($order->status, array_merge($advancedStatuses, [Order::STATUS_PAID]))) {
+                        $order->status = Order::STATUS_DP_PAID;
+                    }
                 } else {
                     $order->payment_status = Order::PAYMENT_PARTIAL;
-                    $order->status = Order::STATUS_AWAITING_FULL;
+                    if (!in_array($order->status, array_merge($advancedStatuses, [Order::STATUS_PAID]))) {
+                        $order->status = Order::STATUS_AWAITING_FULL;
+                    }
                 }
 
                 $order->deposit_amount = $dpPaid;
@@ -473,18 +526,27 @@ class PaymentController extends Controller
                     ->where('payment_type', PaymentProof::PAYMENT_TYPE_BOOKING)
                     ->sum('amount');
 
+                $advancedStatuses = [Order::STATUS_CONFIRMED, Order::STATUS_PROCESSING, Order::STATUS_COMPLETED];
                 if ($totalPaid >= (float) $freshOrder->final_price) {
                     $freshOrder->payment_status = Order::PAYMENT_PAID;
-                    $freshOrder->status = Order::STATUS_PAID;
+                    if (!in_array($freshOrder->status, $advancedStatuses)) {
+                        $freshOrder->status = Order::STATUS_PAID;
+                    }
                 } elseif ($bookingPaid > 0 && $dpPaid <= 0) {
                     $freshOrder->payment_status = Order::PAYMENT_BOOKED;
-                    $freshOrder->status = Order::STATUS_BOOKED;
+                    if (!in_array($freshOrder->status, array_merge($advancedStatuses, [Order::STATUS_PAID]))) {
+                        $freshOrder->status = Order::STATUS_BOOKED;
+                    }
                 } elseif ($dpPaid > 0) {
                     $freshOrder->payment_status = $totalPaid > $dpPaid ? Order::PAYMENT_PARTIAL : Order::PAYMENT_DP_PAID;
-                    $freshOrder->status = Order::STATUS_DP_PAID;
+                    if (!in_array($freshOrder->status, array_merge($advancedStatuses, [Order::STATUS_PAID]))) {
+                        $freshOrder->status = Order::STATUS_DP_PAID;
+                    }
                 } else {
                     $freshOrder->payment_status = Order::PAYMENT_PARTIAL;
-                    $freshOrder->status = Order::STATUS_AWAITING_FULL;
+                    if (!in_array($freshOrder->status, array_merge($advancedStatuses, [Order::STATUS_PAID]))) {
+                        $freshOrder->status = Order::STATUS_AWAITING_FULL;
+                    }
                 }
 
                 $freshOrder->deposit_amount = $dpPaid;
@@ -492,7 +554,9 @@ class PaymentController extends Controller
                 $freshOrder->payment_link_active = false;
 
                 if ($request->boolean('auto_confirm_order', true) && in_array($request->payment_type, [PaymentProof::PAYMENT_TYPE_BOOKING, PaymentProof::PAYMENT_TYPE_DP, PaymentProof::PAYMENT_TYPE_FULL], true)) {
-                    $freshOrder->status = Order::STATUS_CONFIRMED;
+                    if (!in_array($freshOrder->status, [Order::STATUS_PROCESSING, Order::STATUS_COMPLETED])) {
+                        $freshOrder->status = Order::STATUS_CONFIRMED;
+                    }
                 }
 
                 $freshOrder->save();

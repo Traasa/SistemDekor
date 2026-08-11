@@ -1,6 +1,7 @@
 import { Head, Link } from '@inertiajs/react';
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X } from 'lucide-react';
 import { PublicLayout } from '../layouts/PublicLayout';
 import { formatRupiah } from '../utils/formatRupiah';
 import { CompanyProfile, companyProfileService } from '../services/companyProfileService';
@@ -59,6 +60,7 @@ const HomePage: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [isFadingTestimonial, setIsFadingTestimonial] = useState(false);
     const [activeTestimonial, setActiveTestimonial] = useState(0);
+    const [selectedService, setSelectedService] = useState<LandingServiceItem | null>(null);
 
     useEffect(() => {
         const fetchHomepageContent = async () => {
@@ -325,7 +327,11 @@ const HomePage: React.FC = () => {
 
                             <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                                 {featuredServices.map((service) => (
-                                    <article key={service.id} className="rounded-2xl border border-[#E4D2C3] bg-[#FBF5EF] p-5">
+                                    <article 
+                                        key={service.id} 
+                                        onClick={() => setSelectedService(service)}
+                                        className="cursor-pointer rounded-2xl border border-[#E4D2C3] bg-[#FBF5EF] p-5 transition hover:-translate-y-1 hover:shadow-lg"
+                                    >
                                         <p className="text-[11px] font-semibold tracking-[0.14em] text-[#A68774] uppercase" style={{ fontFamily: 'DM Sans, sans-serif' }}>
                                             {service.category || 'Wedding'}
                                         </p>
@@ -467,6 +473,75 @@ const HomePage: React.FC = () => {
                             </div>
                         </motion.section>
                 </main>
+
+                <AnimatePresence>
+                    {selectedService && (
+                        <motion.div 
+                            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedService(null)}
+                        >
+                            <motion.div 
+                                className="relative w-full max-w-lg overflow-hidden rounded-3xl bg-[#FBF5EF] shadow-2xl"
+                                initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                                animate={{ scale: 1, opacity: 1, y: 0 }}
+                                exit={{ scale: 0.9, opacity: 0, y: 20 }}
+                                onClick={(e) => e.stopPropagation()}
+                            >
+                                {selectedService.image && (
+                                    <div className="h-64 w-full bg-[#EFE0D2]">
+                                        <img 
+                                            src={resolveImagePath(selectedService.image) || ''} 
+                                            alt={selectedService.name} 
+                                            className="h-full w-full object-cover"
+                                        />
+                                    </div>
+                                )}
+                                
+                                <button 
+                                    onClick={() => setSelectedService(null)}
+                                    className="absolute right-4 top-4 rounded-full bg-white/50 p-2 text-gray-800 backdrop-blur-md hover:bg-white/80 transition"
+                                >
+                                    <X size={20} />
+                                </button>
+                                
+                                <div className="p-6 sm:p-8">
+                                    <p className="text-[11px] font-semibold tracking-[0.14em] text-[#A68774] uppercase" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                        {selectedService.category || 'Wedding'}
+                                    </p>
+                                    <h4 className="mt-2 text-3xl text-[#5F4636]" style={{ fontFamily: 'Playfair Display, serif' }}>
+                                        {selectedService.name}
+                                    </h4>
+                                    
+                                    <div className="mt-4 mb-6 h-px w-full bg-[#E4D2C3]" />
+                                    
+                                    <p className="text-base leading-relaxed text-[#7C6353]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                        {selectedService.description}
+                                    </p>
+                                    
+                                    <div className="mt-8 rounded-xl bg-white p-4 border border-[#E4D2C3] flex justify-between items-center">
+                                        <span className="text-sm text-[#7C6353]" style={{ fontFamily: 'DM Sans, sans-serif' }}>Harga Mulai</span>
+                                        <span className="text-xl font-bold text-[#926D55]" style={{ fontFamily: 'DM Sans, sans-serif' }}>
+                                            {formatRupiah(selectedService.price)}
+                                        </span>
+                                    </div>
+                                    
+                                    <div className="mt-6 flex justify-end">
+                                        <Link 
+                                            href="/packages"
+                                            className="w-full text-center rounded-lg bg-[#B48E75] px-5 py-3 text-sm font-semibold text-white hover:bg-[#9D7A63] transition" 
+                                            style={{ fontFamily: 'DM Sans, sans-serif' }}
+                                        >
+                                            Lihat Paket Wedding
+                                        </Link>
+                                    </div>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
 
             </PublicLayout>
         </>

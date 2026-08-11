@@ -688,20 +688,15 @@ const OrderDetail: React.FC<Props> = ({ order }) => {
                             <div className="overflow-hidden rounded-3xl border border-[#E7DCCB] bg-[#FFFBF6] p-6 shadow-[0_16px_35px_-30px_rgba(27,36,48,0.6)]">
                                 <h2 className="mb-4 font-serif text-xl font-bold text-[#2A2420]">Aksi Cepat</h2>
                                 <div className="space-y-3">
-                                    {order.payment_status !== 'paid' && (
-                                        <button className="w-full rounded-lg bg-gradient-to-r from-[#B08A56] to-[#7A5C44] px-4 py-3 font-semibold text-white shadow-md transition-all hover:scale-105">
-                                            💰 Bayar Sekarang
-                                        </button>
-                                    )}
                                     <a
                                         href={`/my-orders/${order.id}/invoice`}
-                                        className="w-full rounded-lg border-2 border-[#E7DCCB] bg-white px-4 py-3 text-center font-semibold text-[#5B4A3C] transition-all hover:border-[#B08A56] hover:bg-[#F8F1E8]"
+                                        className="block w-full rounded-lg border-2 border-[#E7DCCB] bg-white px-4 py-3 text-center font-semibold text-[#5B4A3C] transition-all hover:border-[#B08A56] hover:bg-[#F8F1E8]"
                                     >
                                         🖨️ Download Invoice
                                     </a>
                                     <a
                                         href={`/my-orders/${order.id}/contract`}
-                                        className="w-full rounded-lg border-2 border-[#E7DCCB] bg-white px-4 py-3 text-center font-semibold text-[#5B4A3C] transition-all hover:border-[#B08A56] hover:bg-[#F8F1E8]"
+                                        className="block w-full rounded-lg border-2 border-[#E7DCCB] bg-white px-4 py-3 text-center font-semibold text-[#5B4A3C] transition-all hover:border-[#B08A56] hover:bg-[#F8F1E8]"
                                     >
                                         📄 Download Kontrak
                                     </a>

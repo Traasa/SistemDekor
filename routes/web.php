@@ -157,6 +157,7 @@ Route::middleware(['auth', 'admin'])->prefix('admin')->group(function () {
     
     // Payment link generation and verification
     Route::post('/orders/{id}/generate-payment-link', [PaymentController::class, 'generateLink']);
+    Route::post('/orders/{id}/cancel-payment-link', [PaymentController::class, 'cancelLink']);
     Route::post('/orders/{id}/direct-payment-confirm', [PaymentController::class, 'directConfirm']);
     Route::get('/payment-proofs', [PaymentController::class, 'index']);
     Route::post('/payment-proofs/{id}/verify', [PaymentController::class, 'verify']);

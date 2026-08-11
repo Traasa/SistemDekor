@@ -56,7 +56,7 @@ const CreateMiniOrderPage: React.FC = () => {
         }
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
@@ -66,25 +66,25 @@ const CreateMiniOrderPage: React.FC = () => {
         try {
             const response = await api.post('/vendor-clients', newVendor);
             if (response.data.success) {
-                alert('Vendor client berhasil ditambahkan!');
+                await window.showAlert('Vendor client berhasil ditambahkan!');
                 fetchVendorClients();
                 setFormData((prev) => ({ ...prev, vendor_client_id: response.data.data.id.toString() }));
                 setShowNewVendorForm(false);
                 setNewVendor({ name: '', company_name: '', email: '', phone: '', address: '' });
             }
         } catch (error: any) {
-            alert('Gagal menambahkan vendor client: ' + (error.response?.data?.message || error.message));
+            await window.showAlert('Gagal menambahkan vendor client: ' + (error.response?.data?.message || error.message));
         }
     };
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         const validFiles: File[] = [];
         const previews: string[] = [];
 
-        files.forEach((file) => {
+        files.forEach(async (file) => {
             if (file.size > 3 * 1024 * 1024) {
-                alert(`Ukuran file ${file.name} melebihi 3MB.`);
+                await window.showAlert(`Ukuran file ${file.name} melebihi 3MB.`);
                 return;
             }
             validFiles.push(file);
@@ -125,7 +125,7 @@ const CreateMiniOrderPage: React.FC = () => {
                 if (selectedImages.length > 0) {
                     await miniOrderService.uploadImages(orderId, selectedImages);
                 }
-                alert('Mini order berhasil dibuat!');
+                await window.showAlert('Mini order berhasil dibuat!');
                 router.visit('/admin/mini-orders');
             }
         } catch (error: any) {
@@ -134,9 +134,9 @@ const CreateMiniOrderPage: React.FC = () => {
                 const errorMessages = Object.entries(errors)
                     .map(([field, msgs]: [string, any]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
                     .join('\n');
-                alert('Validation errors:\n' + errorMessages);
+                await window.showAlert('Validation errors:\n' + errorMessages);
             } else {
-                alert('Gagal membuat mini order: ' + (error.response?.data?.message || error.message));
+                await window.showAlert('Gagal membuat mini order: ' + (error.response?.data?.message || error.message));
             }
         } finally {
             setLoading(false);
@@ -152,7 +152,7 @@ const CreateMiniOrderPage: React.FC = () => {
                         <p className="mt-1 text-sm text-gray-600">Tambahkan mini order baru untuk vendor/WO lain</p>
                     </div>
                     <button
-                        onClick={() => router.visit('/admin/mini-orders')}
+                        onClick={async () => router.visit('/admin/mini-orders')}
                         className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
                     >
                         ← Kembali
@@ -165,7 +165,7 @@ const CreateMiniOrderPage: React.FC = () => {
                             <h2 className="text-lg font-bold text-gray-900">Informasi Vendor Client</h2>
                             <button
                                 type="button"
-                                onClick={() => setShowNewVendorForm(!showNewVendorForm)}
+                                onClick={async () => setShowNewVendorForm(!showNewVendorForm)}
                                 className="text-sm font-medium text-[#D4AF37] hover:underline"
                             >
                                 {showNewVendorForm ? '✕ Batal' : '+ Vendor Client Baru'}
@@ -392,7 +392,7 @@ const CreateMiniOrderPage: React.FC = () => {
                                             <img src={preview} alt={`Preview ${index + 1}`} className="h-32 w-full object-cover" />
                                             <button
                                                 type="button"
-                                                onClick={() => removeSelectedImage(index)}
+                                                onClick={async () => removeSelectedImage(index)}
                                                 className="absolute right-2 top-2 rounded bg-black/60 px-2 py-1 text-xs text-white"
                                             >
                                                 Hapus
@@ -408,7 +408,7 @@ const CreateMiniOrderPage: React.FC = () => {
                     <div className="flex justify-end space-x-4">
                         <button
                             type="button"
-                            onClick={() => router.visit('/admin/mini-orders')}
+                            onClick={async () => router.visit('/admin/mini-orders')}
                             className="rounded-lg bg-gray-200 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-300"
                         >
                             Batal

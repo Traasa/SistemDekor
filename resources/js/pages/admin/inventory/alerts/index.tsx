@@ -42,8 +42,8 @@ export default function LowStockAlerts() {
         }
     };
 
-    const handleOrderStock = (item: LowStockItem) => {
-        alert(`Order stock for: ${item.name} (${item.code})\nCurrent: ${item.quantity}\nMinimum: ${item.minimum_stock}\nShortage: ${item.minimum_stock - item.quantity}`);
+    const handleOrderStock = async (item: LowStockItem) => {
+        await window.showAlert(`Order stock for: ${item.name} (${item.code})\nCurrent: ${item.quantity}\nMinimum: ${item.minimum_stock}\nShortage: ${item.minimum_stock - item.quantity}`);
     };
 
     const criticalItemsCount = items.filter(item => item.quantity === 0).length;
@@ -262,7 +262,7 @@ export default function LowStockAlerts() {
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                                                     <button
-                                                        onClick={() => handleOrderStock(item)}
+                                                        onClick={async () => handleOrderStock(item)}
                                                         className="inline-flex items-center px-3 py-1.5 border border-transparent text-xs font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                                     >
                                                         <Package className="w-3 h-3 mr-1" />

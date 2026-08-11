@@ -86,7 +86,7 @@ export default function RundownAcaraPage({ eventId }: { eventId: string }) {
     };
 
     const deleteItem = async (itemId: number) => {
-        if (!confirm('Yakin ingin menghapus item rundown ini?')) return;
+        if (!await window.showConfirm('Yakin ingin menghapus item rundown ini?')) return;
         
         try {
             await axios.delete(`/api/events/${eventId}/rundown/${itemId}`);
@@ -127,7 +127,7 @@ export default function RundownAcaraPage({ eventId }: { eventId: string }) {
             fetchEventAndRundown();
         } catch (error) {
             console.error('Failed to save rundown item:', error);
-            alert('Gagal menyimpan item rundown');
+            await window.showAlert('Gagal menyimpan item rundown');
         }
     };
 
@@ -225,7 +225,7 @@ export default function RundownAcaraPage({ eventId }: { eventId: string }) {
                             </div>
                         </div>
                         <button
-                            onClick={() => setShowAddForm(true)}
+                            onClick={async () => setShowAddForm(true)}
                             className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
                         >
                             <Plus className="h-4 w-4" />
@@ -462,7 +462,7 @@ export default function RundownAcaraPage({ eventId }: { eventId: string }) {
                                             <div className="flex items-center gap-2">
                                                 {item.status === 'pending' && (
                                                     <button
-                                                        onClick={() => updateStatus(item.id, 'in_progress')}
+                                                        onClick={async () => updateStatus(item.id, 'in_progress')}
                                                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
                                                         title="Mulai"
                                                     >
@@ -471,7 +471,7 @@ export default function RundownAcaraPage({ eventId }: { eventId: string }) {
                                                 )}
                                                 {item.status === 'in_progress' && (
                                                     <button
-                                                        onClick={() => updateStatus(item.id, 'completed')}
+                                                        onClick={async () => updateStatus(item.id, 'completed')}
                                                         className="p-2 text-green-600 hover:bg-green-50 rounded-lg"
                                                         title="Selesai"
                                                     >
@@ -479,14 +479,14 @@ export default function RundownAcaraPage({ eventId }: { eventId: string }) {
                                                     </button>
                                                 )}
                                                 <button
-                                                    onClick={() => startEdit(item)}
+                                                    onClick={async () => startEdit(item)}
                                                     className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg"
                                                     title="Edit"
                                                 >
                                                     <Edit className="h-4 w-4" />
                                                 </button>
                                                 <button
-                                                    onClick={() => deleteItem(item.id)}
+                                                    onClick={async () => deleteItem(item.id)}
                                                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                                                     title="Hapus"
                                                 >

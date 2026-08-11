@@ -62,7 +62,7 @@ export default function InventoryReportPage() {
             link.remove();
         } catch (error) {
             console.error('Error exporting data:', error);
-            alert('Gagal export data');
+            await window.showAlert('Gagal export data');
         }
     };
 

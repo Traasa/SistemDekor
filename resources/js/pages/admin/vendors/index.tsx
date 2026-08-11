@@ -78,17 +78,17 @@ export default function VendorsPage() {
       resetForm();
       fetchVendors();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error saving vendor');
+      await window.showAlert(error.response?.data?.message || 'Error saving vendor');
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this vendor?')) return;
+    if (!await window.showConfirm('Delete this vendor?')) return;
     try {
       await api.delete(`/vendors/${id}`);
       fetchVendors();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error deleting vendor');
+      await window.showAlert(error.response?.data?.message || 'Error deleting vendor');
     }
   };
 
@@ -129,7 +129,7 @@ export default function VendorsPage() {
             <p className="text-gray-600">Kelola data vendor</p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={async () => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-4 h-4" />
@@ -194,10 +194,10 @@ export default function VendorsPage() {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <button onClick={() => { setSelectedVendor(vendor); setShowModal(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded">
+                    <button onClick={async () => { setSelectedVendor(vendor); setShowModal(true); }} className="p-2 text-blue-600 hover:bg-blue-50 rounded">
                       <Edit className="w-4 h-4" />
                     </button>
-                    <button onClick={() => handleDelete(vendor.id)} className="p-2 text-red-600 hover:bg-red-50 rounded">
+                    <button onClick={async () => handleDelete(vendor.id)} className="p-2 text-red-600 hover:bg-red-50 rounded">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -250,7 +250,7 @@ export default function VendorsPage() {
                   </div>
                 </div>
                 <div className="flex justify-end gap-2 mt-6">
-                  <button type="button" onClick={() => { setShowModal(false); resetForm(); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Batal</button>
+                  <button type="button" onClick={async () => { setShowModal(false); resetForm(); }} className="px-4 py-2 border rounded-lg hover:bg-gray-50">Batal</button>
                   <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Simpan</button>
                 </div>
               </form>

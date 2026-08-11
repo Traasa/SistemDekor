@@ -196,19 +196,19 @@ export default function VenueAvailability() {
     return days;
   };
 
-  const handlePrevMonth = () => {
+  const handlePrevMonth = async () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
 
-  const handleNextMonth = () => {
+  const handleNextMonth = async () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
-  const handleToday = () => {
+  const handleToday = async () => {
     setCurrentDate(new Date());
   };
 
-  const handleDayClick = (day: CalendarDay) => {
+  const handleDayClick = async (day: CalendarDay) => {
     if (!day.isCurrentMonth) return;
     
     setSelectedDate(day.date);
@@ -246,7 +246,7 @@ export default function VenueAvailability() {
       setShowModal(false);
     } catch (error) {
       console.error('Error saving availability:', error);
-      alert('Gagal menyimpan ketersediaan');
+      await window.showAlert('Gagal menyimpan ketersediaan');
     }
   };
 
@@ -271,7 +271,7 @@ export default function VenueAvailability() {
       });
     } catch (error) {
       console.error('Error saving bulk availability:', error);
-      alert('Gagal menyimpan ketersediaan massal');
+      await window.showAlert('Gagal menyimpan ketersediaan massal');
     }
   };
 
@@ -323,7 +323,7 @@ export default function VenueAvailability() {
             <p className="text-gray-600 mt-1">Kelola jadwal dan ketersediaan venue</p>
           </div>
           <button
-            onClick={() => setShowBulkModal(true)}
+            onClick={async () => setShowBulkModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <CalendarIcon className="w-5 h-5" />
@@ -422,7 +422,7 @@ export default function VenueAvailability() {
                 {calendar.map((day, index) => (
                   <button
                     key={index}
-                    onClick={() => handleDayClick(day)}
+                    onClick={async () => handleDayClick(day)}
                     disabled={!day.isCurrentMonth}
                     className={`
                       min-h-[100px] p-2 border-2 rounded-lg transition-all
@@ -559,7 +559,7 @@ export default function VenueAvailability() {
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={async () => setShowModal(false)}
                   className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
                 >
                   Batal
@@ -643,7 +643,7 @@ export default function VenueAvailability() {
               <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={async () => {
                     setShowBulkModal(false);
                     setBulkData({
                       start_date: '',

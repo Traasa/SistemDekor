@@ -50,7 +50,7 @@ const AdminDashboard: React.FC = () => {
     };
 
     const handleDeleteTransaction = async (id: number) => {
-        if (confirm('Are you sure you want to delete this transaction?')) {
+        if (await window.showConfirm('Are you sure you want to delete this transaction?')) {
             try {
                 await transactionService.deleteTransaction(id);
                 await fetchData(); // Refresh data
@@ -61,7 +61,7 @@ const AdminDashboard: React.FC = () => {
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         router.post('/logout');
     };
 
@@ -103,7 +103,7 @@ const AdminDashboard: React.FC = () => {
                 <div className="border-b border-gray-200">
                     <nav className="-mb-px flex space-x-8">
                         <button
-                            onClick={() => setActiveTab('transactions')}
+                            onClick={async () => setActiveTab('transactions')}
                             className={`border-b-2 px-1 py-2 text-sm font-medium ${
                                 activeTab === 'transactions'
                                     ? 'border-blue-500 text-blue-600'
@@ -113,7 +113,7 @@ const AdminDashboard: React.FC = () => {
                             Transaction Management
                         </button>
                         <button
-                            onClick={() => setActiveTab('profile')}
+                            onClick={async () => setActiveTab('profile')}
                             className={`border-b-2 px-1 py-2 text-sm font-medium ${
                                 activeTab === 'profile'
                                     ? 'border-blue-500 text-blue-600'
@@ -133,7 +133,7 @@ const AdminDashboard: React.FC = () => {
                         <div className="mb-6 flex items-center justify-between">
                             <h2 className="text-2xl font-bold text-gray-900">Transactions</h2>
                             <button
-                                onClick={() => setShowCreateModal(true)}
+                                onClick={async () => setShowCreateModal(true)}
                                 className="rounded-md bg-blue-600 px-4 py-2 text-white hover:bg-blue-700"
                             >
                                 Create New Transaction
@@ -179,13 +179,13 @@ const AdminDashboard: React.FC = () => {
                                                 </div>
                                                 <div className="ml-4 flex space-x-2">
                                                     <button
-                                                        onClick={() => setEditingTransaction(transaction)}
+                                                        onClick={async () => setEditingTransaction(transaction)}
                                                         className="text-sm text-blue-600 hover:text-blue-900"
                                                     >
                                                         Edit
                                                     </button>
                                                     <button
-                                                        onClick={() => handleDeleteTransaction(transaction.id)}
+                                                        onClick={async () => handleDeleteTransaction(transaction.id)}
                                                         className="text-sm text-red-600 hover:text-red-900"
                                                     >
                                                         Delete
@@ -316,7 +316,7 @@ const TransactionModal: React.FC<TransactionModalProps> = ({ transaction, users,
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         setFormData((prev) => ({
             ...prev,
             [e.target.name]: e.target.value,

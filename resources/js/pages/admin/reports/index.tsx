@@ -195,7 +195,7 @@ const FinancialReportsPage: React.FC = () => {
             window.URL.revokeObjectURL(url);
         } catch (error) {
             console.error('Error exporting PDF:', error);
-            alert('Gagal export PDF. Pastikan data sudah dimuat terlebih dahulu.');
+            await window.showAlert('Gagal export PDF. Pastikan data sudah dimuat terlebih dahulu.');
         }
     };
 
@@ -235,7 +235,7 @@ const FinancialReportsPage: React.FC = () => {
                             return (
                                 <button
                                     key={tab.id}
-                                    onClick={() => setActiveTab(tab.id as any)}
+                                    onClick={async () => setActiveTab(tab.id as any)}
                                     className={`flex items-center gap-2 px-6 py-4 font-medium whitespace-nowrap border-b-2 transition-colors ${
                                         activeTab === tab.id
                                             ? 'border-blue-600 text-blue-600 bg-blue-50'

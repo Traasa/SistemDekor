@@ -41,6 +41,42 @@ interface VenuePricing {
 
 const formatCurrency = (amount: number) => formatRupiah(amount);
 
+const WEEKDAY_LABELS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+
+const pad2 = (value: number) => String(value).padStart(2, '0');
+
+const toDateKey = (date: Date) => `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+
+const formatDisplayDate = (value: string) => {
+    if (!value) return '';
+    const parsed = new Date(`${value}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) return value;
+    return parsed.toLocaleDateString('id-ID', { day: '2-digit', month: 'long', year: 'numeric' });
+};
+
+const buildCalendarDays = (baseDate: Date) => {
+    const year = baseDate.getFullYear();
+    const month = baseDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const leadingBlanks = firstDay.getDay();
+    const days: Array<Date | null> = [];
+
+    for (let i = 0; i < leadingBlanks; i += 1) {
+        days.push(null);
+    }
+
+    for (let day = 1; day <= lastDay.getDate(); day += 1) {
+        days.push(new Date(year, month, day));
+    }
+
+    while (days.length % 7 !== 0) {
+        days.push(null);
+    }
+
+    return days;
+};
+
 const CreateOrderPage: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [clients, setClients] = useState<Client[]>([]);
@@ -51,6 +87,15 @@ const CreateOrderPage: React.FC = () => {
     const [selectedVenueId, setSelectedVenueId] = useState('');
     const [selectedVenuePricingId, setSelectedVenuePricingId] = useState('');
     const [venuePrice, setVenuePrice] = useState(0);
+
+    // Custom Date Picker State
+    const [unavailableDates, setUnavailableDates] = useState<Set<string>>(new Set());
+    const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+    const [calendarMonth, setCalendarMonth] = useState(() => {
+        const now = new Date();
+        return new Date(now.getFullYear(), now.getMonth(), 1);
+    });
+    const [isDatesLoading, setIsDatesLoading] = useState(false);
 
     // Form state
     const [formData, setFormData] = useState({
@@ -78,7 +123,31 @@ const CreateOrderPage: React.FC = () => {
         fetchClients();
         fetchPackages();
         fetchVenues();
+        fetchUnavailableDates();
     }, []);
+
+    const fetchUnavailableDates = async () => {
+        try {
+            setIsDatesLoading(true);
+            const now = new Date();
+            const from = toDateKey(now);
+            const toDate = new Date(now.getFullYear(), now.getMonth() + 12, now.getDate());
+            const response = await api.get('/unavailable-dates', {
+                params: {
+                    from,
+                    to: toDateKey(toDate),
+                },
+            });
+
+            const dates = Array.isArray(response.data?.data) ? response.data.data : [];
+            setUnavailableDates(new Set(dates));
+        } catch (error) {
+            console.error('Failed to load unavailable dates', error);
+            setUnavailableDates(new Set());
+        } finally {
+            setIsDatesLoading(false);
+        }
+    };
 
     const fetchClients = async () => {
         try {
@@ -113,12 +182,12 @@ const CreateOrderPage: React.FC = () => {
         }
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleVenueToggle = (checked: boolean) => {
+    const handleVenueToggle = async (checked: boolean) => {
         setUseWoVenue(checked);
         if (!checked) {
             // User wants to type their own address
@@ -171,7 +240,7 @@ const CreateOrderPage: React.FC = () => {
         }
     };
 
-    const handleVenuePricingSelect = (pricingId: string) => {
+    const handleVenuePricingSelect = async (pricingId: string) => {
         setSelectedVenuePricingId(pricingId);
         const venue = venues.find((v) => String(v.id) === selectedVenueId);
         if (venue && venue.pricing) {
@@ -192,14 +261,14 @@ const CreateOrderPage: React.FC = () => {
         try {
             const response = await api.post('/clients', newClient);
             if (response.data.success) {
-                alert('Client berhasil ditambahkan!');
+                await window.showAlert('Client berhasil ditambahkan!');
                 fetchClients();
                 setFormData((prev) => ({ ...prev, client_id: response.data.data.id.toString() }));
                 setShowNewClientForm(false);
                 setNewClient({ name: '', email: '', phone: '', address: '' });
             }
         } catch (error: any) {
-            alert('Gagal menambahkan client: ' + (error.response?.data?.message || error.message));
+            await window.showAlert('Gagal menambahkan client: ' + (error.response?.data?.message || error.message));
         }
     };
 
@@ -223,7 +292,7 @@ const CreateOrderPage: React.FC = () => {
         try {
             const response = await api.post('/orders', submitData);
             if (response.data.success) {
-                alert('Order berhasil dibuat!');
+                await window.showAlert('Order berhasil dibuat!');
                 router.visit('/admin/orders');
             }
         } catch (error: any) {
@@ -233,9 +302,9 @@ const CreateOrderPage: React.FC = () => {
                 const errorMessages = Object.entries(errors)
                     .map(([field, msgs]: [string, any]) => `${field}: ${Array.isArray(msgs) ? msgs.join(', ') : msgs}`)
                     .join('\n');
-                alert('Validation errors:\n' + errorMessages);
+                await window.showAlert('Validation errors:\n' + errorMessages);
             } else {
-                alert('Gagal membuat order: ' + (error.response?.data?.message || error.message));
+                await window.showAlert('Gagal membuat order: ' + (error.response?.data?.message || error.message));
             }
         } finally {
             setLoading(false);
@@ -245,6 +314,21 @@ const CreateOrderPage: React.FC = () => {
     // Get currently selected venue and its pricing
     const currentVenue = venues.find((v) => String(v.id) === selectedVenueId);
     const currentVenuePricing = currentVenue?.pricing?.filter((p) => p.is_active) || [];
+
+    // Date Picker Helpers
+    const minSelectableDate = (() => {
+        const date = new Date();
+        date.setHours(0, 0, 0, 0);
+        date.setDate(date.getDate() + 1);
+        return date;
+    })();
+
+    const calendarDays = buildCalendarDays(calendarMonth);
+
+    const isDateBlocked = (date: Date) => {
+        if (date < minSelectableDate) return true;
+        return unavailableDates.has(toDateKey(date));
+    };
 
     return (
         <AdminLayout>
@@ -256,7 +340,7 @@ const CreateOrderPage: React.FC = () => {
                         <p className="mt-1 text-sm text-gray-600">Tambahkan wedding order baru untuk client</p>
                     </div>
                     <button
-                        onClick={() => router.visit('/admin/orders')}
+                        onClick={async () => router.visit('/admin/orders')}
                         className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
                     >
                         ← Kembali
@@ -270,7 +354,7 @@ const CreateOrderPage: React.FC = () => {
                             <h2 className="text-lg font-bold text-gray-900">Informasi Client</h2>
                             <button
                                 type="button"
-                                onClick={() => setShowNewClientForm(!showNewClientForm)}
+                                onClick={async () => setShowNewClientForm(!showNewClientForm)}
                                 className="text-sm font-medium text-[#D4AF37] hover:underline"
                             >
                                 {showNewClientForm ? '✕ Batal' : '+ Client Baru'}
@@ -387,15 +471,101 @@ const CreateOrderPage: React.FC = () => {
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Tanggal Event *</label>
-                                <input
-                                    type="date"
-                                    name="event_date"
-                                    value={formData.event_date}
-                                    onChange={handleInputChange}
-                                    min={new Date().toISOString().split('T')[0]}
-                                    className="mt-1 w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-gray-900 focus:border-[#D4AF37] focus:ring-2 focus:ring-[#D4AF37]/20 focus:outline-none"
-                                    required
-                                />
+                                <div className="relative mt-1">
+                                    <button
+                                        type="button"
+                                        onClick={async () => setIsDatePickerOpen((prev) => !prev)}
+                                        className="flex w-full items-center justify-between rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-left text-gray-900 focus:border-[#D4AF37] focus:outline-none focus:ring-2 focus:ring-[#D4AF37]/20"
+                                        aria-haspopup="dialog"
+                                        aria-expanded={isDatePickerOpen}
+                                    >
+                                        <span>
+                                            {formData.event_date
+                                                ? formatDisplayDate(formData.event_date)
+                                                : 'dd --- yyyy'}
+                                        </span>
+                                        <span className="text-gray-500">📅</span>
+                                    </button>
+                                    <input type="hidden" name="event_date" value={formData.event_date} />
+
+                                    {isDatePickerOpen && (
+                                        <div className="absolute z-50 mt-2 w-72 rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+                                            <div className="flex items-center justify-between">
+                                                <button
+                                                    type="button"
+                                                    onClick={async () =>
+                                                        setCalendarMonth(
+                                                            (prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1)
+                                                        )
+                                                    }
+                                                    className="rounded-lg border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100"
+                                                >
+                                                    ‹
+                                                </button>
+                                                <p className="text-sm font-semibold text-gray-700">
+                                                    {calendarMonth.toLocaleDateString('id-ID', {
+                                                        month: 'long',
+                                                        year: 'numeric',
+                                                    })}
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={async () =>
+                                                        setCalendarMonth(
+                                                            (prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1)
+                                                        )
+                                                    }
+                                                    className="rounded-lg border border-gray-200 px-2 py-1 text-xs text-gray-600 hover:bg-gray-100"
+                                                >
+                                                    ›
+                                                </button>
+                                            </div>
+
+                                            <div className="mt-3 grid grid-cols-7 gap-1 text-center text-xs text-gray-400">
+                                                {WEEKDAY_LABELS.map((label) => (
+                                                    <span key={label}>{label}</span>
+                                                ))}
+                                            </div>
+
+                                            <div className="mt-2 grid grid-cols-7 gap-1 text-center text-sm">
+                                                {calendarDays.map((date, index) => {
+                                                    if (!date) {
+                                                        return <div key={`empty-${index}`} className="h-9" />;
+                                                    }
+
+                                                    const dateKey = toDateKey(date);
+                                                    const isSelected = formData.event_date === dateKey;
+                                                    const isBlocked = isDateBlocked(date);
+
+                                                    return (
+                                                        <button
+                                                            type="button"
+                                                            key={dateKey}
+                                                            disabled={isBlocked}
+                                                            onClick={async () => {
+                                                                setFormData((prev) => ({ ...prev, event_date: dateKey }));
+                                                                setIsDatePickerOpen(false);
+                                                            }}
+                                                            className={`h-9 w-9 rounded-full text-sm transition ${
+                                                                isSelected
+                                                                    ? 'bg-[#D4AF37] text-white'
+                                                                    : isBlocked
+                                                                      ? 'cursor-not-allowed bg-gray-100 text-gray-300'
+                                                                      : 'text-gray-700 hover:bg-gray-100'
+                                                            }`}
+                                                        >
+                                                            {date.getDate()}
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            <div className="mt-3 text-xs text-gray-500">
+                                                {isDatesLoading ? 'Memuat jadwal...' : 'Tanggal abu-abu sudah dibooking.'}
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-gray-700">Jumlah Tamu *</label>
@@ -587,7 +757,7 @@ const CreateOrderPage: React.FC = () => {
                     <div className="flex justify-end space-x-4">
                         <button
                             type="button"
-                            onClick={() => router.visit('/admin/orders')}
+                            onClick={async () => router.visit('/admin/orders')}
                             className="rounded-lg bg-gray-200 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-300"
                         >
                             Batal

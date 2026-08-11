@@ -61,14 +61,14 @@ export default function TestimonialsPage() {
             setShowModal(false);
             resetForm();
             fetchTestimonials();
-            alert('Testimonial berhasil disimpan!');
+            await window.showAlert('Testimonial berhasil disimpan!');
         } catch (error) {
             console.error('Failed to save testimonial:', error);
-            alert('Gagal menyimpan testimonial');
+            await window.showAlert('Gagal menyimpan testimonial');
         }
     };
 
-    const handleEdit = (testimonial: Testimonial) => {
+    const handleEdit = async (testimonial: Testimonial) => {
         setEditingId(testimonial.id);
         setFormData({
             client_name: testimonial.client_name,
@@ -82,15 +82,15 @@ export default function TestimonialsPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Yakin ingin menghapus testimonial ini?')) return;
+        if (!await window.showConfirm('Yakin ingin menghapus testimonial ini?')) return;
         
         try {
             await axios.delete(`/api/testimonials/${id}`);
             fetchTestimonials();
-            alert('Testimonial berhasil dihapus');
+            await window.showAlert('Testimonial berhasil dihapus');
         } catch (error) {
             console.error('Failed to delete testimonial:', error);
-            alert('Gagal menghapus testimonial');
+            await window.showAlert('Gagal menghapus testimonial');
         }
     };
 
@@ -132,7 +132,7 @@ export default function TestimonialsPage() {
                         <p className="mt-1 text-sm text-gray-500">Kelola testimonial pelanggan</p>
                     </div>
                     <button
-                        onClick={() => setShowModal(true)}
+                        onClick={async () => setShowModal(true)}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
                     >
                         <Plus className="h-5 w-5" />
@@ -180,10 +180,10 @@ export default function TestimonialsPage() {
                                                 </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                <button onClick={() => handleEdit(testimonial)} className="text-blue-600 hover:text-blue-900 mr-3">
+                                                <button onClick={async () => handleEdit(testimonial)} className="text-blue-600 hover:text-blue-900 mr-3">
                                                     <Edit className="h-5 w-5" />
                                                 </button>
-                                                <button onClick={() => handleDelete(testimonial.id)} className="text-red-600 hover:text-red-900">
+                                                <button onClick={async () => handleDelete(testimonial.id)} className="text-red-600 hover:text-red-900">
                                                     <Trash2 className="h-5 w-5" />
                                                 </button>
                                             </td>
@@ -201,7 +201,7 @@ export default function TestimonialsPage() {
                         <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-bold">{editingId ? 'Edit Testimonial' : 'Tambah Testimonial'}</h3>
-                                <button onClick={() => { setShowModal(false); resetForm(); }}>
+                                <button onClick={async () => { setShowModal(false); resetForm(); }}>
                                     <X className="h-6 w-6" />
                                 </button>
                             </div>
@@ -276,7 +276,7 @@ export default function TestimonialsPage() {
                                 <div className="flex justify-end gap-3 mt-6">
                                     <button
                                         type="button"
-                                        onClick={() => { setShowModal(false); resetForm(); }}
+                                        onClick={async () => { setShowModal(false); resetForm(); }}
                                         className="px-4 py-2 border rounded-lg"
                                     >
                                         Batal

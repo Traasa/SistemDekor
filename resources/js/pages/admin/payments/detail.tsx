@@ -60,18 +60,18 @@ const PaymentDetailPage: React.FC<{ id: string }> = ({ id }) => {
             }
         } catch (error) {
             console.error('Failed to fetch payment:', error);
-            alert('Gagal memuat data pembayaran');
+            await window.showAlert('Gagal memuat data pembayaran');
             router.visit('/admin/payments');
         } finally {
             setLoading(false);
         }
     };
 
-    const handlePrintInvoice = () => {
+    const handlePrintInvoice = async () => {
         window.print();
     };
 
-    const handleDownloadInvoice = () => {
+    const handleDownloadInvoice = async () => {
         if (payment?.order?.id) {
             window.open(`/admin/orders/${payment.order.id}/invoice`, '_blank');
         }
@@ -108,7 +108,7 @@ const PaymentDetailPage: React.FC<{ id: string }> = ({ id }) => {
                     </div>
                     <div className="flex gap-3">
                         <button
-                            onClick={() => router.visit('/admin/payments')}
+                            onClick={async () => router.visit('/admin/payments')}
                             className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
                         >
                             ← Kembali

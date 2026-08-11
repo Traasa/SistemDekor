@@ -196,7 +196,7 @@ const MyTransactionsPage: React.FC = () => {
                                                 {transaction.status.charAt(0).toUpperCase() + transaction.status.slice(1)}
                                             </span>
                                             <button
-                                                onClick={() => handleExportPdf(transaction.id, transaction.transaction_number)}
+                                                onClick={async () => handleExportPdf(transaction.id, transaction.transaction_number)}
                                                 className="rounded-md bg-blue-600 px-4 py-2 text-sm text-white hover:bg-blue-700"
                                             >
                                                 Export PDF
@@ -238,10 +238,10 @@ const MyTransactionsPage: React.FC = () => {
                                         <div className="flex items-center justify-between">
                                             <h4 className="text-sm font-medium text-gray-700">Share Transaction</h4>
                                             <button
-                                                onClick={() => {
+                                                onClick={async () => {
                                                     const shareUrl = `${window.location.origin}/transaction/${transaction.id}`;
                                                     navigator.clipboard.writeText(shareUrl);
-                                                    alert('Share link copied to clipboard!');
+                                                    await window.showAlert('Share link copied to clipboard!');
                                                 }}
                                                 className="text-sm text-blue-600 hover:text-blue-700"
                                             >

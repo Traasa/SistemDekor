@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Head } from '@inertiajs/react';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { Users, Award, Calendar, TrendingUp, Download, RefreshCw, Star } from 'lucide-react';
@@ -34,7 +34,7 @@ export default function PerformanceReportPage() {
 
     const handleExport = async () => {
         try {
-            const response = await axios.post('/api/reports-export-csv', {
+            const response = await axios.post('/api/reports-export-pdf', {
                 type: 'performance',
                 start_date: startDate,
                 end_date: endDate,
@@ -43,12 +43,12 @@ export default function PerformanceReportPage() {
             const url = window.URL.createObjectURL(new Blob([response.data]));
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', `performance_report_${new Date().toISOString().split('T')[0]}.csv`);
+            link.setAttribute('download', `performance_report_${new Date().toISOString().split('T')[0]}.pdf`);
             document.body.appendChild(link);
             link.click();
             link.remove();
         } catch (error) {
-            alert('Gagal export data');
+            await window.showAlert('Gagal export data');
         }
     };
 
@@ -77,7 +77,7 @@ export default function PerformanceReportPage() {
                         <p className="text-gray-600 mt-1">Evaluasi performa karyawan & vendor</p>
                     </div>
                     <button onClick={handleExport} className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
-                        <Download className="w-5 h-5" />Export CSV
+                        <Download className="w-5 h-5" />Export PDF
                     </button>
                 </div>
 

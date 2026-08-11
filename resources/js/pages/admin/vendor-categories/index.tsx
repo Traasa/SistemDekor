@@ -56,17 +56,17 @@ export default function VendorCategoriesPage() {
       resetForm();
       fetchCategories();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error saving category');
+      await window.showAlert(error.response?.data?.message || 'Error saving category');
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this category?')) return;
+    if (!await window.showConfirm('Delete this category?')) return;
     try {
       await api.delete(`/vendor-categories/${id}`);
       fetchCategories();
     } catch (error: any) {
-      alert(error.response?.data?.message || 'Error deleting category');
+      await window.showAlert(error.response?.data?.message || 'Error deleting category');
     }
   };
 
@@ -85,7 +85,7 @@ export default function VendorCategoriesPage() {
             <p className="text-gray-600">Kelola kategori vendor</p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={async () => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             <Plus className="w-4 h-4" />
@@ -116,13 +116,13 @@ export default function VendorCategoriesPage() {
                   <span className="text-sm text-gray-600">{cat.vendors_count} vendors</span>
                   <div className="flex gap-2">
                     <button
-                      onClick={() => { setSelectedCategory(cat); setFormData({ ...cat, description: cat.description || '', icon: cat.icon || '' }); setShowModal(true); }}
+                      onClick={async () => { setSelectedCategory(cat); setFormData({ ...cat, description: cat.description || '', icon: cat.icon || '' }); setShowModal(true); }}
                       className="p-2 text-blue-600 hover:bg-blue-50 rounded"
                     >
                       <Edit className="w-4 h-4" />
                     </button>
                     <button
-                      onClick={() => handleDelete(cat.id)}
+                      onClick={async () => handleDelete(cat.id)}
                       disabled={cat.vendors_count > 0}
                       className="p-2 text-red-600 hover:bg-red-50 rounded disabled:opacity-50"
                     >
@@ -193,7 +193,7 @@ export default function VendorCategoriesPage() {
                 <div className="flex justify-end gap-2 mt-6">
                   <button
                     type="button"
-                    onClick={() => { setShowModal(false); resetForm(); }}
+                    onClick={async () => { setShowModal(false); resetForm(); }}
                     className="px-4 py-2 border rounded-lg hover:bg-gray-50"
                   >
                     Batal

@@ -81,45 +81,45 @@ const OrdersPage: React.FC = () => {
             setTotalPages(Math.ceil(response.data.total / response.data.per_page));
         } catch (error) {
             console.error('Failed to fetch orders:', error);
-            alert('Gagal memuat data order');
+            await window.showAlert('Gagal memuat data order');
         } finally {
             setIsLoading(false);
         }
     };
 
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
         setCurrentPage(1);
         fetchOrders();
     };
 
     const handleStatusChange = async (orderId: number, newStatus: string) => {
-        if (!confirm(`Ubah status order menjadi "${newStatus}"?`)) return;
+        if (!await window.showConfirm(`Ubah status order menjadi "${newStatus}"?`)) return;
 
         try {
             await orderService.updateStatus(orderId, newStatus);
-            alert('Status order berhasil diupdate');
+            await window.showAlert('Status order berhasil diupdate');
             fetchOrders();
         } catch (error) {
             console.error('Failed to update status:', error);
-            alert('Gagal mengupdate status order');
+            await window.showAlert('Gagal mengupdate status order');
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Apakah Anda yakin ingin menghapus order ini?')) return;
+        if (!await window.showConfirm('Apakah Anda yakin ingin menghapus order ini?')) return;
 
         try {
             await orderService.delete(id);
-            alert('Order berhasil dihapus');
+            await window.showAlert('Order berhasil dihapus');
             fetchOrders();
         } catch (error) {
             console.error('Failed to delete order:', error);
-            alert('Gagal menghapus order');
+            await window.showAlert('Gagal menghapus order');
         }
     };
 
-    const handleViewDetail = (orderId: number) => {
+    const handleViewDetail = async (orderId: number) => {
         router.visit(`/admin/orders/${orderId}`);
     };
 
@@ -178,7 +178,7 @@ const OrdersPage: React.FC = () => {
                         <p className="mt-1 text-sm text-gray-600">Kelola wedding order, pembayaran, dan invoice dalam satu tempat</p>
                     </div>
                     <button
-                        onClick={() => router.visit('/admin/orders/create')}
+                        onClick={async () => router.visit('/admin/orders/create')}
                         className="flex items-center space-x-2 rounded-lg bg-pink-500 px-6 py-3 font-semibold text-white transition-colors hover:bg-pink-600"
                     >
                         <span>➕</span>
@@ -213,7 +213,7 @@ const OrdersPage: React.FC = () => {
                 {totalPages > 1 && (
                     <div className="flex items-center justify-between rounded-xl bg-white px-6 py-4 shadow-sm">
                         <button
-                            onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                            onClick={async () => setCurrentPage((p) => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
                             className="rounded-lg bg-gray-200 px-4 py-2 font-medium text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -223,7 +223,7 @@ const OrdersPage: React.FC = () => {
                             Halaman {currentPage} dari {totalPages}
                         </span>
                         <button
-                            onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                            onClick={async () => setCurrentPage((p) => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
                             className="rounded-lg bg-gray-200 px-4 py-2 font-medium text-gray-700 hover:bg-gray-300 disabled:cursor-not-allowed disabled:opacity-50"
                         >

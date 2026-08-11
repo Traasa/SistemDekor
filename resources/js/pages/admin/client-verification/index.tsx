@@ -99,22 +99,22 @@ export default function ClientVerificationPage() {
     };
 
     const handleApproveOrder = async (orderId: number) => {
-        if (!confirm('Apakah Anda yakin ingin menyetujui order ini?')) return;
+        if (!await window.showConfirm('Apakah Anda yakin ingin menyetujui order ini?')) return;
 
         try {
             await axios.post(`/api/admin/orders/${orderId}/approve`);
-            alert('Order berhasil diverifikasi!');
+            await window.showAlert('Order berhasil diverifikasi!');
             setShowOrderModal(false);
             fetchOrders();
             fetchStats();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Error approving order');
+            await window.showAlert(error.response?.data?.message || 'Error approving order');
         }
     };
 
     const handleRejectOrder = async (orderId: number) => {
         if (!rejectionReason.trim()) {
-            alert('Harap masukkan alasan penolakan');
+            await window.showAlert('Harap masukkan alasan penolakan');
             return;
         }
 
@@ -122,37 +122,37 @@ export default function ClientVerificationPage() {
             await axios.post(`/api/admin/orders/${orderId}/reject`, {
                 rejection_reason: rejectionReason,
             });
-            alert('Order berhasil ditolak!');
+            await window.showAlert('Order berhasil ditolak!');
             setShowOrderModal(false);
             setRejectionReason('');
             fetchOrders();
             fetchStats();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Error rejecting order');
+            await window.showAlert(error.response?.data?.message || 'Error rejecting order');
         }
     };
 
     const handleApprovePayment = async () => {
         if (!selectedOrder || !selectedPayment) return;
-        if (!confirm('Apakah Anda yakin ingin menyetujui pembayaran ini?')) return;
+        if (!await window.showConfirm('Apakah Anda yakin ingin menyetujui pembayaran ini?')) return;
 
         try {
             await axios.post(
                 `/api/admin/orders/${selectedOrder.id}/payments/${selectedPayment.id}/approve`
             );
-            alert('Pembayaran berhasil diverifikasi!');
+            await window.showAlert('Pembayaran berhasil diverifikasi!');
             setShowPaymentModal(false);
             fetchOrders();
             fetchStats();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Error approving payment');
+            await window.showAlert(error.response?.data?.message || 'Error approving payment');
         }
     };
 
     const handleRejectPayment = async () => {
         if (!selectedOrder || !selectedPayment) return;
         if (!rejectionReason.trim()) {
-            alert('Harap masukkan alasan penolakan');
+            await window.showAlert('Harap masukkan alasan penolakan');
             return;
         }
 
@@ -161,13 +161,13 @@ export default function ClientVerificationPage() {
                 `/api/admin/orders/${selectedOrder.id}/payments/${selectedPayment.id}/reject`,
                 { rejection_reason: rejectionReason }
             );
-            alert('Pembayaran ditolak!');
+            await window.showAlert('Pembayaran ditolak!');
             setShowPaymentModal(false);
             setRejectionReason('');
             fetchOrders();
             fetchStats();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Error rejecting payment');
+            await window.showAlert(error.response?.data?.message || 'Error rejecting payment');
         }
     };
 
@@ -192,7 +192,7 @@ export default function ClientVerificationPage() {
         return <span className={`px-2 py-1 text-xs font-semibold rounded-full ${statusInfo.color}`}>{statusInfo.label}</span>;
     };
 
-    const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleSearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             fetchOrders();
         }
@@ -346,7 +346,7 @@ export default function ClientVerificationPage() {
                                                         .map((payment) => (
                                                             <button
                                                                 key={payment.id}
-                                                                onClick={() => {
+                                                                onClick={async () => {
                                                                     setSelectedOrder(order);
                                                                     setSelectedPayment(payment);
                                                                     setShowPaymentModal(true);
@@ -365,7 +365,7 @@ export default function ClientVerificationPage() {
                                     </div>
 
                                     <button
-                                        onClick={() => {
+                                        onClick={async () => {
                                             setSelectedOrder(order);
                                             setShowOrderModal(true);
                                         }}
@@ -427,14 +427,14 @@ export default function ClientVerificationPage() {
                                         
                                         <div className="flex gap-3">
                                             <button
-                                                onClick={() => handleRejectOrder(selectedOrder.id)}
+                                                onClick={async () => handleRejectOrder(selectedOrder.id)}
                                                 className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center justify-center gap-2"
                                             >
                                                 <XCircle className="w-5 h-5" />
                                                 Tolak Order
                                             </button>
                                             <button
-                                                onClick={() => handleApproveOrder(selectedOrder.id)}
+                                                onClick={async () => handleApproveOrder(selectedOrder.id)}
                                                 className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition flex items-center justify-center gap-2"
                                             >
                                                 <CheckCircle className="w-5 h-5" />
@@ -445,7 +445,7 @@ export default function ClientVerificationPage() {
                                 )}
 
                                 <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                         setShowOrderModal(false);
                                         setRejectionReason('');
                                     }}
@@ -518,7 +518,7 @@ export default function ClientVerificationPage() {
                                 </div>
 
                                 <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                         setShowPaymentModal(false);
                                         setRejectionReason('');
                                     }}

@@ -4,135 +4,123 @@
     <meta charset="UTF-8">
     <title>Invoice {{ $order->order_number ?? ('ORD-' . $order->id) }}</title>
     <style>
-        body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 11px; color: #1f2933; line-height: 1.4; }
-        
-        /* Layout Dasar Menggunakan Tabel */
+        body { font-family: Helvetica, Arial, sans-serif; font-size: 11px; color: #333; line-height: 1.5; }
         .w-full { width: 100%; }
-        .borderless-table { width: 100%; border-collapse: collapse; }
-        .borderless-table td { border: none; padding: 0; vertical-align: top; }
+        table { width: 100%; border-collapse: collapse; }
+        td { vertical-align: top; }
         
-        /* Header & Meta */
-        .header-container { border-bottom: 2px solid #e5e7eb; padding-bottom: 12px; margin-bottom: 20px; }
-        .brand { font-size: 22px; font-weight: bold; color: #b88a4a; letter-spacing: 0.5px; }
-        .meta-title { font-size: 16px; font-weight: bold; color: #1f2933; text-transform: uppercase; margin-bottom: 4px; }
+        /* Typography & Colors */
+        .text-blue { color: #2b5797; }
+        .text-dark-blue { color: #1e3a5f; }
         .text-right { text-align: right; }
         .text-center { text-align: center; }
-        
-        /* Typography & Utilities */
-        .section-title { font-size: 13px; font-weight: bold; color: #374151; border-bottom: 1px solid #e5e7eb; padding-bottom: 4px; margin-top: 18px; margin-bottom: 8px; text-transform: uppercase; }
-        .muted { color: #6b7280; }
         .bold { font-weight: bold; }
+        .title-invoice { font-size: 24px; font-weight: bold; color: #2b5797; margin-bottom: 10px; }
         
-        /* Tabel Data / Manifes */
-        .data-table { width: 100%; border-collapse: collapse; margin-top: 8px; margin-bottom: 15px; }
-        .data-table th { background-color: #f9fafb; border-bottom: 2px solid #e5e7eb; padding: 6px 8px; font-weight: bold; color: #374151; text-align: left; }
-        .data-table td { border-bottom: 1px solid #e5e7eb; padding: 8px; text-align: left; }
+        /* Header Meta Table */
+        .meta-table { width: auto; float: right; }
+        .meta-table td { padding: 2px 10px; }
+        .meta-table .label { text-align: right; color: #666; }
         
-        /* Blok Informasi Klien & Acara */
-        .info-cell { width: 48%; }
-        .info-spacer { width: 4%; }
-        .info-table { width: 100%; border-collapse: collapse; }
-        .info-table td { padding: 3px 0; font-size: 11px; }
-        .info-label { width: 30%; color: #6b7280; }
-        .info-value { width: 70%; }
-
-        /* Blok Ringkasan Finansial */
-        .summary-wrapper { width: 100%; margin-top: 15px; }
-        .summary-table { width: 40%; margin-left: auto; border-collapse: collapse; }
-        .summary-table td { padding: 4px 8px; text-align: right; }
-        .summary-table .label { text-align: left; color: #6b7280; }
-        .summary-table .total-row { font-size: 13px; font-weight: bold; color: #b88a4a; background-color: #fdfbf7; border-top: 1px solid #e5e7eb; }
+        /* Info Blocks */
+        .info-section { margin-top: 30px; margin-bottom: 25px; }
+        .info-title { font-weight: bold; font-size: 12px; margin-bottom: 5px; color: #1e3a5f; }
+        .info-line { border-bottom: 2px solid #2b5797; margin-bottom: 8px; }
+        .info-content { color: #555; }
         
-        /* Badge Status */
-        .badge { display: inline-block; padding: 2px 6px; border-radius: 4px; font-size: 10px; background-color: #f3f4f6; color: #374151; text-transform: uppercase; }
-        .badge-success { background-color: #dcfce7; color: #166534; font-weight: bold; border: 1px solid #bbf7d0; }
-        .badge-warning { background-color: #fef3c7; color: #92400e; font-weight: bold; border: 1px solid #fde68a; }
+        /* Main Data Table */
+        .data-table { margin-bottom: 20px; }
+        .data-table th { background-color: #253448; color: #fff; padding: 8px; text-align: left; font-size: 11px; }
+        .data-table td { padding: 8px; border-bottom: 1px solid #eee; background-color: #ffffff; }
+        .data-table tr:nth-child(even) td { background-color: #f8fafc; }
         
-        .footer { margin-top: 40px; font-size: 10px; color: #9ca3af; text-align: center; border-top: 1px dashed #e5e7eb; padding-top: 10px; }
+        /* Summary Section */
+        .summary-table td { padding: 4px 8px; }
+        .summary-label { text-align: right; font-weight: bold; color: #555; }
+        .summary-value { text-align: right; width: 120px; }
+        
+        /* Down Payment / Termin Table */
+        .dp-table { margin-top: 15px; width: 100%; float: right; border-collapse: collapse; }
+        .dp-table th { background-color: #dbeafe; color: #1e3a5f; padding: 6px; text-align: left; font-weight: normal; }
+        .dp-table td { padding: 6px; border-bottom: 1px solid #e5e7eb; background-color: #f3f4f6; }
+        
+        /* Footer Totals */
+        .total-due { font-size: 12px; font-weight: bold; }
+        .total-due td { padding: 8px; border-top: 1px solid #333; border-bottom: 1px solid #333; }
     </style>
 </head>
 <body>
 
-    <!-- HEADER SECTION USING TABLE LAYOUT -->
-    <div class="header-container">
-        <table class="borderless-table">
-            <tr>
-                <td>
-                    <div class="brand">Ade Decoration</div>
-                    <div class="muted" style="font-size: 12px; margin-top: 2px;">Wedding Organizer & Decoration</div>
-                </td>
-                <td class="text-right">
-                    <div class="meta-title">Invoice</div>
-                    <div><span class="muted">No:</span> <span class="bold">{{ $order->order_number ?? ('ORD-' . $order->id) }}</span></div>
-                    <div class="muted">Tanggal: {{ optional($order->created_at)->format('d M Y') }}</div>
-                    <div>
-                        <span class="muted">Status:</span> 
-                        @if(($order->payment_status ?? '-') === 'LUNAS' || ($order->payment_status ?? '-') === 'verified')
-                            <span class="badge badge-success">LUNAS</span>
-                        @else
-                            <span class="badge badge-warning">{{ $order->payment_status ?? '-' }}</span>
-                        @endif
-                    </div>
-                </td>
-            </tr>
-        </table>
-    </div>
-
-    <!-- CLIENT AND EVENT INFO USING SIDE-BY-SIDE TABLES -->
-    <table class="borderless-table" style="margin-bottom: 10px;">
+    <!-- SECTION 1: HEADER -->
+    <table>
         <tr>
-            <!-- Data Klien -->
-            <td class="info-cell">
-                <div class="section-title">Data Klien</div>
-                <table class="info-table">
-                    <tr>
-                        <td class="info-label">Nama</td>
-                        <td class="info-value">: {{ $order->client->name ?? '-' }}</td>
-                    </tr>
-                    <tr>
-                        <td class="info-label">Email</td>
-                        <td class="info-value">: {{ $order->client->email ?? '-' }}</td>
-                    </tr>
-                    <tr>
-                        <td class="info-label">Telepon</td>
-                        <td class="info-value">: {{ $order->client->phone ?? '-' }}</td>
-                    </tr>
-                </table>
+            <td style="width: 50%;">
+                <!-- Placeholder Logo Berbentuk Lingkaran -->
+                <div style="width: 90px; height: 90px; border: 2px solid #60a5fa; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #60a5fa; font-weight: bold; font-size: 18px; text-align: center; line-height: 90px;">
+                    ADE DEC.
+                </div>
             </td>
-            
-            <!-- Spacer -->
-            <td class="info-spacer"></td>
-            
-            <!-- Detail Acara -->
-            <td class="info-cell">
-                <div class="section-title">Detail Acara</div>
-                <table class="info-table">
+            <td style="width: 50%; text-align: right;">
+                <div class="title-invoice">Invoice</div>
+                <table class="meta-table">
                     <tr>
-                        <td class="info-label">Acara</td>
-                        <td class="info-value">: {{ $order->event_name ?? '-' }}</td>
+                        <td class="label">Referensi</td>
+                        <td>{{ $order->order_number ?? ('ORD-' . $order->id) }}</td>
                     </tr>
                     <tr>
-                        <td class="info-label">Tanggal</td>
-                        <td class="info-value">: {{ optional($order->event_date)->format('d M Y') ?? '-' }}</td>
+                        <td class="label">Tanggal</td>
+                        <td>{{ optional($order->created_at)->format('d/m/Y') }}</td>
                     </tr>
                     <tr>
-                        <td class="info-label">Lokasi</td>
-                        <td class="info-value">: {{ $order->event_location ?? $order->event_address ?? '-' }}</td>
+                        <td class="label">Status</td>
+                        <td class="bold">
+                            @if(($order->payment_status ?? '-') === 'LUNAS' || ($order->payment_status ?? '-') === 'verified')
+                                <span style="color: #166534;">LUNAS</span>
+                            @else
+                                <span style="color: #92400e;">{{ strtoupper($order->payment_status ?? '-') }}</span>
+                            @endif
+                        </td>
                     </tr>
                 </table>
             </td>
         </tr>
     </table>
 
-    <!-- ORDER DETAILS TABLE -->
-    <div class="section-title">Rincian Pesanan</div>
+    <!-- SECTION 2: CLIENT & COMPANY INFO -->
+    <table class="info-section">
+        <tr>
+            <td style="width: 48%;">
+                <div class="info-title">Info Perusahaan</div>
+                <div class="info-line"></div>
+                <div class="bold text-blue" style="margin-bottom: 5px;">ADE DECORATION</div>
+                <div class="info-content">
+                    Wedding Organizer & Decoration<br><br>
+                    <strong>Acara:</strong> {{ $order->event_name ?? '-' }}<br>
+                    <strong>Tgl Acara:</strong> {{ optional($order->event_date)->format('d M Y') ?? '-' }}<br>
+                    <strong>Lokasi:</strong> {{ $order->event_location ?? $order->event_address ?? '-' }}
+                </div>
+            </td>
+            <td style="width: 4%;"></td>
+            <td style="width: 48%;">
+                <div class="info-title">Tagihan Untuk</div>
+                <div class="info-line"></div>
+                <div class="bold text-blue" style="margin-bottom: 5px;">{{ strtoupper($order->client->name ?? '-') }}</div>
+                <div class="info-content">
+                    <strong>Email:</strong> {{ $order->client->email ?? '-' }}<br>
+                    <strong>Telp:</strong> {{ $order->client->phone ?? '-' }}
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- SECTION 3: ORDER DETAILS / DATA TABLE -->
     <table class="data-table">
         <thead>
             <tr>
-                <th style="width: 45%;">Item</th>
+                <th style="width: 45%;">Produk / Item</th>
                 <th style="width: 10%; text-align: center;">Qty</th>
-                <th style="width: 22%; text-align: right;">Harga</th>
-                <th style="width: 23%; text-align: right;">Subtotal</th>
+                <th style="width: 20%; text-align: right;">Harga</th>
+                <th style="width: 25%; text-align: right;">Jumlah</th>
             </tr>
         </thead>
         <tbody>
@@ -140,160 +128,126 @@
                 <tr>
                     <td>{{ $detail->item_name }}</td>
                     <td class="text-center">{{ $detail->quantity }}</td>
-                    <td class="text-right">Rp {{ number_format($detail->cost ?? 0, 0, ',', '.') }}</td>
-                    <td class="text-right">Rp {{ number_format($detail->subtotal ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-right">{{ number_format($detail->cost ?? 0, 0, ',', '.') }}</td>
+                    <td class="text-right">{{ number_format($detail->subtotal ?? 0, 0, ',', '.') }}</td>
                 </tr>
             @empty
                 <tr>
                     @php
-                        $fallbackPrice = $order->package->base_price
-                            ?? $order->total_price
-                            ?? $order->final_price
-                            ?? 0;
+                        $fallbackPrice = $order->package->base_price ?? $order->total_price ?? $order->final_price ?? 0;
                     @endphp
                     <td>Paket {{ $order->package->name ?? 'Custom Package' }}</td>
                     <td class="text-center">1</td>
-                    <td class="text-right">Rp {{ number_format($fallbackPrice, 0, ',', '.') }}</td>
-                    <td class="text-right">Rp {{ number_format($fallbackPrice, 0, ',', '.') }}</td>
+                    <td class="text-right">{{ number_format($fallbackPrice, 0, ',', '.') }}</td>
+                    <td class="text-right">{{ number_format($fallbackPrice, 0, ',', '.') }}</td>
                 </tr>
             @endforelse
         </tbody>
     </table>
 
-    <!-- FIRST FINANCIAL SUMMARY (RIGHT ALIGNED) -->
-    <table class="borderless-table summary-wrapper">
+    <!-- SECTION 4: SUMMARY & TERMIN -->
+    <table>
         <tr>
-            <td style="width: 60%;"></td>
-            <td style="width: 40%;">
-                <table class="summary-table w-full">
+            <!-- Keterangan -->
+            <td style="width: 50%; padding-right: 20px;">
+                <div class="info-title">Keterangan</div>
+                <div class="info-line" style="border-bottom: 1px solid #ccc;"></div>
+                <div style="font-size: 10px; color: #555; margin-bottom: 15px;">
+                    Catatan: Invoice ini diterbitkan secara otomatis.
+                </div>
+
+                <div class="info-title">Syarat & Ketentuan</div>
+                <div class="info-line" style="border-bottom: 1px solid #ccc;"></div>
+                <div style="font-size: 10px; color: #555;">
+                    @if(($order->payment_status ?? '-') === 'LUNAS' || ($order->payment_status ?? '-') === 'verified')
+                        Pembayaran telah diselesaikan. Terima kasih atas kerja samanya.
+                    @else
+                        Harap selesaikan sisa pembayaran sesuai dengan termin yang berlaku sebelum tanggal acara dimulai.
+                    @endif
+                </div>
+            </td>
+            
+            <!-- Perhitungan Finansial -->
+            <td style="width: 50%;">
+                <table class="summary-table" style="width: 100%;">
                     <tr>
-                        <td class="label">Total Harga</td>
-                        <td>Rp {{ number_format($order->total_price ?? 0, 0, ',', '.') }}</td>
+                        <td class="summary-label">Subtotal</td>
+                        <td class="summary-value">Rp {{ number_format($order->total_price ?? 0, 0, ',', '.') }}</td>
                     </tr>
                     <tr>
-                        <td class="label">Diskon</td>
-                        <td>Rp {{ number_format($order->discount ?? 0, 0, ',', '.') }}</td>
+                        <td class="summary-label">Total Diskon</td>
+                        <td class="summary-value">Rp {{ number_format($order->discount ?? 0, 0, ',', '.') }}</td>
                     </tr>
-                    <tr class="total-row">
-                        <td class="label bold" style="color: #b88a4a;">Total Bayar</td>
-                        <td class="bold">Rp {{ number_format($order->final_price ?? 0, 0, ',', '.') }}</td>
+                    <tr>
+                        <td class="summary-label bold" style="color:#333;">Total</td>
+                        <td class="summary-value bold" style="color:#333;">Rp {{ number_format($order->final_price ?? 0, 0, ',', '.') }}</td>
+                    </tr>
+                    <tr>
+                        <td class="summary-label">Lunas (Sudah Dibayar)</td>
+                        <td class="summary-value">Rp {{ number_format($order->total_paid ?? 0, 0, ',', '.') }}</td>
                     </tr>
                 </table>
-            </td>
-        </tr>
-    </table>
 
-    @php
-        $paymentProofs = $order->paymentProofs ?? collect();
-        $paymentLabels = [
-            'booking' => 'Booking Fee',
-            'dp' => 'Down Payment (DP)',
-            'installment' => 'Cicilan',
-            'full' => 'Pelunasan',
-        ];
-        $installmentIndex = 1;
-        $finalPrice = $order->final_price ?? 0;
-        $defaultDp = (int) round($finalPrice * 0.3);
-        $defaultInstallment = (int) round($finalPrice * 0.4);
-        $defaultFull = max($finalPrice - $defaultDp - $defaultInstallment, 0);
-        $totalPaid = $order->total_paid ?? 0;
-        $remainingPayment = $order->remaining_payment ?? 0;
-    @endphp
-
-    <!-- PAYMENT TERMINS TABLE -->
-    <div class="section-title" style="margin-top: 25px;">Jadwal & Status Termin Pembayaran</div>
-    <table class="data-table">
-        <thead>
-            <tr>
-                <th style="width: 40%;">Termin Pembayaran</th>
-                <th style="width: 25%; text-align: right;">Nominal</th>
-                <th style="width: 20%; text-align: center;">Tanggal</th>
-                <th style="width: 15%; text-align: center;">Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @if($paymentProofs->isNotEmpty())
-                @foreach($paymentProofs as $proof)
-                    @php
-                        $label = $paymentLabels[$proof->payment_type] ?? 'Pembayaran';
-                        if ($proof->payment_type === 'installment') {
-                            $label .= ' ' . $installmentIndex;
-                            $installmentIndex++;
-                        }
-                        $isVerified = $proof->status === 'verified';
-                        $statusText = $isVerified ? 'LUNAS' : ($proof->status === 'rejected' ? 'DITOLAK' : 'MENUNGGU');
-                    @endphp
-                    <tr>
-                        <td>{{ $loop->iteration }}. {{ $label }}</td>
-                        <td class="text-right">Rp {{ number_format($proof->amount ?? 0, 0, ',', '.') }}</td>
-                        <td class="text-center">{{ optional($proof->verified_at ?? $proof->created_at)->format('d M Y') ?? '-' }}</td>
-                        <td class="text-center">
-                            <span class="badge {{ $isVerified ? 'badge-success' : '' }}">
-                                {{ $statusText }}
-                            </span>
-                        </td>
-                    </tr>
-                @endforeach
-            @else
                 @php
-                    $finalPrice = $order->final_price ?? 0;
-                    $initialPaymentType = $order->initial_payment_type ?? 'dp';
-                    $bookingAmount = (float) ($order->booking_amount ?? 0);
-                    $dpAmount = (float) ($order->dp_amount ?? 0);
-                    $remainingAmount = (float) ($order->remaining_amount ?? $finalPrice);
-                    
-                    $terminList = [];
-                    if ($initialPaymentType === 'booking' && $bookingAmount > 0) {
-                        $terminList[] = ['label' => 'Booking Fee', 'amount' => $bookingAmount];
-                        if ($dpAmount > 0) {
-                            $terminList[] = ['label' => 'Down Payment (DP)', 'amount' => $dpAmount];
-                        }
-                    } else {
-                        if ($dpAmount > 0) {
-                            $terminList[] = ['label' => 'Down Payment (DP)', 'amount' => $dpAmount];
-                        }
-                    }
-
-                    if (empty($terminList)) {
-                        $terminList[] = ['label' => 'Down Payment (DP) 30%', 'amount' => (int) round($finalPrice * 0.3)];
-                    }
+                    $paymentProofs = $order->paymentProofs ?? collect();
+                    $paymentLabels = ['booking' => 'Booking', 'dp' => 'DP', 'installment' => 'Cicilan', 'full' => 'Pelunasan'];
+                    $installmentIndex = 1;
                 @endphp
-                
-                @foreach($terminList as $index => $termin)
-                    <tr>
-                        <td>{{ $index + 1 }}. {{ $termin['label'] }}</td>
-                        <td class="text-right">Rp {{ number_format($termin['amount'], 0, ',', '.') }}</td>
-                        <td class="text-center">-</td>
-                        <td class="text-center"><span class="badge">BELUM</span></td>
-                    </tr>
-                @endforeach
-            @endif
-        </tbody>
-    </table>
 
-    <!-- FINAL BILLING SUMMARY (RIGHT ALIGNED) -->
-    <table class="borderless-table summary-wrapper" style="margin-top: 10px;">
-        <tr>
-            <td style="width: 60%;"></td>
-            <td style="width: 40%;">
-                <table class="summary-table w-full">
-                    <tr>
-                        <td class="label">Total Dibayar</td>
-                        <td>Rp {{ number_format($totalPaid, 0, ',', '.') }}</td>
-                    </tr>
-                    <tr class="total-row" style="background-color: #fbfbfe;">
-                        <td class="label bold" style="color: #1f2933;">Sisa Tagihan</td>
-                        <td class="bold" style="color: #1f2933;">Rp {{ number_format($remainingPayment, 0, ',', '.') }}</td>
+                <!-- Tabel Down Payment / Termin -->
+                <div style="text-align: center; font-weight: bold; font-size: 11px; margin-top: 15px;">Riwayat Pembayaran</div>
+                @if($paymentProofs->isNotEmpty())
+                <table class="dp-table">
+                    <thead>
+                        <tr>
+                            <th>No. Termin</th>
+                            <th style="text-align: center;">Tgl. Bayar</th>
+                            <th style="text-align: right;">Nominal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($paymentProofs as $proof)
+                            @php
+                                $label = $paymentLabels[$proof->payment_type] ?? 'Pembayaran';
+                                if ($proof->payment_type === 'installment') {
+                                    $label .= ' ' . $installmentIndex++;
+                                }
+                            @endphp
+                            <tr>
+                                <td>{{ $label }} - {{ $proof->status === 'verified' ? 'LUNAS' : 'PENDING' }}</td>
+                                <td style="text-align: center;">{{ optional($proof->verified_at ?? $proof->created_at)->format('Y-m-d') ?? '-' }}</td>
+                                <td style="text-align: right; font-weight: bold;">Rp ({{ number_format($proof->amount ?? 0, 0, ',', '.') }})</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+                @endif
+
+                <!-- Total Tagihan -->
+                <table style="width: 100%; margin-top: 10px;">
+                    <tr class="total-due">
+                        <td class="summary-label" style="text-align: left; padding-left: 0;">Jumlah Tertagih:</td>
+                        <td class="summary-value">Rp {{ number_format($order->remaining_payment ?? 0, 0, ',', '.') }}</td>
                     </tr>
                 </table>
             </td>
         </tr>
     </table>
 
-    <!-- FOOTER -->
-    <div class="footer">
-        Invoice ini dibuat otomatis oleh Ade Decoration. Silakan hubungi admin bila ada pertanyaan.
-    </div>
+    <!-- SECTION 5: FOOTER SIGNATURE -->
+    <table style="margin-top: 40px;">
+        <tr>
+            <td style="width: 70%;"></td>
+            <td style="width: 30%; text-align: center;">
+                <div style="font-size: 11px; font-weight: bold; margin-bottom: 50px;">
+                    {{ optional($order->created_at)->format('d M, Y') }}
+                </div>
+                <div style="font-weight: bold; border-top: 1px solid #333; padding-top: 5px;">
+                    Finance
+                </div>
+            </td>
+        </tr>
+    </table>
 
 </body>
 </html>

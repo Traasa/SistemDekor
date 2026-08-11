@@ -41,6 +41,23 @@ interface Stats {
   totalBookings: number;
 }
 
+const parseArray = (val: any): any[] => {
+  if (Array.isArray(val)) return val;
+  if (typeof val === 'string') {
+    try {
+      const parsed = JSON.parse(val);
+      if (Array.isArray(parsed)) return parsed;
+      if (typeof parsed === 'string') {
+        const doubleParsed = JSON.parse(parsed);
+        if (Array.isArray(doubleParsed)) return doubleParsed;
+      }
+    } catch (e) {
+      console.error('Failed to parse array:', val);
+    }
+  }
+  return [];
+};
+
 export default function Venues() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [filteredVenues, setFilteredVenues] = useState<Venue[]>([]);
@@ -101,7 +118,12 @@ export default function Venues() {
       setLoading(true);
       const response = await api.get('/venues');
       const venueData = response.data.data || response.data || [];
-      setVenues(venueData);
+      const parsedVenueData = venueData.map((v: Venue) => ({
+        ...v,
+        facilities: parseArray(v.facilities),
+        images: parseArray(v.images)
+      }));
+      setVenues(parsedVenueData);
       
       // Calculate stats
       const total = venueData.length;
@@ -166,12 +188,12 @@ export default function Venues() {
       handleCloseModal();
     } catch (error) {
       console.error('Error saving venue:', error);
-      alert('Gagal menyimpan venue');
+      await window.showAlert('Gagal menyimpan venue');
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Yakin ingin menghapus venue ini?')) return;
+    if (!await window.showConfirm('Yakin ingin menghapus venue ini?')) return;
 
     try {
       await api.delete(`/venues/${id}`);
@@ -179,14 +201,14 @@ export default function Venues() {
     } catch (error: any) {
       console.error('Error deleting venue:', error);
       if (error.response?.data?.message) {
-        alert(error.response.data.message);
+        await window.showAlert(error.response.data.message);
       } else {
-        alert('Gagal menghapus venue');
+        await window.showAlert('Gagal menghapus venue');
       }
     }
   };
 
-  const handleEdit = (venue: Venue) => {
+  const handleEdit = async (venue: Venue) => {
     setEditingVenue(venue);
     setFormData({
       name: venue.name,
@@ -209,14 +231,22 @@ export default function Venues() {
   const handleView = async (venue: Venue) => {
     try {
       const response = await api.get(`/venues/${venue.id}`);
-      setViewingVenue(response.data.data || response.data);
+      const data = response.data.data || response.data;
+      
+      const parsedData = {
+        ...data,
+        facilities: parseArray(data.facilities),
+        images: parseArray(data.images)
+      };
+      
+      setViewingVenue(parsedData);
       setShowDetailModal(true);
     } catch (error) {
       console.error('Error fetching venue details:', error);
     }
   };
 
-  const handleCloseModal = () => {
+  const handleCloseModal = async () => {
     setShowModal(false);
     setEditingVenue(null);
     setFormData({
@@ -281,7 +311,7 @@ export default function Venues() {
             <p className="text-gray-600 mt-1">Kelola venue dan lokasi acara</p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={async () => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
@@ -492,21 +522,21 @@ export default function Venues() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
                           <button
-                            onClick={() => handleView(venue)}
+                            onClick={async () => handleView(venue)}
                             className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                             title="Lihat Detail"
                           >
                             <Eye className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleEdit(venue)}
+                            onClick={async () => handleEdit(venue)}
                             className="p-2 text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                             title="Edit"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
                           <button
-                            onClick={() => handleDelete(venue.id)}
+                            onClick={async () => handleDelete(venue.id)}
                             className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                             title="Hapus"
                           >
@@ -706,7 +736,7 @@ export default function Venues() {
                         />
                         <button
                           type="button"
-                          onClick={() => removeImage(index)}
+                          onClick={async () => removeImage(index)}
                           className="px-3 py-2 text-red-600 hover:bg-red-50 rounded-lg"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -763,7 +793,7 @@ export default function Venues() {
             <div className="p-6 border-b border-gray-200 flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-900">Detail Venue</h2>
               <button
-                onClick={() => setShowDetailModal(false)}
+                onClick={async () => setShowDetailModal(false)}
                 className="text-gray-400 hover:text-gray-600"
               >
                 <X className="w-6 h-6" />
@@ -810,11 +840,11 @@ export default function Venues() {
                 </div>
               </div>
 
-              {viewingVenue.facilities && viewingVenue.facilities.length > 0 && (
+              {Array.isArray(viewingVenue.facilities) && viewingVenue.facilities.length > 0 && (
                 <div>
                   <p className="text-sm text-gray-600 mb-2">Fasilitas</p>
                   <div className="flex flex-wrap gap-2">
-                    {viewingVenue.facilities.map(facility => (
+                    {viewingVenue.facilities.map((facility: string) => (
                       <span key={facility} className="px-3 py-1 bg-indigo-100 text-indigo-700 text-sm rounded-full">
                         {facility}
                       </span>
@@ -823,11 +853,11 @@ export default function Venues() {
                 </div>
               )}
 
-              {viewingVenue.images && viewingVenue.images.length > 0 && (
+              {Array.isArray(viewingVenue.images) && viewingVenue.images.length > 0 && (
                 <div>
                   <p className="text-sm text-gray-600 mb-2">Gambar</p>
                   <div className="grid grid-cols-3 gap-2">
-                    {viewingVenue.images.map((image, index) => (
+                    {viewingVenue.images.map((image: string, index: number) => (
                       <img 
                         key={index} 
                         src={image} 

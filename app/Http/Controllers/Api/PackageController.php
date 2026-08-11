@@ -75,36 +75,38 @@ class PackageController extends Controller
             'base_price' => 'required|numeric|min:0',
             'includes_venue' => 'nullable|boolean',
             'venue_id' => 'nullable|exists:venues,id',
-            'venue_price' => 'nullable|numeric|min:0',
-            'image_url' => 'nullable|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'is_active' => 'boolean',
-            'inventory_items' => 'nullable|array',
-            'inventory_items.*.inventory_item_id' => 'required|exists:inventory_items,id',
-            'inventory_items.*.quantity' => 'required|integer|min:1',
-            'inventory_items.*.notes' => 'nullable|string',
+            'inventory_items_json' => 'nullable|string',
         ]);
 
-        $payload = collect($validated)->except('inventory_items')->toArray();
+        $payload = collect($validated)->except(['inventory_items_json', 'image'])->toArray();
         $includesVenue = (bool) ($payload['includes_venue'] ?? false);
 
         if (!$includesVenue) {
             $payload['venue_id'] = null;
-            $payload['venue_price'] = 0;
-        } else {
-            $payload['venue_price'] = (float) ($payload['venue_price'] ?? 0);
+        }
+
+        if ($request->hasFile('image')) {
+            $payload['image_url'] = $request->file('image')->store('packages', 'public');
         }
 
         $package = Package::create($payload);
 
-        if (!empty($validated['inventory_items'])) {
-            $syncPayload = [];
-            foreach ($validated['inventory_items'] as $item) {
-                $syncPayload[$item['inventory_item_id']] = [
-                    'quantity' => $item['quantity'],
-                    'notes' => $item['notes'] ?? null,
-                ];
+        if (!empty($validated['inventory_items_json'])) {
+            $inventoryItems = json_decode($validated['inventory_items_json'], true);
+            if (is_array($inventoryItems)) {
+                $syncPayload = [];
+                foreach ($inventoryItems as $item) {
+                    if (isset($item['inventory_item_id']) && isset($item['quantity'])) {
+                        $syncPayload[$item['inventory_item_id']] = [
+                            'quantity' => $item['quantity'],
+                            'notes' => $item['notes'] ?? null,
+                        ];
+                    }
+                }
+                $package->inventoryItems()->sync($syncPayload);
             }
-            $package->inventoryItems()->sync($syncPayload);
         }
 
         $package->load(['inventoryItems.category', 'venue']);
@@ -127,40 +129,42 @@ class PackageController extends Controller
             'base_price' => 'sometimes|numeric|min:0',
             'includes_venue' => 'nullable|boolean',
             'venue_id' => 'nullable|exists:venues,id',
-            'venue_price' => 'nullable|numeric|min:0',
-            'image_url' => 'nullable|string|max:255',
+            'image' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
             'is_active' => 'boolean',
-            'inventory_items' => 'nullable|array',
-            'inventory_items.*.inventory_item_id' => 'required|exists:inventory_items,id',
-            'inventory_items.*.quantity' => 'required|integer|min:1',
-            'inventory_items.*.notes' => 'nullable|string',
+            'inventory_items_json' => 'nullable|string',
         ]);
 
-        $payload = collect($validated)->except('inventory_items')->toArray();
+        $payload = collect($validated)->except(['inventory_items_json', 'image'])->toArray();
 
         if (array_key_exists('includes_venue', $payload)) {
             $includesVenue = (bool) $payload['includes_venue'];
             if (!$includesVenue) {
                 $payload['venue_id'] = null;
-                $payload['venue_price'] = 0;
             }
         }
 
-        if (array_key_exists('venue_price', $payload)) {
-            $payload['venue_price'] = (float) $payload['venue_price'];
+        if ($request->hasFile('image')) {
+            $payload['image_url'] = $request->file('image')->store('packages', 'public');
         }
 
         $package->update($payload);
 
-        if (array_key_exists('inventory_items', $validated)) {
-            $syncPayload = [];
-            foreach ($validated['inventory_items'] as $item) {
-                $syncPayload[$item['inventory_item_id']] = [
-                    'quantity' => $item['quantity'],
-                    'notes' => $item['notes'] ?? null,
-                ];
+        if (array_key_exists('inventory_items_json', $validated) && !empty($validated['inventory_items_json'])) {
+            $inventoryItems = json_decode($validated['inventory_items_json'], true);
+            if (is_array($inventoryItems)) {
+                $syncPayload = [];
+                foreach ($inventoryItems as $item) {
+                    if (isset($item['inventory_item_id']) && isset($item['quantity'])) {
+                        $syncPayload[$item['inventory_item_id']] = [
+                            'quantity' => $item['quantity'],
+                            'notes' => $item['notes'] ?? null,
+                        ];
+                    }
+                }
+                $package->inventoryItems()->sync($syncPayload);
             }
-            $package->inventoryItems()->sync($syncPayload);
+        } elseif (array_key_exists('inventory_items_json', $validated) && empty($validated['inventory_items_json'])) {
+            $package->inventoryItems()->sync([]);
         }
 
         $package->load(['inventoryItems.category', 'venue']);

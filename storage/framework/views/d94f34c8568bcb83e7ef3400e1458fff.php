@@ -55,21 +55,21 @@
         <tr>
             <td class="label">Perwakilan</td>
             <td class="colon">:</td>
-            <td class="value">Ade Putra Pratama</td>
+            <td class="value">Edom</td>
         </tr>
         <tr>
             <td class="label">Jabatan</td>
             <td class="colon">:</td>
-            <td class="value">Pemilik / Owner Ade Decoration</td>
+            <td class="value">Owner Ade Decoration</td>
         </tr>
         <tr>
             <td class="label">Alamat</td>
             <td class="colon">:</td>
-            <td class="value">Jl. H. Sadi No. 123, Tanjung Barat, Jakarta Selatan</td>
+            <td class="value">Jl. H. Saidi, Tanjung Barat, Jakarta Selatan</td>
         </tr>
     </table>
 
-    <p><strong>2. PIHAK KEDUA (Pengguna Jasa)</strong></p>
+    <p><strong>2. PIHAK KEDUA</strong></p>
     <table class="data-table">
         <tr>
             <td class="label">Nama Klien</td>
@@ -120,12 +120,12 @@
 
     <div class="section-title">PASAL 3: NILAI KONTRAK & SKEMA PEMBAYARAN</div>
     <ol>
-        <li>Total nilai kontrak investasi pernikahan yang disepakati oleh kedua belah pihak adalah sebesar <strong>Rp <?php echo e(number_format($order->final_price ?? 0, 0, ',', '.')); ?></strong>.</li>
+        <li>Total nilai kontrak biaya pernikahan yang disepakati oleh kedua belah pihak adalah sebesar <strong>Rp <?php echo e(number_format($order->final_price ?? 0, 0, ',', '.')); ?></strong>.</li>
         <li>Sistem pembayaran wajib diselesaikan secara disiplin oleh PIHAK KEDUA melalui termin berikut:
             <ol type="a">
-                <li><strong>Uang Muka (DP) sebesar 30%</strong> dibayarkan pada saat penandatanganan surat perjanjian kerja sama ini.</li>
-                <li><strong>Cicilan Tahap ke-2 sebesar 40%</strong> dibayarkan sesuai dengan tanggal yang disepakati bersama oleh kedua belah pihak.</li>
-                <li><strong>Pelunasan Sisa Pembayaran 30%</strong> wajib dilunasi paling lambat H-14 sebelum tanggal pelaksanaan acara.</li>
+                <li><strong>Uang Muka (DP)</strong> dibayarkan pada saat penandatanganan surat perjanjian kerja sama ini.</li>
+                <li><strong>Cicilan Bertahap</strong> dibayarkan sesuai dengan tanggal yang disepakati bersama oleh kedua belah pihak.</li>
+                <li><strong>Pelunasan Sisa Pembayaran</strong> wajib dilunasi paling lambat H-14 sebelum tanggal pelaksanaan acara.</li>
             </ol>
         </li>
         <li>Setiap keterlambatan pembayaran termin dari batas jatuh tempo yang telah disepakati akan dikenakan sanksi denda sebesar 1% per hari dihitung dari nilai tagihan termin berjalan.</li>
@@ -162,17 +162,13 @@
         <tr>
             <td>
                 <div><strong>PIHAK PERTAMA</strong></div>
-                <div style="margin-top: 3px;">Ade Decoration</div>
                 <div class="signature-space"></div>
-                <div class="signature-line">Ade Putra Pratama</div>
-                <div class="signature-role">Owner & Perwakilan Resmi</div>
+                <div class="signature-line">EDOM</div>
             </td>
             <td>
                 <div><strong>PIHAK KEDUA</strong></div>
-                <div style="margin-top: 3px;">Pengguna Jasa / Klien</div>
                 <div class="signature-space"></div>
                 <div class="signature-line"><?php echo e($order->client->name ?? '__________________'); ?></div>
-                <div class="signature-role">Konsumen / Pihak Pengantin</div>
             </td>
         </tr>
     </table>

@@ -11,6 +11,7 @@ use App\Models\PaymentTransaction;
 use App\Models\PaymentProof;
 use App\Models\Vendor;
 use App\Models\Event;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Illuminate\Support\Facades\DB;
@@ -358,6 +359,27 @@ class ReportController extends Controller
         }
     }
 
+    /**
+     * Export to PDF
+     */
+    public function exportPDF(Request $request)
+    {
+        $type = $request->input('type'); // sales, inventory, performance
+        $startDate = $request->input('start_date', Carbon::now()->startOfMonth());
+        $endDate = $request->input('end_date', Carbon::now()->endOfMonth());
+
+        switch ($type) {
+            case 'sales':
+                return $this->exportSalesPDF($startDate, $endDate);
+            case 'inventory':
+                return $this->exportInventoryPDF();
+            case 'performance':
+                return $this->exportPerformancePDF($startDate, $endDate);
+            default:
+                return response()->json(['error' => 'Invalid export type'], 400);
+        }
+    }
+
     private function exportSalesCSV($startDate, $endDate)
     {
         $orders = Order::with(['client', 'package'])
@@ -392,6 +414,16 @@ class ReportController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    private function exportSalesPDF($startDate, $endDate)
+    {
+        $orders = Order::with(['client', 'package'])
+            ->whereBetween('created_at', [$startDate, $endDate])
+            ->get();
+
+        $pdf = Pdf::loadView('pdf.sales_report', compact('orders', 'startDate', 'endDate'));
+        return $pdf->download('sales_report_' . date('Y-m-d') . '.pdf');
     }
 
     private function exportInventoryCSV()
@@ -429,6 +461,14 @@ class ReportController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    private function exportInventoryPDF()
+    {
+        $items = InventoryItem::with('category')->get();
+
+        $pdf = Pdf::loadView('pdf.inventory_report', compact('items'));
+        return $pdf->download('inventory_report_' . date('Y-m-d') . '.pdf');
     }
 
     private function exportPerformanceCSV($startDate, $endDate)
@@ -469,6 +509,16 @@ class ReportController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    private function exportPerformancePDF($startDate, $endDate)
+    {
+        $employees = Employee::with(['assignments' => function ($query) use ($startDate, $endDate) {
+            $query->whereBetween('assignment_date', [$startDate, $endDate]);
+        }])->get();
+
+        $pdf = Pdf::loadView('pdf.performance_report', compact('employees', 'startDate', 'endDate'));
+        return $pdf->download('performance_report_' . date('Y-m-d') . '.pdf');
     }
 
     /**

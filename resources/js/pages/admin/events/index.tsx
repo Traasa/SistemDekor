@@ -114,7 +114,7 @@ export default function EventsPage() {
             setShowDetailModal(true);
         } catch (error) {
             console.error('Failed to load event detail:', error);
-            alert('Gagal memuat detail event');
+            await window.showAlert('Gagal memuat detail event');
         }
     };
 
@@ -134,9 +134,9 @@ export default function EventsPage() {
             });
             await refreshSelectedEvent();
             await fetchEvents(pagination.current_page);
-            alert('Catatan kalender event berhasil disimpan');
+            await window.showAlert('Catatan kalender event berhasil disimpan');
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal menyimpan catatan kalender');
+            await window.showAlert(error.response?.data?.message || 'Gagal menyimpan catatan kalender');
         } finally {
             setSavingDetail(false);
         }
@@ -145,7 +145,7 @@ export default function EventsPage() {
     const addOutline = async () => {
         if (!selectedEvent) return;
         if (!newOutline.title.trim()) {
-            alert('Judul outline wajib diisi');
+            await window.showAlert('Judul outline wajib diisi');
             return;
         }
 
@@ -159,7 +159,7 @@ export default function EventsPage() {
             await refreshSelectedEvent();
             await fetchEvents(pagination.current_page);
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal menambah outline');
+            await window.showAlert(error.response?.data?.message || 'Gagal menambah outline');
         }
     };
 
@@ -171,20 +171,20 @@ export default function EventsPage() {
             await refreshSelectedEvent();
             await fetchEvents(pagination.current_page);
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal mengubah outline');
+            await window.showAlert(error.response?.data?.message || 'Gagal mengubah outline');
         }
     };
 
     const deleteOutline = async (outlineId: number) => {
         if (!selectedEvent) return;
-        if (!confirm('Hapus outline ini?')) return;
+        if (!await window.showConfirm('Hapus outline ini?')) return;
 
         try {
             await axios.delete(`/api/events/${selectedEvent.id}/outlines/${outlineId}`);
             await refreshSelectedEvent();
             await fetchEvents(pagination.current_page);
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal menghapus outline');
+            await window.showAlert(error.response?.data?.message || 'Gagal menghapus outline');
         }
     };
 
@@ -359,7 +359,7 @@ export default function EventsPage() {
                                     <div className="flex flex-col gap-2 lg:min-w-[220px]">
                                         {event.source === 'mini' ? (
                                             <button
-                                                onClick={() => openEventDetail(event.id, 'mini')}
+                                                onClick={async () => openEventDetail(event.id, 'mini')}
                                                 className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
                                             >
                                                 Buka Mini Order
@@ -367,7 +367,7 @@ export default function EventsPage() {
                                         ) : (
                                             <>
                                                 <button
-                                                    onClick={() => openEventDetail(event.id, 'order')}
+                                                    onClick={async () => openEventDetail(event.id, 'order')}
                                                     className="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700"
                                                 >
                                                     Detail Event Outline
@@ -390,7 +390,7 @@ export default function EventsPage() {
                 {pagination.last_page > 1 && (
                     <div className="mt-6 flex items-center justify-center gap-2">
                         <button
-                            onClick={() => fetchEvents(pagination.current_page - 1)}
+                            onClick={async () => fetchEvents(pagination.current_page - 1)}
                             disabled={pagination.current_page === 1}
                             className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -398,7 +398,7 @@ export default function EventsPage() {
                         </button>
                         <span className="px-4 py-2 text-sm text-gray-700">Halaman {pagination.current_page} dari {pagination.last_page}</span>
                         <button
-                            onClick={() => fetchEvents(pagination.current_page + 1)}
+                            onClick={async () => fetchEvents(pagination.current_page + 1)}
                             disabled={pagination.current_page === pagination.last_page}
                             className="rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 disabled:cursor-not-allowed disabled:opacity-50"
                         >
@@ -415,7 +415,7 @@ export default function EventsPage() {
                                     <h2 className="text-xl font-bold text-gray-900">{selectedEvent.event_name}</h2>
                                     <p className="text-sm text-gray-500">Detail Event terpisah dari Rundown Acara</p>
                                 </div>
-                                <button onClick={() => setShowDetailModal(false)} className="rounded-md border p-2 hover:bg-gray-50">
+                                <button onClick={async () => setShowDetailModal(false)} className="rounded-md border p-2 hover:bg-gray-50">
                                     <X className="h-5 w-5" />
                                 </button>
                             </div>
@@ -499,7 +499,7 @@ export default function EventsPage() {
                                             placeholder="Deskripsi langkah"
                                         />
                                         <button
-                                            onClick={() => deleteOutline(outline.id)}
+                                            onClick={async () => deleteOutline(outline.id)}
                                             className="inline-flex items-center justify-center rounded-md border border-red-200 bg-red-50 px-3 py-2 text-red-700 hover:bg-red-100 md:col-span-1"
                                         >
                                             <Trash2 className="h-4 w-4" />

@@ -198,14 +198,14 @@ const EmployeeSchedulesPage: React.FC = () => {
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Apakah Anda yakin ingin menghapus jadwal ini?')) return;
+    if (!await window.showConfirm('Apakah Anda yakin ingin menghapus jadwal ini?')) return;
     
     try {
       await api.delete(`/employee-schedules/${id}`);
       fetchSchedules();
     } catch (error) {
       console.error('Error deleting schedule:', error);
-      alert('Gagal menghapus jadwal');
+      await window.showAlert('Gagal menghapus jadwal');
     }
   };
 
@@ -268,7 +268,7 @@ const EmployeeSchedulesPage: React.FC = () => {
     setBulkResult('');
   };
 
-  const handleDayToggle = (day: number) => {
+  const handleDayToggle = async (day: number) => {
     setBulkFormData(prev => ({
       ...prev,
       days: prev.days.includes(day)
@@ -277,7 +277,7 @@ const EmployeeSchedulesPage: React.FC = () => {
     }));
   };
 
-  const handleEmployeeToggle = (empId: number) => {
+  const handleEmployeeToggle = async (empId: number) => {
     setBulkFormData(prev => ({
       ...prev,
       employee_ids: prev.employee_ids.includes(empId)
@@ -286,7 +286,7 @@ const EmployeeSchedulesPage: React.FC = () => {
     }));
   };
 
-  const handleSelectAllEmployees = () => {
+  const handleSelectAllEmployees = async () => {
     if (bulkFormData.employee_ids.length === employees.length) {
       setBulkFormData(prev => ({ ...prev, employee_ids: [] }));
     } else {
@@ -388,13 +388,13 @@ const EmployeeSchedulesPage: React.FC = () => {
                 {/* View Mode Toggle */}
                 <div className="flex border border-gray-300 rounded-lg overflow-hidden">
                   <button
-                    onClick={() => setViewMode('calendar')}
+                    onClick={async () => setViewMode('calendar')}
                     className={`px-4 py-2 ${viewMode === 'calendar' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
                   >
                     Kalender
                   </button>
                   <button
-                    onClick={() => setViewMode('list')}
+                    onClick={async () => setViewMode('list')}
                     className={`px-4 py-2 border-l ${viewMode === 'list' ? 'bg-blue-600 text-white' : 'bg-white text-gray-700'}`}
                   >
                     Daftar
@@ -411,7 +411,7 @@ const EmployeeSchedulesPage: React.FC = () => {
                   Batch Jadwal
                 </button>
                 <button
-                  onClick={() => openModal()}
+                  onClick={async () => openModal()}
                   className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                 >
                   <Plus className="w-5 h-5" />
@@ -477,7 +477,7 @@ const EmployeeSchedulesPage: React.FC = () => {
                       <div
                         key={index}
                         className={`border rounded-lg p-2 min-h-[120px] ${isToday ? 'bg-blue-50 border-blue-300' : 'bg-white border-gray-200'} hover:shadow-md transition-shadow cursor-pointer`}
-                        onClick={() => openModal(undefined, date.toISOString().split('T')[0])}
+                        onClick={async () => openModal(undefined, date.toISOString().split('T')[0])}
                       >
                         <div className="flex items-center justify-between mb-1">
                           <div className="text-sm font-semibold text-gray-700">
@@ -493,7 +493,7 @@ const EmployeeSchedulesPage: React.FC = () => {
                           {daySchedules.slice(0, 3).map(schedule => (
                             <div
                               key={schedule.id}
-                              onClick={(e) => {
+                              onClick={async (e) => {
                                 e.stopPropagation();
                                 openModal(schedule);
                               }}
@@ -599,13 +599,13 @@ const EmployeeSchedulesPage: React.FC = () => {
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => openModal(schedule)}
+                              onClick={async () => openModal(schedule)}
                               className="text-blue-600 hover:text-blue-900"
                             >
                               <Edit className="w-4 h-4" />
                             </button>
                             <button
-                              onClick={() => handleDelete(schedule.id)}
+                              onClick={async () => handleDelete(schedule.id)}
                               className="text-red-600 hover:text-red-900"
                             >
                               <Trash2 className="w-4 h-4" />
@@ -827,7 +827,7 @@ const EmployeeSchedulesPage: React.FC = () => {
                         <button
                           key={emp.id}
                           type="button"
-                          onClick={() => handleEmployeeToggle(emp.id)}
+                          onClick={async () => handleEmployeeToggle(emp.id)}
                           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-left transition-colors ${
                             isSelected
                               ? 'bg-blue-50 border border-blue-200'
@@ -894,7 +894,7 @@ const EmployeeSchedulesPage: React.FC = () => {
                       <button
                         key={index}
                         type="button"
-                        onClick={() => handleDayToggle(index)}
+                        onClick={async () => handleDayToggle(index)}
                         className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                           bulkFormData.days.includes(index)
                             ? 'bg-blue-600 text-white'

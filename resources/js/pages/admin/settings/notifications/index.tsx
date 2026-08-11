@@ -50,9 +50,9 @@ export default function NotificationSettingsPage() {
 
         try {
             await axios.post('/api/settings-notifications', settings);
-            alert('Pengaturan notifikasi berhasil disimpan!');
+            await window.showAlert('Pengaturan notifikasi berhasil disimpan!');
         } catch (error) {
-            alert('Gagal menyimpan pengaturan');
+            await window.showAlert('Gagal menyimpan pengaturan');
         } finally {
             setSaving(false);
         }
@@ -229,7 +229,7 @@ export default function NotificationSettingsPage() {
                                             <span className="text-sm text-gray-900">{email}</span>
                                             <button
                                                 type="button"
-                                                onClick={() => removeEmail(email)}
+                                                onClick={async () => removeEmail(email)}
                                                 className="text-red-600 hover:text-red-700 text-sm font-medium"
                                             >
                                                 Hapus

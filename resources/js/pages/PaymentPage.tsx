@@ -16,8 +16,9 @@ interface Order {
     total_price: number;
     final_price: number;
     dp_amount: number;
+    booking_amount?: number;
     remaining_amount?: number;
-    payment_link_type?: 'dp' | 'installment' | 'full';
+    payment_link_type?: 'booking' | 'dp' | 'installment' | 'full';
     payment_link_amount?: number;
 }
 
@@ -29,7 +30,7 @@ interface Props {
 
 export default function PaymentPage({ order, token, upload_url }: Props) {
     const [amount, setAmount] = useState<string>('');
-    const paymentType = (order.payment_link_type || 'dp') as 'dp' | 'installment' | 'full';
+    const paymentType = (order.payment_link_type || 'dp') as 'booking' | 'dp' | 'installment' | 'full';
     const [proofImage, setProofImage] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -77,21 +78,27 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
 
     const remaining = order.remaining_amount ?? order.final_price;
     const expectedAmount = useMemo(() => {
+        if (paymentType === 'booking') return order.booking_amount || 0;
         if (paymentType === 'dp') return order.dp_amount || 0;
         if (paymentType === 'full') return remaining;
         if (paymentType === 'installment') return order.payment_link_amount || remaining;
         return 0;
-    }, [paymentType, order.dp_amount, order.payment_link_amount, remaining]);
+    }, [paymentType, order.booking_amount, order.dp_amount, order.payment_link_amount, remaining]);
     const isFixedAmount = (paymentType !== 'installment' && expectedAmount > 0) || (paymentType === 'installment' && (order.payment_link_amount || 0) > 0);
     const isAmountMissing = (paymentType !== 'installment' && expectedAmount <= 0) || (paymentType === 'installment' && (order.payment_link_amount || 0) <= 0);
 
     const paymentTypeLabel = useMemo(() => {
+        if (paymentType === 'booking') return 'Booking Fee';
         if (paymentType === 'dp') return 'DP (Down Payment)';
         if (paymentType === 'installment') return 'Cicilan';
         return 'Pelunasan';
     }, [paymentType]);
 
     useEffect(() => {
+        if (paymentType === 'booking' && (order.booking_amount || 0) > 0) {
+            setAmount((order.booking_amount || 0).toString());
+            return;
+        }
         if (paymentType === 'dp' && order.dp_amount > 0) {
             setAmount(order.dp_amount.toString());
             return;
@@ -132,12 +139,17 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
             return;
         }
 
+        if (paymentType === 'booking' && expectedAmount > 0 && Math.abs(parseFloat(amount) - expectedAmount) > 0.01) {
+            setErrorMessage(`Booking harus sesuai nominal ${formatRupiah(expectedAmount)}`);
+            return;
+        }
+
         if (paymentType === 'dp' && expectedAmount > 0 && Math.abs(parseFloat(amount) - expectedAmount) > 0.01) {
             setErrorMessage(`DP harus sesuai nominal ${formatRupiah(expectedAmount)}`);
             return;
         }
 
-        if ((paymentType === 'dp' || paymentType === 'installment') && parseFloat(amount) > remaining) {
+        if ((paymentType === 'booking' || paymentType === 'dp' || paymentType === 'installment') && parseFloat(amount) > remaining) {
             setErrorMessage('Nominal pembayaran tidak boleh melebihi sisa tagihan');
             return;
         }
@@ -170,10 +182,10 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
     };
 
     return (
-        <PublicLayout wrapperClassName="min-h-screen bg-[#F6F1EA] text-[#2A2420]">
+        <PublicLayout wrapperClassName="flex min-h-screen flex-col bg-[#F6F1EA] text-[#2A2420]">
             <Head title="Upload Payment Proof" />
 
-            <main className="w-full px-4 py-12 font-sans sm:px-8 2xl:px-16">
+            <main className="w-full flex-grow px-4 py-12 font-sans sm:px-8 2xl:px-16">
                 <div className="mx-auto max-w-3xl">
                     {/* Header */}
                     <div className="mb-8 text-center">
@@ -241,14 +253,16 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
                                         <span className="text-gray-600">Payment Type</span>
                                         <span className="text-gray-900">{paymentTypeLabel}</span>
                                     </div>
-                                    {(paymentType === 'dp' || paymentType === 'full' || paymentType === 'installment') && (
+                                    {(paymentType === 'booking' || paymentType === 'dp' || paymentType === 'full' || paymentType === 'installment') && (
                                         <div className="flex justify-between py-2">
                                             <span className="text-gray-600">
-                                                {paymentType === 'dp'
-                                                    ? 'DP Disepakati'
-                                                    : paymentType === 'full'
-                                                        ? 'Nominal Pelunasan'
-                                                        : 'Sisa Tagihan'}
+                                                {paymentType === 'booking'
+                                                    ? 'Booking Fee'
+                                                    : paymentType === 'dp'
+                                                        ? 'DP Disepakati'
+                                                        : paymentType === 'full'
+                                                            ? 'Nominal Pelunasan'
+                                                            : 'Sisa Tagihan'}
                                             </span>
                                             <span className="text-xl font-bold text-[#8A4E3A]">
                                                 {expectedAmount > 0 ? formatRupiah(expectedAmount) : 'Menunggu admin'}
@@ -354,6 +368,9 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
                                         placeholder="Enter payment amount"
                                         required
                                     />
+                                    {paymentType === 'booking' && (order.booking_amount || 0) > 0 && (
+                                        <p className="mt-2 text-sm text-gray-500">Nominal Booking: {formatRupiah(order.booking_amount || 0)}</p>
+                                    )}
                                     {paymentType === 'dp' && order.dp_amount > 0 && (
                                         <p className="mt-2 text-sm text-gray-500">Nominal DP: {formatRupiah(order.dp_amount)}</p>
                                     )}

@@ -33,10 +33,10 @@ export default function ExportDataPage() {
             link.click();
             link.remove();
             
-            alert('Data berhasil di-export!');
+            await window.showAlert('Data berhasil di-export!');
         } catch (error) {
             console.error('Error exporting data:', error);
-            alert('Gagal export data');
+            await window.showAlert('Gagal export data');
         } finally {
             setLoading(false);
         }
@@ -129,7 +129,7 @@ export default function ExportDataPage() {
                                 <h3 className="text-lg font-bold text-gray-900 mb-2">{option.title}</h3>
                                 <p className="text-sm text-gray-600 mb-4">{option.description}</p>
                                 <button
-                                    onClick={() => handleExport(option.type)}
+                                    onClick={async () => handleExport(option.type)}
                                     disabled={loading}
                                     className={`w-full px-4 py-2 bg-${option.color}-600 text-white rounded-lg hover:bg-${option.color}-700 transition flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed`}
                                 >
@@ -162,7 +162,7 @@ export default function ExportDataPage() {
                     <h3 className="text-lg font-bold text-gray-900 mb-4">Quick Export - Periode Populer</h3>
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 const today = new Date();
                                 setStartDate(today.toISOString().split('T')[0]);
                                 setEndDate(today.toISOString().split('T')[0]);
@@ -172,7 +172,7 @@ export default function ExportDataPage() {
                             Hari Ini
                         </button>
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 const today = new Date();
                                 const weekAgo = new Date(today);
                                 weekAgo.setDate(weekAgo.getDate() - 7);
@@ -184,7 +184,7 @@ export default function ExportDataPage() {
                             7 Hari Terakhir
                         </button>
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 const today = new Date();
                                 const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
                                 setStartDate(firstDay.toISOString().split('T')[0]);
@@ -195,7 +195,7 @@ export default function ExportDataPage() {
                             Bulan Ini
                         </button>
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 const today = new Date();
                                 const monthAgo = new Date(today);
                                 monthAgo.setMonth(monthAgo.getMonth() - 1);

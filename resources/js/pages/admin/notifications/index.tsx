@@ -67,7 +67,7 @@ export default function NotificationsPage() {
     };
 
     const deleteNotification = async (id: number) => {
-        if (!confirm('Yakin ingin menghapus notifikasi ini?')) return;
+        if (!await window.showConfirm('Yakin ingin menghapus notifikasi ini?')) return;
         
         try {
             await axios.delete(`/api/notifications/${id}`);
@@ -79,7 +79,7 @@ export default function NotificationsPage() {
 
     const executeManualCleanup = async () => {
         if (cleanupForm.use_custom_range && !cleanupForm.date_from && !cleanupForm.date_to) {
-            alert('Isi minimal tanggal awal atau tanggal akhir untuk rentang custom.');
+            await window.showAlert('Isi minimal tanggal awal atau tanggal akhir untuk rentang custom.');
             return;
         }
 
@@ -95,7 +95,7 @@ export default function NotificationsPage() {
 
             await fetchNotifications();
         } catch (error: any) {
-            alert(error?.response?.data?.message || 'Gagal menjalankan cleanup manual.');
+            await window.showAlert(error?.response?.data?.message || 'Gagal menjalankan cleanup manual.');
         } finally {
             setCleanupLoading(false);
         }
@@ -150,7 +150,7 @@ export default function NotificationsPage() {
                     </div>
                     <div className="flex gap-3">
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 setCleanupResult(null);
                                 setShowCleanupModal(true);
                             }}
@@ -180,7 +180,7 @@ export default function NotificationsPage() {
                 {/* Filter Tabs */}
                 <div className="mb-6 bg-white rounded-lg border border-gray-200 p-1 flex gap-1">
                     <button
-                        onClick={() => setFilter('all')}
+                        onClick={async () => setFilter('all')}
                         className={`flex-1 px-4 py-2 rounded-md transition-colors ${
                             filter === 'all' 
                                 ? 'bg-blue-600 text-white' 
@@ -190,7 +190,7 @@ export default function NotificationsPage() {
                         Semua ({notifications.length})
                     </button>
                     <button
-                        onClick={() => setFilter('order')}
+                        onClick={async () => setFilter('order')}
                         className={`flex-1 px-4 py-2 rounded-md transition-colors ${
                             filter === 'order' 
                                 ? 'bg-blue-600 text-white' 
@@ -200,7 +200,7 @@ export default function NotificationsPage() {
                         📋 Order ({notifications.filter(n => n.type === 'order').length})
                     </button>
                     <button
-                        onClick={() => setFilter('payment')}
+                        onClick={async () => setFilter('payment')}
                         className={`flex-1 px-4 py-2 rounded-md transition-colors ${
                             filter === 'payment' 
                                 ? 'bg-blue-600 text-white' 
@@ -210,7 +210,7 @@ export default function NotificationsPage() {
                         💰 Payment ({notifications.filter(n => n.type === 'payment').length})
                     </button>
                     <button
-                        onClick={() => setFilter('inventory')}
+                        onClick={async () => setFilter('inventory')}
                         className={`flex-1 px-4 py-2 rounded-md transition-colors ${
                             filter === 'inventory' 
                                 ? 'bg-blue-600 text-white' 
@@ -270,7 +270,7 @@ export default function NotificationsPage() {
                                                 {notification.link && (
                                                     <a
                                                         href={notification.link}
-                                                        onClick={() => !notification.read && markAsRead(notification.id)}
+                                                        onClick={async () => !notification.read && markAsRead(notification.id)}
                                                         className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                                                     >
                                                         Lihat Detail →
@@ -278,14 +278,14 @@ export default function NotificationsPage() {
                                                 )}
                                                 {!notification.read && (
                                                     <button
-                                                        onClick={() => markAsRead(notification.id)}
+                                                        onClick={async () => markAsRead(notification.id)}
                                                         className="text-sm text-gray-600 hover:text-gray-700"
                                                     >
                                                         Tandai Dibaca
                                                     </button>
                                                 )}
                                                 <button
-                                                    onClick={() => deleteNotification(notification.id)}
+                                                    onClick={async () => deleteNotification(notification.id)}
                                                     className="text-sm text-red-600 hover:text-red-700 ml-auto"
                                                 >
                                                     <Trash2 className="h-4 w-4" />
@@ -366,7 +366,7 @@ export default function NotificationsPage() {
 
                             <div className="mt-6 flex justify-end gap-3">
                                 <button
-                                    onClick={() => setShowCleanupModal(false)}
+                                    onClick={async () => setShowCleanupModal(false)}
                                     className="rounded-lg border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-50"
                                     disabled={cleanupLoading}
                                 >

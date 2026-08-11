@@ -175,6 +175,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/reports-performance-data', [App\Http\Controllers\ReportController::class, 'getPerformanceData']);
         Route::get('/reports-all-stats', [App\Http\Controllers\ReportController::class, 'getAllStats']);
         Route::post('/reports-export-csv', [App\Http\Controllers\ReportController::class, 'exportCSV']);
+        Route::post('/reports-export-pdf', [App\Http\Controllers\ReportController::class, 'exportPDF']);
         
         // Company Profile management
         Route::apiResource('company-profiles', CompanyProfileController::class)->except(['index']);

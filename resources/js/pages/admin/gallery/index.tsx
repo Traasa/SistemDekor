@@ -59,14 +59,14 @@ export default function GalleryPage() {
             setShowModal(false);
             resetForm();
             fetchGalleries();
-            alert('Galeri berhasil disimpan!');
+            await window.showAlert('Galeri berhasil disimpan!');
         } catch (error) {
             console.error('Failed to save gallery:', error);
-            alert('Gagal menyimpan galeri');
+            await window.showAlert('Gagal menyimpan galeri');
         }
     };
 
-    const handleEdit = (gallery: Gallery) => {
+    const handleEdit = async (gallery: Gallery) => {
         setEditingId(gallery.id);
         setFormData({
             title: gallery.title,
@@ -87,20 +87,20 @@ export default function GalleryPage() {
             fetchGalleries();
         } catch (error) {
             console.error('Failed to update gallery sort order:', error);
-            alert('Gagal mengubah urutan galeri');
+            await window.showAlert('Gagal mengubah urutan galeri');
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Yakin ingin menghapus item galeri ini?')) return;
+        if (!await window.showConfirm('Yakin ingin menghapus item galeri ini?')) return;
         
         try {
             await axios.delete(`/api/gallery/${id}`);
             fetchGalleries();
-            alert('Galeri berhasil dihapus');
+            await window.showAlert('Galeri berhasil dihapus');
         } catch (error) {
             console.error('Failed to delete gallery:', error);
-            alert('Gagal menghapus galeri');
+            await window.showAlert('Gagal menghapus galeri');
         }
     };
 
@@ -125,7 +125,7 @@ export default function GalleryPage() {
                         <p className="mt-1 text-sm text-gray-500">Kelola galeri foto dan karya</p>
                     </div>
                     <button
-                        onClick={() => setShowModal(true)}
+                        onClick={async () => setShowModal(true)}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
                     >
                         <Plus className="h-5 w-5" />
@@ -178,23 +178,23 @@ export default function GalleryPage() {
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{gallery.sort_order ?? 0}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <button
-                                                onClick={() => updateSortOrder(gallery, (gallery.sort_order || 0) - 1)}
+                                                onClick={async () => updateSortOrder(gallery, (gallery.sort_order || 0) - 1)}
                                                 className="mr-2 text-gray-600 hover:text-gray-900"
                                                 title="Naikkan urutan"
                                             >
                                                 <ArrowUp className="h-4 w-4" />
                                             </button>
                                             <button
-                                                onClick={() => updateSortOrder(gallery, (gallery.sort_order || 0) + 1)}
+                                                onClick={async () => updateSortOrder(gallery, (gallery.sort_order || 0) + 1)}
                                                 className="mr-3 text-gray-600 hover:text-gray-900"
                                                 title="Turunkan urutan"
                                             >
                                                 <ArrowDown className="h-4 w-4" />
                                             </button>
-                                            <button onClick={() => handleEdit(gallery)} className="text-blue-600 hover:text-blue-900 mr-3">
+                                            <button onClick={async () => handleEdit(gallery)} className="text-blue-600 hover:text-blue-900 mr-3">
                                                 <Edit className="h-5 w-5" />
                                             </button>
-                                            <button onClick={() => handleDelete(gallery.id)} className="text-red-600 hover:text-red-900">
+                                            <button onClick={async () => handleDelete(gallery.id)} className="text-red-600 hover:text-red-900">
                                                 <Trash2 className="h-5 w-5" />
                                             </button>
                                         </td>
@@ -211,7 +211,7 @@ export default function GalleryPage() {
                         <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
                             <div className="flex items-center justify-between mb-4">
                                 <h3 className="text-lg font-bold">{editingId ? 'Edit Galeri' : 'Tambah Galeri'}</h3>
-                                <button onClick={() => { setShowModal(false); resetForm(); }}>
+                                <button onClick={async () => { setShowModal(false); resetForm(); }}>
                                     <X className="h-6 w-6" />
                                 </button>
                             </div>
@@ -285,7 +285,7 @@ export default function GalleryPage() {
                                 <div className="flex justify-end gap-3 mt-6">
                                     <button
                                         type="button"
-                                        onClick={() => { setShowModal(false); resetForm(); }}
+                                        onClick={async () => { setShowModal(false); resetForm(); }}
                                         className="px-4 py-2 border rounded-lg"
                                     >
                                         Batal

@@ -146,23 +146,23 @@ export default function VenuePricing() {
       handleCloseModal();
     } catch (error) {
       console.error('Error saving pricing:', error);
-      alert('Gagal menyimpan pricing');
+      await window.showAlert('Gagal menyimpan pricing');
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Yakin ingin menghapus pricing ini?')) return;
+    if (!await window.showConfirm('Yakin ingin menghapus pricing ini?')) return;
 
     try {
       await api.delete(`/venue-pricing/${id}`);
       fetchPricings();
     } catch (error) {
       console.error('Error deleting pricing:', error);
-      alert('Gagal menghapus pricing');
+      await window.showAlert('Gagal menghapus pricing');
     }
   };
 
-  const handleEdit = (pricing: VenuePricing) => {
+  const handleEdit = async (pricing: VenuePricing) => {
     setEditingPricing(pricing);
     setFormData({
       venue_id: pricing.venue_id.toString(),
@@ -177,7 +177,7 @@ export default function VenuePricing() {
     setShowModal(true);
   };
 
-  const handleCloseModal = () => {
+  const handleCloseModal = async () => {
     setShowModal(false);
     setEditingPricing(null);
     setFormData({
@@ -252,7 +252,7 @@ export default function VenuePricing() {
             <p className="text-gray-600 mt-1">Kelola harga sewa venue berdasarkan tipe hari dan sesi</p>
           </div>
           <button
-            onClick={() => setShowModal(true)}
+            onClick={async () => setShowModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <Plus className="w-5 h-5" />
@@ -398,14 +398,14 @@ export default function VenuePricing() {
                                     </div>
                                     <div className="flex gap-1">
                                       <button
-                                        onClick={() => handleEdit(pricing)}
+                                        onClick={async () => handleEdit(pricing)}
                                         className="p-1 text-indigo-600 hover:bg-indigo-100 rounded transition-colors"
                                         title="Edit"
                                       >
                                         <Edit2 className="w-4 h-4" />
                                       </button>
                                       <button
-                                        onClick={() => handleDelete(pricing.id)}
+                                        onClick={async () => handleDelete(pricing.id)}
                                         className="p-1 text-red-600 hover:bg-red-100 rounded transition-colors"
                                         title="Hapus"
                                       >

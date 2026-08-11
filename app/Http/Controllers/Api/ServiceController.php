@@ -44,11 +44,18 @@ class ServiceController extends Controller
             'description' => 'required|string',
             'price' => 'required|numeric|min:0',
             'category' => 'nullable|string|max:255',
-            'image' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
             'is_active' => 'boolean',
         ]);
 
-        $service = Service::create($request->all());
+        $data = $request->except('image');
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('services', 'public');
+            $data['image'] = '/storage/' . $path;
+        }
+
+        $service = Service::create($data);
 
         return response()->json([
             'success' => true,
@@ -78,11 +85,18 @@ class ServiceController extends Controller
             'description' => 'sometimes|required|string',
             'price' => 'sometimes|required|numeric|min:0',
             'category' => 'nullable|string|max:255',
-            'image' => 'nullable|string',
+            'image' => 'nullable|image|max:2048',
             'is_active' => 'boolean',
         ]);
 
-        $service->update($request->all());
+        $data = $request->except('image');
+
+        if ($request->hasFile('image')) {
+            $path = $request->file('image')->store('services', 'public');
+            $data['image'] = '/storage/' . $path;
+        }
+
+        $service->update($data);
 
         return response()->json([
             'success' => true,

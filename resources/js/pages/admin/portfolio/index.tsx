@@ -55,14 +55,14 @@ export default function PortfolioPage() {
             setShowModal(false);
             resetForm();
             fetchPortfolios();
-            alert('Portfolio berhasil disimpan!');
+            await window.showAlert('Portfolio berhasil disimpan!');
         } catch (error) {
             console.error('Failed to save portfolio:', error);
-            alert('Gagal menyimpan portfolio');
+            await window.showAlert('Gagal menyimpan portfolio');
         }
     };
 
-    const handleEdit = (portfolio: Portfolio) => {
+    const handleEdit = async (portfolio: Portfolio) => {
         setEditingId(portfolio.id);
         setFormData({
             title: portfolio.title,
@@ -75,15 +75,15 @@ export default function PortfolioPage() {
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Yakin ingin menghapus portfolio ini?')) return;
+        if (!await window.showConfirm('Yakin ingin menghapus portfolio ini?')) return;
         
         try {
             await axios.delete(`/api/portfolios/${id}`);
             fetchPortfolios();
-            alert('Portfolio berhasil dihapus');
+            await window.showAlert('Portfolio berhasil dihapus');
         } catch (error) {
             console.error('Failed to delete portfolio:', error);
-            alert('Gagal menghapus portfolio');
+            await window.showAlert('Gagal menghapus portfolio');
         }
     };
 
@@ -107,7 +107,7 @@ export default function PortfolioPage() {
                         <p className="mt-1 text-sm text-gray-500">Kelola portfolio project</p>
                     </div>
                     <button
-                        onClick={() => setShowModal(true)}
+                        onClick={async () => setShowModal(true)}
                         className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-2"
                     >
                         <Plus className="h-5 w-5" />
@@ -167,13 +167,13 @@ export default function PortfolioPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                             <button 
-                                                onClick={() => handleEdit(portfolio)} 
+                                                onClick={async () => handleEdit(portfolio)} 
                                                 className="text-blue-600 hover:text-blue-900 mr-3"
                                             >
                                                 <Edit className="h-5 w-5" />
                                             </button>
                                             <button 
-                                                onClick={() => handleDelete(portfolio.id)} 
+                                                onClick={async () => handleDelete(portfolio.id)} 
                                                 className="text-red-600 hover:text-red-900"
                                             >
                                                 <Trash2 className="h-5 w-5" />
@@ -200,7 +200,7 @@ export default function PortfolioPage() {
                                     {editingId ? 'Edit Portfolio' : 'Tambah Portfolio'}
                                 </h3>
                                 <button 
-                                    onClick={() => { 
+                                    onClick={async () => { 
                                         setShowModal(false); 
                                         resetForm(); 
                                     }}
@@ -293,7 +293,7 @@ export default function PortfolioPage() {
                                 <div className="flex justify-end gap-3 mt-6 pt-4 border-t">
                                     <button
                                         type="button"
-                                        onClick={() => { 
+                                        onClick={async () => { 
                                             setShowModal(false); 
                                             resetForm(); 
                                         }}

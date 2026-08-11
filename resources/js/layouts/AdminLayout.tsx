@@ -1,5 +1,6 @@
 import { Link, router, usePage } from '@inertiajs/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
+import { CompanyProfile, companyProfileService } from '../services/companyProfileService';
 import {
     Archive,
     ArrowLeftRight,
@@ -82,6 +83,42 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
     const { auth, url } = usePage<{ auth: { user: { id: number; name: string; email: string; role: string } }; url: string }>().props;
     const user = auth?.user;
     const currentPath = url;
+    const [profile, setProfile] = useState<CompanyProfile | null>(null);
+
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const data = await companyProfileService.getProfile();
+                setProfile(data);
+            } catch (error) {
+                console.error('Failed to fetch company profile:', error);
+            }
+        };
+        fetchProfile();
+    }, []);
+
+    const branding = useMemo(() => {
+        const brandName = profile?.company_name || 'Ade Decoration';
+        const logoUrl = profile?.logo ? `/storage/${profile.logo}` : undefined;
+        const faviconVersion = profile?.updated_at ? `?v=${encodeURIComponent(profile.updated_at)}` : '';
+        const faviconUrl = profile?.favicon ? `/storage/${profile.favicon}${faviconVersion}` : undefined;
+        return { brandName, logoUrl, faviconUrl };
+    }, [profile]);
+
+    useEffect(() => {
+        if (!branding.faviconUrl) return;
+        const setIcon = (rel: string) => {
+            let link = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
+            if (!link) {
+                link = document.createElement('link');
+                link.rel = rel;
+                document.head.appendChild(link);
+            }
+            link.href = branding.faviconUrl as string;
+        };
+        setIcon('icon');
+        setIcon('apple-touch-icon');
+    }, [branding.faviconUrl]);
 
     useEffect(() => {
         const savedTheme = (localStorage.getItem('admin-theme-mode') as ThemeMode | null) || 'light';
@@ -269,10 +306,14 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
                 <div className="flex items-center justify-between border-b border-[var(--admin-border)] p-4">
                     {isSidebarOpen && (
                         <div className="flex items-center space-x-2">
-                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--admin-accent)] text-[var(--admin-accent-contrast)]">
-                                <span className="text-sm font-semibold">SD</span>
-                            </div>
-                            <span className="text-lg font-semibold">SistemDekor Admin</span>
+                            {branding.logoUrl ? (
+                                <img src={branding.logoUrl} alt={branding.brandName} className="h-8 w-8 object-contain rounded" />
+                            ) : (
+                                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--admin-accent)] text-[var(--admin-accent-contrast)]">
+                                    <span className="text-sm font-semibold">AD</span>
+                                </div>
+                            )}
+                            <span className="text-lg font-semibold truncate" title={branding.brandName}>{branding.brandName}</span>
                         </div>
                     )}
                     <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="rounded p-1 hover:bg-[var(--admin-hover)]">

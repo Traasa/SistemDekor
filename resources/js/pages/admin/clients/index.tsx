@@ -95,11 +95,11 @@ export default function ClientsPage() {
             if (selectedClient) {
                 await axios.put(`/api/admin/clients/${selectedClient.id}`, formData);
                 clientId = selectedClient.id;
-                alert('Client berhasil diupdate!');
+                await window.showAlert('Client berhasil diupdate!');
             } else {
                 const response = await axios.post('/api/admin/clients', formData);
                 clientId = response.data?.client?.id || null;
-                alert('Client berhasil ditambahkan!');
+                await window.showAlert('Client berhasil ditambahkan!');
             }
 
             if (clientId && testimonialForm.testimonial.trim()) {
@@ -113,25 +113,25 @@ export default function ClientsPage() {
             if (error.response?.data?.errors) {
                 setFormErrors(error.response.data.errors);
             } else {
-                alert(error.response?.data?.message || 'Error saving client');
+                await window.showAlert(error.response?.data?.message || 'Error saving client');
             }
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Apakah Anda yakin ingin menghapus client ini?')) return;
+        if (!await window.showConfirm('Apakah Anda yakin ingin menghapus client ini?')) return;
 
         try {
             await axios.delete(`/api/admin/clients/${id}`);
-            alert('Client berhasil dihapus!');
+            await window.showAlert('Client berhasil dihapus!');
             fetchClients();
             fetchStats();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Error deleting client');
+            await window.showAlert(error.response?.data?.message || 'Error deleting client');
         }
     };
 
-    const handleEdit = (client: Client) => {
+    const handleEdit = async (client: Client) => {
         setSelectedClient(client);
         setFormData({
             name: client.name,
@@ -184,7 +184,7 @@ export default function ClientsPage() {
         });
     };
 
-    const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const handleSearch = async (e: React.KeyboardEvent<HTMLInputElement>) => {
         if (e.key === 'Enter') {
             fetchClients();
         }
@@ -201,7 +201,7 @@ export default function ClientsPage() {
                         <p className="text-gray-600 mt-1">Kelola data client</p>
                     </div>
                     <button
-                        onClick={() => {
+                        onClick={async () => {
                             resetForm();
                             setShowModal(true);
                         }}
@@ -290,7 +290,7 @@ export default function ClientsPage() {
                         <h3 className="text-lg font-semibold text-gray-900 mb-2">Belum ada client</h3>
                         <p className="text-gray-600 mb-4">Tambahkan client pertama Anda</p>
                         <button
-                            onClick={() => {
+                            onClick={async () => {
                                 resetForm();
                                 setShowModal(true);
                             }}
@@ -383,13 +383,13 @@ export default function ClientsPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button
-                                                onClick={() => handleEdit(client)}
+                                                onClick={async () => handleEdit(client)}
                                                 className="text-blue-600 hover:text-blue-900 mr-4"
                                             >
                                                 <Edit className="w-5 h-5 inline" />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(client.id)}
+                                                onClick={async () => handleDelete(client.id)}
                                                 className="text-red-600 hover:text-red-900"
                                             >
                                                 <Trash2 className="w-5 h-5 inline" />
@@ -537,7 +537,7 @@ export default function ClientsPage() {
                                     <div className="flex gap-3 pt-4">
                                         <button
                                             type="button"
-                                            onClick={() => {
+                                            onClick={async () => {
                                                 setShowModal(false);
                                                 resetForm();
                                             }}

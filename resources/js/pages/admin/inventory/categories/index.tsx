@@ -48,13 +48,13 @@ const CategoriesPage: React.FC = () => {
             setCategories(response.data.data || response.data || []);
         } catch (error) {
             console.error('Error fetching categories:', error);
-            alert('Failed to load categories');
+            await window.showAlert('Failed to load categories');
         } finally {
             setLoading(false);
         }
     };
 
-    const handleOpenModal = (category?: Category) => {
+    const handleOpenModal = async (category?: Category) => {
         if (category) {
             setEditingId(category.id);
             setFormData({
@@ -79,7 +79,7 @@ const CategoriesPage: React.FC = () => {
         setShowModal(true);
     };
 
-    const handleCloseModal = () => {
+    const handleCloseModal = async () => {
         setShowModal(false);
         setEditingId(null);
         setFormData({
@@ -96,7 +96,7 @@ const CategoriesPage: React.FC = () => {
         e.preventDefault();
 
         if (!formData.name.trim() || !formData.code.trim()) {
-            alert('Name and Code are required');
+            await window.showAlert('Name and Code are required');
             return;
         }
 
@@ -108,10 +108,10 @@ const CategoriesPage: React.FC = () => {
 
             if (editingId) {
                 await api.put(`/inventory-categories/${editingId}`, submitData);
-                alert('Category updated successfully');
+                await window.showAlert('Category updated successfully');
             } else {
                 await api.post('/inventory-categories', submitData);
-                alert('Category created successfully');
+                await window.showAlert('Category created successfully');
             }
 
             handleCloseModal();
@@ -119,27 +119,27 @@ const CategoriesPage: React.FC = () => {
         } catch (error: any) {
             console.error('Error saving category:', error);
             const message = error.response?.data?.message || 'Failed to save category';
-            alert(message);
+            await window.showAlert(message);
         }
     };
 
     const handleDelete = async (id: number) => {
-        if (!confirm('Are you sure you want to delete this category?')) {
+        if (!await window.showConfirm('Are you sure you want to delete this category?')) {
             return;
         }
 
         try {
             await api.delete(`/inventory-categories/${id}`);
-            alert('Category deleted successfully');
+            await window.showAlert('Category deleted successfully');
             fetchCategories();
         } catch (error: any) {
             console.error('Error deleting category:', error);
             const message = error.response?.data?.message || 'Failed to delete category';
-            alert(message);
+            await window.showAlert(message);
         }
     };
 
-    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const handleInputChange = async (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         
         if (type === 'checkbox') {
@@ -158,7 +158,7 @@ const CategoriesPage: React.FC = () => {
                 <div className="flex justify-between items-center mb-6">
                     <h1 className="text-2xl font-bold text-gray-900">Inventory Categories</h1>
                     <button
-                        onClick={() => handleOpenModal()}
+                        onClick={async () => handleOpenModal()}
                         className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
                     >
                         <Plus size={20} />
@@ -246,14 +246,14 @@ const CategoriesPage: React.FC = () => {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                                             <button
-                                                onClick={() => handleOpenModal(category)}
+                                                onClick={async () => handleOpenModal(category)}
                                                 className="text-blue-600 hover:text-blue-900 mr-3"
                                                 title="Edit"
                                             >
                                                 <Edit2 size={18} />
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(category.id)}
+                                                onClick={async () => handleDelete(category.id)}
                                                 className="text-red-600 hover:text-red-900"
                                                 title="Delete"
                                             >

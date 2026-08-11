@@ -37,17 +37,17 @@ const UsersPage: React.FC = () => {
             setUsers(response.data);
         } catch (error) {
             console.error('Failed to fetch users:', error);
-            alert('Gagal memuat data user');
+            await window.showAlert('Gagal memuat data user');
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleSearch = () => {
+    const handleSearch = async () => {
         fetchUsers();
     };
 
-    const handleOpenModal = (user?: User) => {
+    const handleOpenModal = async (user?: User) => {
         if (user) {
             setEditingUser(user);
             setFormData({
@@ -71,7 +71,7 @@ const UsersPage: React.FC = () => {
         setIsModalOpen(true);
     };
 
-    const handleCloseModal = () => {
+    const handleCloseModal = async () => {
         setIsModalOpen(false);
         setEditingUser(null);
         setFormData({
@@ -114,10 +114,10 @@ const UsersPage: React.FC = () => {
                     updateData.password_confirmation = formData.password_confirmation;
                 }
                 await userService.update(editingUser.id, updateData);
-                alert('User berhasil diupdate');
+                await window.showAlert('User berhasil diupdate');
             } else {
                 await userService.create(formData);
-                alert('User berhasil ditambahkan');
+                await window.showAlert('User berhasil ditambahkan');
             }
             handleCloseModal();
             fetchUsers();
@@ -126,7 +126,7 @@ const UsersPage: React.FC = () => {
             if (error.response?.data?.errors) {
                 setFormErrors(error.response.data.errors);
             } else {
-                alert(error.response?.data?.message || 'Gagal menyimpan user');
+                await window.showAlert(error.response?.data?.message || 'Gagal menyimpan user');
             }
         }
     };
@@ -134,15 +134,15 @@ const UsersPage: React.FC = () => {
     const handleDelete = async (id: number) => {
         const user = users.find((u) => u.id === id);
         if (!user) return;
-        if (!confirm(`Apakah Anda yakin ingin menghapus user "${user.name}"?`)) return;
+        if (!await window.showConfirm(`Apakah Anda yakin ingin menghapus user "${user.name}"?`)) return;
 
         try {
             await userService.delete(id);
-            alert('User berhasil dihapus');
+            await window.showAlert('User berhasil dihapus');
             fetchUsers();
         } catch (error) {
             console.error('Failed to delete user:', error);
-            alert('Gagal menghapus user');
+            await window.showAlert('Gagal menghapus user');
         }
     };
 

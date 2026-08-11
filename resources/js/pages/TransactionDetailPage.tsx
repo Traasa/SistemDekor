@@ -215,10 +215,10 @@ const TransactionDetailPage: React.FC<{ transactionId: number }> = ({ transactio
                 {/* Actions */}
                 <div className="mt-6 flex justify-center space-x-4">
                     <button
-                        onClick={() => {
+                        onClick={async () => {
                             const shareUrl = window.location.href;
                             navigator.clipboard.writeText(shareUrl);
-                            alert('Share link copied to clipboard!');
+                            await window.showAlert('Share link copied to clipboard!');
                         }}
                         className="rounded-md bg-gray-600 px-6 py-2 text-white hover:bg-gray-700"
                     >

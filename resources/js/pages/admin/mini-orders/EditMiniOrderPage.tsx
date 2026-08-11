@@ -150,7 +150,7 @@ export default function EditMiniOrderPage({ order }: Props) {
         setData('custom_items', updatedItems);
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
 
         const validCustomItems = customItems.filter((item) => item.name && item.price && item.quantity);
@@ -163,21 +163,21 @@ export default function EditMiniOrderPage({ order }: Props) {
                 }
                 router.visit(`/admin/mini-orders/${order.id}`);
             },
-            onError: (errors) => {
+            onError: async (errors) => {
                 console.error('Validation errors:', errors);
-                alert('Gagal menyimpan mini order. Periksa input Anda.');
+                await window.showAlert('Gagal menyimpan mini order. Periksa input Anda.');
             },
         });
     };
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         const validFiles: File[] = [];
         const previews: string[] = [];
 
-        files.forEach((file) => {
+        files.forEach(async (file) => {
             if (file.size > 3 * 1024 * 1024) {
-                alert(`Ukuran file ${file.name} melebihi 3MB.`);
+                await window.showAlert(`Ukuran file ${file.name} melebihi 3MB.`);
                 return;
             }
             validFiles.push(file);
@@ -200,7 +200,7 @@ export default function EditMiniOrderPage({ order }: Props) {
     };
 
     const removeExistingImage = async (imageId: number) => {
-        if (!confirm('Hapus gambar ini?')) return;
+        if (!await window.showConfirm('Hapus gambar ini?')) return;
         await miniOrderService.deleteImage(order.id, imageId);
         setExistingImages((prev) => prev.filter((img) => img.id !== imageId));
     };
@@ -214,7 +214,7 @@ export default function EditMiniOrderPage({ order }: Props) {
                         <p className="mt-1 text-sm text-gray-600">Atur detail layanan dan skema pembayaran</p>
                     </div>
                     <button
-                        onClick={() => router.visit(`/admin/mini-orders/${order.id}`)}
+                        onClick={async () => router.visit(`/admin/mini-orders/${order.id}`)}
                         className="rounded-lg bg-gray-200 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-300"
                     >
                         ← Kembali
@@ -333,7 +333,7 @@ export default function EditMiniOrderPage({ order }: Props) {
                                         <div className="text-sm text-gray-600">Subtotal: {formatRupiah(item.subtotal)}</div>
                                         <button
                                             type="button"
-                                            onClick={() => removeCustomItem(index)}
+                                            onClick={async () => removeCustomItem(index)}
                                             className="text-sm text-red-600 hover:text-red-700"
                                         >
                                             Hapus
@@ -441,7 +441,7 @@ export default function EditMiniOrderPage({ order }: Props) {
                                             <img src={image.image_url} alt="Referensi" className="h-32 w-full object-cover" />
                                             <button
                                                 type="button"
-                                                onClick={() => removeExistingImage(image.id)}
+                                                onClick={async () => removeExistingImage(image.id)}
                                                 className="absolute right-2 top-2 rounded bg-black/60 px-2 py-1 text-xs text-white"
                                             >
                                                 Hapus
@@ -464,7 +464,7 @@ export default function EditMiniOrderPage({ order }: Props) {
                                             <img src={preview} alt={`Preview ${index + 1}`} className="h-32 w-full object-cover" />
                                             <button
                                                 type="button"
-                                                onClick={() => removeSelectedImage(index)}
+                                                onClick={async () => removeSelectedImage(index)}
                                                 className="absolute right-2 top-2 rounded bg-black/60 px-2 py-1 text-xs text-white"
                                             >
                                                 Hapus
@@ -480,7 +480,7 @@ export default function EditMiniOrderPage({ order }: Props) {
                     <div className="flex justify-end space-x-4">
                         <button
                             type="button"
-                            onClick={() => router.visit(`/admin/mini-orders/${order.id}`)}
+                            onClick={async () => router.visit(`/admin/mini-orders/${order.id}`)}
                             className="rounded-lg bg-gray-200 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-300"
                         >
                             Batal

@@ -66,15 +66,15 @@ export default function BackupRestorePage() {
     };
 
     const createBackup = async () => {
-        if (!confirm('Apakah Anda yakin ingin membuat backup database?')) return;
+        if (!await window.showConfirm('Apakah Anda yakin ingin membuat backup database?')) return;
 
         setCreating(true);
         try {
             const response = await axios.post('/api/settings-backup-create');
-            alert(`Backup berhasil dibuat: ${response.data.filename}`);
+            await window.showAlert(`Backup berhasil dibuat: ${response.data.filename}`);
             fetchBackups();
         } catch (error) {
-            alert('Gagal membuat backup');
+            await window.showAlert('Gagal membuat backup');
         } finally {
             setCreating(false);
         }
@@ -94,32 +94,32 @@ export default function BackupRestorePage() {
             link.click();
             link.remove();
         } catch (error) {
-            alert('Gagal download backup');
+            await window.showAlert('Gagal download backup');
         }
     };
 
     const deleteBackup = async (filename: string) => {
-        if (!confirm(`Apakah Anda yakin ingin menghapus backup: ${filename}?`)) return;
+        if (!await window.showConfirm(`Apakah Anda yakin ingin menghapus backup: ${filename}?`)) return;
 
         try {
             await axios.delete(`/api/settings-backup-delete/${filename}`);
-            alert('Backup berhasil dihapus');
+            await window.showAlert('Backup berhasil dihapus');
             fetchBackups();
         } catch (error) {
-            alert('Gagal menghapus backup');
+            await window.showAlert('Gagal menghapus backup');
         }
     };
 
     const restoreBackup = async (filename: string) => {
-        if (!confirm(`⚠️ PERINGATAN: Restore akan mengganti semua data saat ini dengan backup ${filename}. Proses ini tidak bisa dibatalkan! Apakah Anda yakin?`)) return;
+        if (!await window.showConfirm(`⚠️ PERINGATAN: Restore akan mengganti semua data saat ini dengan backup ${filename}. Proses ini tidak bisa dibatalkan! Apakah Anda yakin?`)) return;
 
         setRestoring(true);
         try {
             await axios.post(`/api/settings-backup-restore/${filename}`);
-            alert('Database berhasil direstore! Halaman akan dimuat ulang.');
+            await window.showAlert('Database berhasil direstore! Halaman akan dimuat ulang.');
             window.location.reload();
         } catch (error) {
-            alert('Gagal restore database');
+            await window.showAlert('Gagal restore database');
         } finally {
             setRestoring(false);
         }
@@ -131,19 +131,19 @@ export default function BackupRestorePage() {
 
         // Validate extension
         if (!file.name.endsWith('.sql')) {
-            alert('Format file tidak valid. Hanya file .sql yang diizinkan.');
+            await window.showAlert('Format file tidak valid. Hanya file .sql yang diizinkan.');
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
 
         // Validate size (max 50MB)
         if (file.size > 50 * 1024 * 1024) {
-            alert('Ukuran file terlalu besar. Maksimal 50MB.');
+            await window.showAlert('Ukuran file terlalu besar. Maksimal 50MB.');
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
 
-        if (!confirm(`⚠️ PERINGATAN: Anda akan merestore database dari file "${file.name}". Semua data saat ini akan diganti! Proses ini tidak bisa dibatalkan!\n\nApakah Anda yakin?`)) {
+        if (!await window.showConfirm(`⚠️ PERINGATAN: Anda akan merestore database dari file "${file.name}". Semua data saat ini akan diganti! Proses ini tidak bisa dibatalkan!\n\nApakah Anda yakin?`)) {
             if (fileInputRef.current) fileInputRef.current.value = '';
             return;
         }
@@ -157,11 +157,11 @@ export default function BackupRestorePage() {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
 
-            alert('Database berhasil direstore dari file yang diupload! Halaman akan dimuat ulang.');
+            await window.showAlert('Database berhasil direstore dari file yang diupload! Halaman akan dimuat ulang.');
             window.location.reload();
         } catch (error: any) {
             const msg = error.response?.data?.message || 'Gagal restore database dari file yang diupload';
-            alert(msg);
+            await window.showAlert(msg);
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -169,13 +169,13 @@ export default function BackupRestorePage() {
     };
 
     const clearCache = async () => {
-        if (!confirm('Bersihkan semua cache aplikasi?')) return;
+        if (!await window.showConfirm('Bersihkan semua cache aplikasi?')) return;
 
         try {
             await axios.post('/api/settings-clear-cache');
-            alert('Cache berhasil dibersihkan!');
+            await window.showAlert('Cache berhasil dibersihkan!');
         } catch (error) {
-            alert('Gagal membersihkan cache');
+            await window.showAlert('Gagal membersihkan cache');
         }
     };
 
@@ -354,14 +354,14 @@ export default function BackupRestorePage() {
                                                 </div>
                                                 <div className="flex gap-2">
                                                     <button
-                                                        onClick={() => downloadBackup(backup.filename)}
+                                                        onClick={async () => downloadBackup(backup.filename)}
                                                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
                                                         title="Download"
                                                     >
                                                         <Download className="w-5 h-5" />
                                                     </button>
                                                     <button
-                                                        onClick={() => restoreBackup(backup.filename)}
+                                                        onClick={async () => restoreBackup(backup.filename)}
                                                         disabled={restoring}
                                                         className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition disabled:opacity-50"
                                                         title="Restore"
@@ -369,7 +369,7 @@ export default function BackupRestorePage() {
                                                         <Upload className="w-5 h-5" />
                                                     </button>
                                                     <button
-                                                        onClick={() => deleteBackup(backup.filename)}
+                                                        onClick={async () => deleteBackup(backup.filename)}
                                                         className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"
                                                         title="Delete"
                                                     >

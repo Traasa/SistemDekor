@@ -61,10 +61,10 @@ export default function OperationalCostsPage() {
         setShowModal(true);
     };
 
-    const openEdit = (row: OperationalCost) => {
+    const openEdit = async (row: OperationalCost) => {
         // Block editing payroll-managed entries
         if (row.cost_type === 'payroll' && row.reference_type === 'employee_payroll') {
-            alert('Biaya payroll dikelola otomatis melalui menu Payroll Karyawan. Silakan edit di halaman Payroll.');
+            await window.showAlert('Biaya payroll dikelola otomatis melalui menu Payroll Karyawan. Silakan edit di halaman Payroll.');
             return;
         }
 
@@ -112,18 +112,18 @@ export default function OperationalCostsPage() {
             closeModal();
             fetchData();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal menyimpan biaya operasional');
+            await window.showAlert(error.response?.data?.message || 'Gagal menyimpan biaya operasional');
         }
     };
 
     const handleDelete = async (id: number, row: OperationalCost) => {
         // Block deleting payroll-managed entries
         if (row.cost_type === 'payroll' && row.reference_type === 'employee_payroll') {
-            alert('Biaya payroll dikelola otomatis melalui menu Payroll Karyawan. Hapus dari halaman Payroll.');
+            await window.showAlert('Biaya payroll dikelola otomatis melalui menu Payroll Karyawan. Hapus dari halaman Payroll.');
             return;
         }
 
-        if (!confirm('Hapus data biaya ini?')) {
+        if (!await window.showConfirm('Hapus data biaya ini?')) {
             return;
         }
 
@@ -131,7 +131,7 @@ export default function OperationalCostsPage() {
             await axios.delete(`/api/operational-costs/${id}`);
             fetchData();
         } catch (error: any) {
-            alert(error.response?.data?.message || 'Gagal menghapus data');
+            await window.showAlert(error.response?.data?.message || 'Gagal menghapus data');
         }
     };
 
@@ -234,8 +234,8 @@ export default function OperationalCostsPage() {
                                                 </span>
                                             ) : (
                                                 <>
-                                                    <button onClick={() => openEdit(row)} className="mr-2 text-blue-600 hover:text-blue-800">Edit</button>
-                                                    <button onClick={() => handleDelete(row.id, row)} className="text-red-600 hover:text-red-800">
+                                                    <button onClick={async () => openEdit(row)} className="mr-2 text-blue-600 hover:text-blue-800">Edit</button>
+                                                    <button onClick={async () => handleDelete(row.id, row)} className="text-red-600 hover:text-red-800">
                                                         <Trash2 className="inline h-4 w-4" />
                                                     </button>
                                                 </>
