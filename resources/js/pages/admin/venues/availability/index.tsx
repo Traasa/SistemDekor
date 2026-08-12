@@ -479,14 +479,14 @@ export default function VenueAvailability() {
 
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {/* Show bookings for this date */}
-              {calendar.find(d => d.date === selectedDate)?.bookings.length > 0 && (
+              {(calendar.find(d => d.date === selectedDate)?.bookings?.length ?? 0) > 0 && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-2">
                     <AlertCircle className="w-5 h-5 text-blue-600 mt-0.5" />
                     <div>
                       <p className="font-semibold text-blue-900">Booking pada tanggal ini:</p>
                       <div className="mt-2 space-y-2">
-                        {calendar.find(d => d.date === selectedDate)?.bookings.map(booking => (
+                        {calendar.find(d => d.date === selectedDate)?.bookings?.map(booking => (
                           <div key={booking.id} className="text-sm text-blue-800">
                             • {booking.booking_number} - {booking.client_name} 
                             ({formatTime(booking.start_time)} - {formatTime(booking.end_time)})

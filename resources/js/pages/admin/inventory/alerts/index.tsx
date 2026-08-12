@@ -76,8 +76,12 @@ export default function LowStockAlerts() {
 
     return (
         <AdminLayout
-            title="Low Stock Alerts"
-            description="Monitor inventory items with low or out of stock status"
+            header={
+                <div>
+                    <h1 className="text-2xl font-bold text-gray-900">Low Stock Alerts</h1>
+                    <p className="mt-1 text-sm text-gray-600">Monitor inventory items with low or out of stock status</p>
+                </div>
+            }
         >
             <div className="space-y-6">
                 {/* Critical Alert Banner */}

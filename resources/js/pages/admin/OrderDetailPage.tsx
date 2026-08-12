@@ -549,7 +549,7 @@ Link berlaku selama 48 jam. Terima kasih!`;
 
                             <div className="flex gap-3">
                                 <button
-                                    onClick={copyToClipboard}
+                                    onClick={() => copyToClipboard()}
                                     className="flex-1 rounded-lg bg-gray-100 px-6 py-3 font-semibold text-gray-700 transition-colors hover:bg-gray-200"
                                 >
                                     📋 Copy Link
