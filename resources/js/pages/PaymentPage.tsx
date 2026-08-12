@@ -311,7 +311,7 @@ export default function PaymentPage({ order, token, upload_url }: Props) {
                                         <div className="grid grid-cols-[100px_10px_1fr]">
                                             <span className="font-medium">Atas Nama</span>
                                             <span>:</span>
-                                            <span className="font-bold text-gray-900">SUSILOWATI</span>
+                                            <span className="font-bold text-gray-900">EDOM</span>
                                         </div>
                                     </div>
                                 </div>

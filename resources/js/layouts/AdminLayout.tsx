@@ -88,8 +88,8 @@ export const AdminLayout: React.FC<AdminLayoutProps> = ({ children, header }) =>
     useEffect(() => {
         const fetchProfile = async () => {
             try {
-                const data = await companyProfileService.getProfile();
-                setProfile(data);
+                const response = await companyProfileService.getProfile();
+                setProfile(response.data);
             } catch (error) {
                 console.error('Failed to fetch company profile:', error);
             }
