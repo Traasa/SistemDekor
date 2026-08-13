@@ -12,6 +12,7 @@ const queryClient = new QueryClient();
 
 // Set default headers for Axios
 axios.defaults.headers.common['X-Requested-With'] = 'XMLHttpRequest';
+axios.defaults.withCredentials = true;
 
 // Initialize CSRF token for Sanctum API authentication
 axios.get('/sanctum/csrf-cookie').catch(() => {
